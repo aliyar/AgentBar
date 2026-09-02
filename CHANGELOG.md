@@ -10,12 +10,13 @@ version heading and uses them as the release notes.
 
 ### Added
 - The app: a menu bar item, a popover, and a Settings window with the update controls.
-- **The popover shows what the coding agents on this Mac are doing.** For Claude Code and
+- **The panel shows what the coding agents on this Mac are doing.** For Claude Code and
   Codex: every rate-limit window as a meter that fills as you spend, the percentage, and
   how long until it starts over; and the conversations running right now, named by what
   was last said in them, with a pulsing dot while one is working and how full its context
   is. Clicking a conversation opens its details; clicking again brings its terminal or
-  editor forward.
+  editor forward. Codex sessions are found through their running process and its rollout;
+  their context is a real percentage, since Codex writes its window size.
 - **The panel is glass**, in a dark and a light variant: a header with the agent and
   window count and when the files were last read; each agent's windows as rows in a
   rounded group (label, meter, percent, time left; click a time to see the clock

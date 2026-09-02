@@ -41,18 +41,12 @@ struct UsageSection: View {
         }
     }
 
-    /// Claude keeps its file current on its own, so its caption is the legend. Codex only
-    /// writes while it runs: fresh numbers say so, old ones say how old they are.
-    private var caption: String {
-        let legend = showsClock ? "used · resets at" : "used · time left"
-        switch agent {
-        case .claude:
-            return legend
-        case .codex:
-            guard !limits.isEmpty, let written else { return legend }
-            let age = now.timeIntervalSince(written)
-            return age > 3600 ? "\(Format.short(age, coarse: true)) ago" : "running now"
-        }
+    /// Said only when it changes the reading: how long ago these numbers were written.
+    /// Claude's arrive on their own; Codex only writes while it runs.
+    private var caption: String? {
+        guard agent == .codex, !limits.isEmpty, let written else { return nil }
+        let age = now.timeIntervalSince(written)
+        return age > 3600 ? "\(Format.short(age, coarse: true)) ago" : nil
     }
 }
 
@@ -114,10 +108,10 @@ private struct UsageRow: View {
             Text(rolledOver ? Format.percent(0) : Format.percent(limit.percentUsed))
                 .font(.system(size: 9.5))
                 .monospacedDigit()
-                .foregroundStyle(!rolledOver && level == .hot ? tint : glass.secondary)
+                .foregroundStyle(!rolledOver && level == .hot ? tint : glass.tertiary)
                 .frame(width: 24, alignment: .trailing)
             Text(remaining ?? (rolledOver ? "—" : ""))
-                .font(.system(size: 12.5, weight: .semibold))
+                .font(.system(size: 12.5, weight: .regular))
                 .monospacedDigit()
                 .foregroundStyle(dimmed ? glass.tertiary : glass.primary)
                 .lineLimit(1)

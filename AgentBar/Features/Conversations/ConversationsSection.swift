@@ -11,12 +11,10 @@ struct ConversationsSection: View {
     /// Only one row is open at a time.
     @State private var expandedID: String?
 
-    private var working: Int { conversations.filter(\.isBusy).count }
-
     var body: some View {
         let glass = Palette.glass(scheme)
         VStack(alignment: .leading, spacing: 5) {
-            GroupCaption(title: "Active", trailing: "context · \(working) working")
+            GroupCaption(title: "Active")
             GroupBox_ {
                 ForEach(Array(conversations.enumerated()), id: \.element.id) { index, conversation in
                     if index > 0 { Rectangle().fill(glass.hairline).frame(height: 0.5) }

@@ -173,7 +173,15 @@ samples, dated in the test names.
   (never by listing thousands of files) and only its last 512 KB is read. Codex only writes while
   it runs, so a window whose `resets_at` is in the past is history: show 0% (nothing is spent
   in the new window yet) with a dimmed track, and a dash for the time, never the old number.
-- **Context percentage** only when the limit is known (`[1m]` marker or >200K tokens); otherwise
+- **Codex conversations**: Codex writes no pid. A session is a running `codex` binary
+  (libproc, `ProcessTree.processes(whosePathContains:)`), matched by its working directory
+  to the newest rollout whose first line (`session_meta.cwd`) names that directory, among
+  today's and yesterday's rollouts. The tail says the rest: `task_started`/`task_complete`
+  for busy, the last user/assistant `response_item` for the name (the harness's own
+  `<environment_context>` messages are skipped), `turn_context` for model and effort,
+  `token_count.info` for the context - Codex writes `model_context_window`, so its
+  percentage is real.
+- **Context percentage** (Claude) only when the limit is known (`[1m]` marker or >200K tokens); otherwise
   show tokens. There is no reliable place the limit is written.
 - **Walking up the process tree** to the owning terminal or editor: stop at the first `.regular`
   app, not the first process with a bundle id — Electron helpers have bundle ids and no windows.

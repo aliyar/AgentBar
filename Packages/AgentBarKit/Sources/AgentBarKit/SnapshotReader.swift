@@ -21,8 +21,10 @@ public enum SnapshotReader {
                 let (limits, written) = CodexReader.readLimits(in: root)
                 snapshot.limits += limits
                 snapshot.lastWritten[.codex] = written
+                snapshot.conversations += CodexReader.conversations(in: root)
             }
         }
+        snapshot.conversations = snapshot.conversations.sortedByActivity()
         return snapshot
     }
 }

@@ -54,15 +54,11 @@ struct OverviewView: View {
 
     private func header(now: Date) -> some View {
         let glass = Palette.glass(scheme)
-        let windows = snapshot.limits.filter { agents.contains($0.agent) && !$0.hasRolledOver(by: now) }.count
         return HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text("AgentBar")
                 .font(.system(size: 14, weight: .semibold))
                 .tracking(-0.14)
                 .foregroundStyle(glass.primary)
-            Text("\(agents.count) \(agents.count == 1 ? "agent" : "agents") · \(windows) \(windows == 1 ? "window" : "windows")")
-                .font(.system(size: 10.5))
-                .foregroundStyle(glass.tertiary)
             Spacer()
             Text(snapshot.readAt, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute())
                 .font(.system(size: 10))
