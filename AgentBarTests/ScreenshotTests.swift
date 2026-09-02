@@ -43,6 +43,8 @@ struct ScreenshotTests {
     private static func write(_ view: some View, name: String, to directory: URL, scale: CGFloat = 2) throws {
         let hosting = NSHostingView(rootView: view.environment(\.controlActiveState, .key))
         hosting.sizingOptions = [.intrinsicContentSize]
+        // Window-shaped content (Settings, with its split view and toolbar) does not render this
+        // way: NavigationSplitView draws nothing offscreen. Only plain views are captured here.
         let window = NSWindow(contentRect: NSRect(x: -20000, y: -20000, width: 200, height: 200),
                               styleMask: [.borderless], backing: .buffered, defer: false)
         window.isOpaque = false

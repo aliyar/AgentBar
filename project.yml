@@ -39,6 +39,9 @@ targets:
     platform: macOS
     sources:
       - path: AgentBar
+      # Shown in Settings › Changelog; copied into the bundle as a resource.
+      - path: CHANGELOG.md
+        buildPhase: resources
       - path: Supporting
         type: group
         buildPhase: none

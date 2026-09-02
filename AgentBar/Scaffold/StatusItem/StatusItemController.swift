@@ -8,24 +8,37 @@ import SwiftUI
 /// later milestone). Left click toggles the popover; right click shows a small menu whose
 /// items are all reachable from Settings too.
 final class StatusItemController: NSObject, NSPopoverDelegate {
-    /// Symbol drawn when there is no title.
-    static let symbolName = "gauge.with.dots.needle.33percent"
+    /// Symbol drawn when there is no title. Set by the app before `install()`.
+    var symbolName = "circle.dashed" {
+        didSet { if symbolName != oldValue { render() } }
+    }
+    /// The size a standard menu bar symbol is drawn at (the bar is 22 pt; Apple's own extras
+    /// use ~16 pt template images). Without this the symbol takes the button font's size.
+    static let symbolSize: CGFloat = 16
 
     /// Text shown instead of the symbol (monospaced digits, so it does not jiggle). nil → symbol.
     var title: String? {
         didSet { if title != oldValue { render() } }
     }
     /// Tooltip and accessibility label.
-    var summary = "AgentBar" {
+    var summary = StatusItemController.appName {
         didSet { if summary != oldValue { render() } }
     }
     /// Builds the SwiftUI root of the popover. Set before `install()`.
     var panelRoot: (() -> AnyView)?
 
+    /// nil follows the system. Applied to the popover only, so the status item glyph keeps
+    /// matching the menu bar rather than the app's chosen theme.
+    var appearance: NSAppearance? {
+        didSet { popover.appearance = appearance }
+    }
+
     var onOpenSettings: (() -> Void)?
     var onQuit: (() -> Void)?
     var onPanelOpened: (() -> Void)?
     var onPanelClosed: (() -> Void)?
+
+    static var appName: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "App" }
 
     private var statusItem: NSStatusItem?
     private let popover = NSPopover()
@@ -71,7 +84,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         } else {
             button.title = ""
             button.imagePosition = .imageOnly
-            let image = NSImage(systemSymbolName: Self.symbolName, accessibilityDescription: summary)
+            let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: summary)?
+                .withSymbolConfiguration(.init(pointSize: Self.symbolSize, weight: .regular))
             image?.isTemplate = true
             button.image = image
         }
@@ -141,7 +155,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         let menu = NSMenu()
         menu.addItem(makeItem("Settings…", action: #selector(menuOpenSettings), key: ","))
         menu.addItem(.separator())
-        menu.addItem(makeItem("Quit AgentBar", action: #selector(menuQuit), key: "q"))
+        menu.addItem(makeItem("Quit \(Self.appName)", action: #selector(menuQuit), key: "q"))
         item.menu = menu
         item.button?.performClick(nil)
         item.menu = nil

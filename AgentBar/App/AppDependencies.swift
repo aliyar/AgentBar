@@ -11,12 +11,22 @@ final class AppDependencies {
     let model: AgentsModel
     let statusItem: StatusItemController
     let updates: UpdateController
+    let loginItem = LoginItemController()
+    let settingsWindow: SettingsWindowController
 
     private init() {
         settings = AppSettings()
         model = AgentsModel()
         statusItem = StatusItemController()
         updates = UpdateController()
+        let settings = settings, updates = updates, loginItem = loginItem
+        settingsWindow = SettingsWindowController(
+            size: SettingsShell<AgentBarSettingsPane, EmptyView>.size,
+            minimumSize: SettingsShell<AgentBarSettingsPane, EmptyView>.minimumSize,
+            initialPane: AgentBarSettingsPane.general
+        ) { selection in
+            AnyView(SettingsView(selection: selection).environment(settings).environment(updates).environment(loginItem))
+        }
         wire()
     }
 
@@ -29,10 +39,11 @@ final class AppDependencies {
         let model = model
         let settings = settings
         let updates = updates
+        statusItem.symbolName = "gauge.with.dots.needle.33percent"
         statusItem.panelRoot = {
             AnyView(PopoverView().environment(model).environment(settings).environment(updates))
         }
-        statusItem.onOpenSettings = { AppActivation.openSettings() }
+        statusItem.onOpenSettings = { [weak self] in self?.settingsWindow.show() }
         statusItem.onQuit = { NSApp.terminate(nil) }
         statusItem.onPanelOpened = {
             model.isPopoverVisible = true
@@ -44,6 +55,8 @@ final class AppDependencies {
     func start() {
         observeSettings()
         observeGauge()
+        observeAppearance()
+        loginItem.refresh()
         model.start()
         updates.start()
         Log.app.notice("AgentBar started")
@@ -58,6 +71,19 @@ final class AppDependencies {
         }
         model.agents = agents
         model.gaugeEnabled = gauge
+    }
+
+    /// The user's appearance choice goes to the popover and the Settings window, never through
+    /// `NSApp.appearance`: that would drag the status item along and draw a black glyph on a
+    /// dark menu bar.
+    private func observeAppearance() {
+        let appearance = withObservationTracking {
+            settings.appearance
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.observeAppearance() }
+        }
+        statusItem.appearance = appearance.nsAppearance
+        settingsWindow.appearance = appearance.nsAppearance
     }
 
     /// The status item shows the fullest live window, or the symbol when there is none.

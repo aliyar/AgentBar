@@ -12,7 +12,7 @@ struct PopoverView: View {
             Divider()
                 .padding(.horizontal, 12)
             HStack {
-                Button("Settings…") { AppActivation.openSettings() }
+                Button("Settings…") { AppDependencies.shared.settingsWindow.show() }
                 Spacer()
                 Button("Quit") { NSApp.terminate(nil) }
             }

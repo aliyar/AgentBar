@@ -38,8 +38,10 @@ if [ -z "$APP_PATH" ]; then
   if ! xcodebuild -project "$ROOT/$APP_NAME.xcodeproj" -scheme "$APP_NAME" -configuration Release \
        -destination 'platform=macOS' -derivedDataPath "$DERIVED_DATA" \
        CODE_SIGNING_ALLOWED=NO build > "$TEMP_DIR/build.log" 2>&1; then
-    grep -E "error:" "$TEMP_DIR/build.log" | head -20 >&2
-    die "xcodebuild failed (full log: $TEMP_DIR/build.log)"
+    # `grep` finds nothing on some failures; with pipefail that must not end the script before `die`.
+    { grep -E "error:" "$TEMP_DIR/build.log" || tail -15 "$TEMP_DIR/build.log"; } >&2
+    cp "$TEMP_DIR/build.log" "$ROOT/build/install-build-failed.log" 2>/dev/null || true
+    die "xcodebuild failed (full log: build/install-build-failed.log)"
   fi
   APP_PATH="$DERIVED_DATA/Build/Products/Release/$APP_NAME.app"
 fi
@@ -75,6 +77,7 @@ xattr -cr "$DEST" 2>/dev/null || true
 ok "Installed to $DEST"
 
 # 4. Relaunch
-open -a "$APP_NAME"
+# By path, not by name: LaunchServices would otherwise pick whichever copy ran last (a Debug build, say).
+open "$DEST"
 sleep 2
 pgrep -x "$APP_NAME" >/dev/null && ok "Launched $APP_NAME $VERSION" || die "App did not launch; check Console.app for crash logs"
