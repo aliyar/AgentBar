@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: agentbar
+    runtime: static
+    branch: main
+    rootDir: site
+    buildCommand: npm ci && npm run build
+    staticPublishPath: out
+    autoDeployTrigger: commit
+    buildFilter:
+      paths:
+        - site/**
+        - render.yaml
+    domains:
+      - agentbar.greatpixels.com
+    headers:
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=31536000; includeSubDomains
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=(), interest-cohort=()
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*.html
+        name: Cache-Control
+        value: public, max-age=0, must-revalidate
+      - path: /appcast.xml
+        name: Cache-Control
+        value: public, max-age=300
+      - path: /_next/static/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
