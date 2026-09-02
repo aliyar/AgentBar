@@ -10,6 +10,36 @@ final class AppSettings {
         static let gauge = "gaugeEnabled"
         static let agents = "enabledAgents"
         static let appearance = "appearance"
+        static let sampleData = "sampleData"
+        static let menuBarBars = "menuBarBars"
+        static let menuBarTime = "menuBarTime"
+        /// Shared with `OverviewView`'s `@AppStorage`: clicking a time in the panel flips it too.
+        static let resetClock = "showsResetClock"
+    }
+
+    /// Whose time left the menu bar shows next to the bars.
+    enum MenuBarTime: Hashable {
+        /// The fullest of the windows shown as bars.
+        case fullest
+        /// One window, by `UsageLimit.id`.
+        case window(String)
+        case none
+
+        var rawValue: String {
+            switch self {
+            case .fullest: "fullest"
+            case .none: "none"
+            case .window(let id): id
+            }
+        }
+
+        init(rawValue: String) {
+            switch rawValue {
+            case "fullest": self = .fullest
+            case "none": self = .none
+            default: self = .window(rawValue)
+            }
+        }
     }
 
     private let defaults: UserDefaults
@@ -31,12 +61,37 @@ final class AppSettings {
         didSet { defaults.set(appearance.rawValue, forKey: Keys.appearance) }
     }
 
+    /// Draw the handoff's sample snapshot instead of what the agents wrote: a way to see
+    /// every row of the panel without waiting for the agents to fill them.
+    var showsSampleData: Bool {
+        didSet { defaults.set(showsSampleData, forKey: Keys.sampleData) }
+    }
+
+    /// The windows drawn as bars in the menu bar, by `UsageLimit.id`. Empty means the
+    /// default: Claude's windows.
+    var menuBarBars: [String] {
+        didSet { defaults.set(menuBarBars, forKey: Keys.menuBarBars) }
+    }
+
+    var menuBarTime: MenuBarTime {
+        didSet { defaults.set(menuBarTime.rawValue, forKey: Keys.menuBarTime) }
+    }
+
+    /// Reset times in the panel as clock times ("14:05") rather than time left ("4h 52m").
+    var showsResetClock: Bool {
+        didSet { defaults.set(showsResetClock, forKey: Keys.resetClock) }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         gaugeEnabled = defaults.object(forKey: Keys.gauge) as? Bool ?? false
         let stored = defaults.stringArray(forKey: Keys.agents)
         enabledAgents = Set((stored ?? Agent.allCases.map(\.rawValue)).compactMap(Agent.init(rawValue:)))
         appearance = defaults.string(forKey: Keys.appearance).flatMap(AppAppearance.init(rawValue:)) ?? .system
+        showsSampleData = defaults.bool(forKey: Keys.sampleData)
+        menuBarBars = defaults.stringArray(forKey: Keys.menuBarBars) ?? []
+        menuBarTime = MenuBarTime(rawValue: defaults.string(forKey: Keys.menuBarTime) ?? "fullest")
+        showsResetClock = defaults.bool(forKey: Keys.resetClock)
     }
 
     /// Enabled agents in their canonical order.

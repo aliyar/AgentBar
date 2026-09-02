@@ -23,6 +23,8 @@ struct ClaudeReaderTests {
         #expect(limits.map(\.percentUsed) == [42, 78, 23])
         #expect(limits.allSatisfy { $0.agent == .claude })
         #expect(limits[0].resetsAt != nil)
+        let lengths: [TimeInterval?] = [5 * 3600, 7 * 86400, 7 * 86400]
+        #expect(limits.map(\.windowLength) == lengths)
     }
 
     @Test func olderUsageFileFallsBackToTheNamedWindows() {

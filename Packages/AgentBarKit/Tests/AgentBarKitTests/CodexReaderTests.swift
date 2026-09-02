@@ -19,6 +19,8 @@ struct CodexReaderTests {
         #expect(weekly.title == "Weekly")
         #expect(weekly.percentUsed == 96)
         #expect(weekly.resetsAt == Date(timeIntervalSince1970: 1786290599))
+        let week: TimeInterval = 10080 * 60
+        #expect(weekly.windowLength == week)
     }
 
     @Test func windowsAreNamedForTheirLength() {

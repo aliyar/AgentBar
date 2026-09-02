@@ -1,7 +1,8 @@
 import SwiftUI
 import AgentBarKit
 
-/// One agent's rate-limit windows, each as a meter that fills as you spend.
+/// One agent's rate-limit windows: a caption, then a rounded group with a row per window -
+/// label, tick meter, percent used, time until it starts over.
 ///
 /// The meters show what has been **used**, never what is left. One that fills as you
 /// spend needs no explaining; one that empties reads as "nearly gone" at exactly the
@@ -11,37 +12,47 @@ struct UsageSection: View {
     let limits: [UsageLimit]
     /// When the agent last wrote these numbers.
     let written: Date?
+    /// When one of the agent's conversations last moved: a window that has rolled over
+    /// is projected forward only while the agent is in use.
+    let activeSince: Date?
     let now: Date
+    /// Show each window's reset as a clock time instead of the time left. Clicking a
+    /// time flips it, for every window at once.
+    @Binding var showsClock: Bool
+
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            RuledHeading(text: agent.title, symbol: agent.symbol, tint: Palette.agent(agent),
-                         trailing: freshnessNote)
-            if !agent.isInstalled {
-                Text("Not installed — \(agent.folderPath) is not on this Mac")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
-            } else if limits.isEmpty {
-                Text("Nothing reported yet")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
-            } else {
-                VStack(alignment: .leading, spacing: 9) {
-                    ForEach(limits) { limit in
-                        UsageRow(limit: limit, now: now)
+        let glass = Palette.glass(scheme)
+        VStack(alignment: .leading, spacing: 5) {
+            GroupCaption(title: agent.title, trailing: caption)
+            GroupBox_ {
+                if !agent.isInstalled {
+                    Note("Not installed — \(agent.folderPath) is not on this Mac")
+                } else if limits.isEmpty {
+                    Note("Nothing reported yet")
+                } else {
+                    ForEach(Array(limits.enumerated()), id: \.element.id) { index, limit in
+                        if index > 0 { Rectangle().fill(glass.hairline).frame(height: 0.5) }
+                        UsageRow(limit: limit, now: now, activeSince: activeSince, showsClock: $showsClock)
                     }
                 }
             }
         }
     }
 
-    /// Said only when it changes the reading: how long ago these numbers were written.
-    /// Claude keeps its file current on its own, so this stays quiet there.
-    private var freshnessNote: String? {
-        guard !limits.isEmpty, let written else { return nil }
-        let age = now.timeIntervalSince(written)
-        guard age > 3600 else { return nil }
-        return "\(Format.short(age, coarse: true)) ago"
+    /// Claude keeps its file current on its own, so its caption is the legend. Codex only
+    /// writes while it runs: fresh numbers say so, old ones say how old they are.
+    private var caption: String {
+        let legend = showsClock ? "used · resets at" : "used · time left"
+        switch agent {
+        case .claude:
+            return legend
+        case .codex:
+            guard !limits.isEmpty, let written else { return legend }
+            let age = now.timeIntervalSince(written)
+            return age > 3600 ? "\(Format.short(age, coarse: true)) ago" : "running now"
+        }
     }
 }
 
@@ -49,55 +60,155 @@ struct UsageSection: View {
 private struct UsageRow: View {
     let limit: UsageLimit
     let now: Date
+    let activeSince: Date?
+    @Binding var showsClock: Bool
+
+    @Environment(\.colorScheme) private var scheme
 
     /// The window has already started over, so the figure describes something that no
     /// longer exists. Drawn as absent rather than as a reading - a stale 96 % in red is a
     /// lie the moment its week has rolled.
     private var rolledOver: Bool { limit.hasRolledOver(by: now) }
-    private var tint: Color { Palette.level(limit.percentUsed) }
+    /// The end of the window running now, projected past a rollover while the agent is active.
+    private var windowEnd: Date? { limit.currentWindowEnd(now: now, activeSince: activeSince) }
+    private var level: Palette.Level { Palette.level(rolledOver ? 0 : limit.percentUsed) }
+    /// A window that has rolled over with no use since: history, drawn quietly.
+    private var dimmed: Bool { rolledOver && windowEnd == nil }
 
     private var remaining: String? {
-        guard !rolledOver, let resetsAt = limit.resetsAt else { return nil }
-        return Format.short(resetsAt.timeIntervalSince(now))
+        if let windowEnd {
+            return showsClock ? Self.clock(windowEnd, now: now) : Format.short(windowEnd.timeIntervalSince(now))
+        }
+        if rolledOver {
+            // Nothing is running, so the next window is the whole window: its length is
+            // what is left once it starts. Its clock time is anyone's guess.
+            return showsClock ? nil : limit.windowLength.map { Format.short($0) }
+        }
+        return nil
+    }
+
+    /// "14:05" when the window starts over today, "Thu 14:05" when it is another day.
+    static func clock(_ date: Date, now: Date) -> String {
+        let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute())
+        if Calendar.current.isDate(date, inSameDayAs: now) { return time }
+        return "\(date.formatted(.dateTime.weekday(.abbreviated))) \(time)"
+    }
+
+    /// "Weekly · all models" is too long for its column; the design writes "Weekly · all".
+    private var label: String {
+        limit.title.replacingOccurrences(of: " · all models", with: " · all")
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(rolledOver ? "—" : Format.percent(limit.percentUsed))
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(rolledOver ? Color.secondary : tint)
-                    .frame(minWidth: 38, alignment: .leading)
-                Text(limit.title)
-                    .font(.system(size: 11))
-                    .foregroundStyle(rolledOver ? .tertiary : .secondary)
-                    .lineLimit(1)
-                Spacer(minLength: 4)
-                if let remaining {
-                    Text(remaining)
-                        .font(.system(size: 10))
-                        .monospacedDigit()
-                        .foregroundStyle(.tertiary)
-                }
-            }
-            TickMeter(fraction: limit.percentUsed / 100, tint: tint, dimmed: rolledOver)
+        let glass = Palette.glass(scheme)
+        let tint = Palette.color(level, scheme)
+        HStack(spacing: 8) {
+            Text(label)
+                .font(.system(size: 11.5, weight: glass.bodyWeight))
+                .foregroundStyle(dimmed ? glass.tertiary : glass.body)
+                .lineLimit(1)
+                .frame(width: 86, alignment: .leading)
+            TickMeter(fraction: rolledOver ? 0 : limit.percentUsed / 100, tint: tint, dimmed: dimmed)
+            // A window that has started over has nothing spent in it yet: 0%, not a dash.
+            // The dash stays on the time, since no one has written when the next one ends.
+            Text(rolledOver ? Format.percent(0) : Format.percent(limit.percentUsed))
+                .font(.system(size: 9.5))
+                .monospacedDigit()
+                .foregroundStyle(!rolledOver && level == .hot ? tint : glass.secondary)
+                .frame(width: 24, alignment: .trailing)
+            Text(remaining ?? (rolledOver ? "—" : ""))
+                .font(.system(size: 12.5, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(dimmed ? glass.tertiary : glass.primary)
+                .lineLimit(1)
+                .fixedSize()
+                // 38 pt fits "1d 1h"; "3d 23h" may take a little more, never a second line.
+                .frame(minWidth: 38, alignment: .trailing)
+                .contentShape(Rectangle())
+                // The time is a toggle: time left ⇄ the clock time it starts over.
+                .onTapGesture { showsClock.toggle() }
+                .help(showsClock ? "Click for the time left" : "Click for the time it starts over")
         }
+        .padding(.vertical, 7)
+        .padding(.horizontal, 10)
         .help(helpText)
     }
 
     private var helpText: String {
+        if rolledOver, let remaining, windowEnd != nil {
+            return "\(limit.title): a new window started when the last one closed; the used figure arrives with the next read. It starts over \(showsClock ? "at" : "in") \(remaining)."
+        }
         if rolledOver {
-            return "\(limit.title): this window has started over since the figure was written, so there is nothing current to show."
+            let whole = limit.windowLength.map { " The next one runs \(Format.short($0)) from first use." } ?? ""
+            return "\(limit.title): this window has started over since the figure was written; nothing has been used in the new one yet.\(whole)"
         }
         let used = "\(limit.title): \(Format.percent(limit.percentUsed)) used"
         guard let remaining else { return used }
-        return "\(used), starts over in \(remaining)"
+        return showsClock ? "\(used), starts over at \(remaining)" : "\(used), starts over in \(remaining)"
+    }
+}
+
+// MARK: - Shared pieces of a group
+
+/// The line above a group: its name on the left, a short note on the right.
+struct GroupCaption: View {
+    let title: String
+    var trailing: String?
+
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let glass = Palette.glass(scheme)
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .font(.system(size: 10.5, weight: .semibold))
+                .foregroundStyle(glass.primary)
+            Spacer()
+            if let trailing {
+                Text(trailing)
+                    .font(.system(size: 9))
+                    .monospacedDigit()
+                    .foregroundStyle(glass.tertiary)
+            }
+        }
+        .padding(.horizontal, 1)
+    }
+}
+
+/// The rounded container a group's rows sit in.
+struct GroupBox_<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        VStack(spacing: 0) {
+            content()
+        }
+        .background(Palette.glass(scheme).groupFill, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+    }
+}
+
+/// A group with nothing to draw says why, in one quiet line.
+struct Note: View {
+    let text: String
+    init(_ text: String) { self.text = text }
+
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 11))
+            .foregroundStyle(Palette.glass(scheme).tertiary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 7)
+            .padding(.horizontal, 10)
     }
 }
 
 #Preview {
-    UsageSection(agent: .claude, limits: Snapshot.sample.limits(for: .claude), written: .now, now: .now)
-        .padding(12)
+    UsageSection(agent: .claude, limits: Snapshot.sample.limits(for: .claude), written: .now, activeSince: .now, now: .now, showsClock: .constant(false))
+        .padding(11)
         .frame(width: 340)
+        .background(GlassBackground())
 }

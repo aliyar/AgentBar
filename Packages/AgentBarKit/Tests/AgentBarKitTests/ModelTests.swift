@@ -16,6 +16,26 @@ struct ModelTests {
         #expect(!UsageLimit(agent: .claude, title: "x", percentUsed: 1, resetsAt: nil).hasRolledOver(by: now))
     }
 
+    @Test func aRolledOverWindowIsProjectedForwardOnlyWhileTheAgentIsActive() {
+        let now = Date(timeIntervalSince1970: 1_756_900_000)
+        let session = UsageLimit(agent: .claude, title: "Session (5h)", percentUsed: 41,
+                                 resetsAt: now.addingTimeInterval(-10 * 60), windowLength: 5 * 3600)
+        // Still ahead: as reported.
+        let ahead = UsageLimit(agent: .claude, title: "x", percentUsed: 1, resetsAt: now.addingTimeInterval(60), windowLength: 5 * 3600)
+        #expect(ahead.currentWindowEnd(now: now, activeSince: nil) == now.addingTimeInterval(60))
+        // Rolled over ten minutes ago and used since: the next window ends 5 h after the old one.
+        #expect(session.currentWindowEnd(now: now, activeSince: now.addingTimeInterval(-60)) == now.addingTimeInterval(5 * 3600 - 10 * 60))
+        // Rolled over and idle since: nothing to project.
+        #expect(session.currentWindowEnd(now: now, activeSince: now.addingTimeInterval(-20 * 60)) == nil)
+        #expect(session.currentWindowEnd(now: now, activeSince: nil) == nil)
+        // Several windows ago: the one running now.
+        let old = UsageLimit(agent: .claude, title: "x", percentUsed: 1, resetsAt: now.addingTimeInterval(-12 * 3600), windowLength: 5 * 3600)
+        #expect(old.currentWindowEnd(now: now, activeSince: now) == now.addingTimeInterval(3 * 3600))
+        // No length known: nothing to project.
+        let unknown = UsageLimit(agent: .codex, title: "x", percentUsed: 1, resetsAt: now.addingTimeInterval(-60))
+        #expect(unknown.currentWindowEnd(now: now, activeSince: now) == nil)
+    }
+
     @Test func theWorstLimitIgnoresHistory() {
         let now = Date()
         let snapshot = Snapshot(limits: [

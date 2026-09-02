@@ -47,20 +47,30 @@ public enum ClaudeReader {
             let mapped = limits.compactMap { limit -> UsageLimit? in
                 guard let percent = limit.percent else { return nil }
                 return UsageLimit(agent: .claude, title: title(for: limit),
-                                  percentUsed: percent, resetsAt: ISODate.parse(limit.resets_at))
+                                  percentUsed: percent, resetsAt: ISODate.parse(limit.resets_at),
+                                  windowLength: windowLength(for: limit.kind))
             }
             if !mapped.isEmpty { return mapped }
         }
         var fallback: [UsageLimit] = []
         if let window = file.five_hour, let used = window.utilization {
             fallback.append(UsageLimit(agent: .claude, title: "Session (5h)", percentUsed: used,
-                                       resetsAt: ISODate.parse(window.resets_at)))
+                                       resetsAt: ISODate.parse(window.resets_at), windowLength: 5 * 3600))
         }
         if let window = file.seven_day, let used = window.utilization {
             fallback.append(UsageLimit(agent: .claude, title: "Weekly · all models", percentUsed: used,
-                                       resetsAt: ISODate.parse(window.resets_at)))
+                                       resetsAt: ISODate.parse(window.resets_at), windowLength: 7 * 86400))
         }
         return fallback
+    }
+
+    /// Claude does not write the length; its kinds imply it.
+    private static func windowLength(for kind: String?) -> TimeInterval? {
+        switch kind {
+        case "session": 5 * 3600
+        case "weekly_all", "weekly_scoped": 7 * 86400
+        default: nil
+        }
     }
 
     private static func title(for limit: UsageFile.Limit) -> String {

@@ -9,12 +9,16 @@ public struct UsageLimit: Identifiable, Hashable, Codable, Sendable {
     /// fills as you spend is the only reading of a bar that needs no explaining.
     public let percentUsed: Double
     public let resetsAt: Date?
+    /// How long the window runs, when known: what a rolled-over window offers once it is
+    /// used again (Claude's session is 5 h, its weekly windows 7 d; Codex writes its own).
+    public let windowLength: TimeInterval?
 
-    public init(agent: Agent, title: String, percentUsed: Double, resetsAt: Date?) {
+    public init(agent: Agent, title: String, percentUsed: Double, resetsAt: Date?, windowLength: TimeInterval? = nil) {
         self.agent = agent
         self.title = title
         self.percentUsed = percentUsed
         self.resetsAt = resetsAt
+        self.windowLength = windowLength
     }
 
     public var id: String { "\(agent.rawValue)|\(title)" }
@@ -25,5 +29,17 @@ public struct UsageLimit: Identifiable, Hashable, Codable, Sendable {
     public func hasRolledOver(by now: Date) -> Bool {
         guard let resetsAt else { return false }
         return resetsAt < now
+    }
+
+    /// When the window running right now ends. The reported `resetsAt` while it is still
+    /// ahead; after it has passed, the same length again from that moment - but only if
+    /// the agent has been active since, because a window starts with use. Nothing is
+    /// projected for an agent that has not run since the old window closed.
+    public func currentWindowEnd(now: Date, activeSince lastActivity: Date?) -> Date? {
+        guard let resetsAt else { return nil }
+        if resetsAt >= now { return resetsAt }
+        guard let windowLength, windowLength > 0, let lastActivity, lastActivity > resetsAt else { return nil }
+        let windowsPassed = (now.timeIntervalSince(resetsAt) / windowLength).rounded(.down) + 1
+        return resetsAt.addingTimeInterval(windowsPassed * windowLength)
     }
 }

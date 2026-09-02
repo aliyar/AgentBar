@@ -35,7 +35,8 @@ public enum CodexReader {
             guard let window, let used = window.used_percent else { continue }
             result.append(UsageLimit(agent: .codex, title: title(minutes: window.window_minutes),
                                      percentUsed: used,
-                                     resetsAt: window.resets_at.map { Date(timeIntervalSince1970: $0) }))
+                                     resetsAt: window.resets_at.map { Date(timeIntervalSince1970: $0) },
+                                     windowLength: window.window_minutes.flatMap { $0 > 0 ? $0 * 60 : nil }))
         }
         return result
     }

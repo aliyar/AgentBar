@@ -150,11 +150,20 @@ The formats are **undocumented and the agents' to change**. Every field is optio
 in; the parsers degrade to "nothing reported", never crash. Pin them with tests against real
 samples, dated in the test names.
 
-- **Claude limits**: `~/.claude/cache/usage.json` — one ~2 KB file Claude Code keeps current on
-  its own. `limits[]` carries `session`, `weekly_all` and `weekly_scoped` (whose
+- **Claude limits**: `~/.claude/cache/usage.json` — one ~2 KB file. **Claude Code does not
+  write it**: on this Mac it is written by the user's own status line script, which fetches
+  `api.anthropic.com/api/oauth/usage` with Claude Code's OAuth token at most every 15 minutes
+  (found 2 Sep 2026). A Mac without that script has no file and no Claude limits; the live
+  figures reach only the status line's stdin and are persisted nowhere. Whether AgentBar
+  should fetch the endpoint itself is an open decision. `limits[]` carries `session`, `weekly_all` and `weekly_scoped` (whose
   `scope.model.display_name` names the per-model row); `five_hour`/`seven_day` are the
   fallback. **`percent`/`utilization` is what has been *used*** — show it as written, as a bar
   that fills. Never invert to "left".
+- **A window whose `resets_at` has passed** is history only while the agent is idle. If one
+  of its conversations has moved since, a new window started when the old one closed:
+  `UsageLimit.currentWindowEnd(now:activeSince:)` projects the end forward by the window's
+  length (the used figure stays 0% until the next read). Without activity, the row shows
+  0% and the window's full length, dimmed.
 - **Claude conversations**: `~/.claude/sessions/<pid>.json` — one file per running session, with
   the name Claude Code gave it and `status: "busy"`. Files outlive their process: check the pid
   with `kill(pid, 0)`.
@@ -162,7 +171,8 @@ samples, dated in the test names.
   `token_count` event (`payload.rate_limits.primary.{used_percent, window_minutes, resets_at}`,
   the reset a unix timestamp). The newest rollout is found by walking `sessions/YYYY/MM/DD`
   (never by listing thousands of files) and only its last 512 KB is read. Codex only writes while
-  it runs, so a window whose `resets_at` is in the past is history: draw a dash, not the number.
+  it runs, so a window whose `resets_at` is in the past is history: show 0% (nothing is spent
+  in the new window yet) with a dimmed track, and a dash for the time, never the old number.
 - **Context percentage** only when the limit is known (`[1m]` marker or >200K tokens); otherwise
   show tokens. There is no reliable place the limit is written.
 - **Walking up the process tree** to the owning terminal or editor: stop at the first `.regular`

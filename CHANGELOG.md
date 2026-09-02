@@ -14,9 +14,18 @@ version heading and uses them as the release notes.
   Codex: every rate-limit window as a meter that fills as you spend, the percentage, and
   how long until it starts over; and the conversations running right now, named by what
   was last said in them, with a pulsing dot while one is working and how full its context
-  is. Clicking a conversation brings its terminal or editor forward.
-- The menu bar can show the fullest window as a percentage ("78%") instead of the symbol,
-  refreshed every minute. Off by default; in Settings › General.
+  is. Clicking a conversation opens its details; clicking again brings its terminal or
+  editor forward.
+- **The panel is glass**, in a dark and a light variant: a header with the agent and
+  window count and when the files were last read; each agent's windows as rows in a
+  rounded group (label, meter, percent, time left; click a time to see the clock
+  time it starts over instead, or pick the default in Settings › Appearance); the running conversations with the
+  agent's mark, a breathing dot while one works, its context and a chevron for the
+  details; and a footer with Settings and Quit.
+- The menu bar can show a gauge instead of the symbol: a small bar per window and the
+  time left on one of them, in its colour. Settings › Appearance › Menu Bar chooses the
+  windows shown as bars and whose time left is written (the fullest, a given window, or
+  none). Off by default.
 - Settings, laid out like System Settings with a sidebar: General (launch at login,
   appearance, the menu bar percentage, updates), Agents (which agents to show), Changelog
   (these notes, inside the app), Support and About. Back and forward buttons walk the

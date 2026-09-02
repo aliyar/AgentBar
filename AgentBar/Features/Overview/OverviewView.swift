@@ -1,14 +1,21 @@
 import SwiftUI
 import AgentBarKit
 
-/// Everything the app knows about the agents, in one column: the conversations running
-/// right now, then each agent's usage. The popover and the Dock window both draw this.
+/// Everything the app knows about the agents, in one panel: a header, each agent's
+/// usage, the conversations running right now, and a footer. The popover and the Dock
+/// window both draw this.
 ///
 /// Draws a snapshot and nothing else: no reading, no timers of its own beyond the
 /// half-minute tick that keeps the countdowns honest.
 struct OverviewView: View {
     let snapshot: Snapshot
     let agents: [Agent]
+    var onSettings: () -> Void = {}
+    var onQuit: () -> Void = {}
+
+    @Environment(\.colorScheme) private var scheme
+    /// Reset times as clock times rather than time left; remembered between opens.
+    @AppStorage("showsResetClock") private var showsClock = false
 
     private var conversations: [Conversation] {
         snapshot.conversations.filter { agents.contains($0.agent) }
@@ -22,27 +29,110 @@ struct OverviewView: View {
 
     @ViewBuilder
     private func content(now: Date) -> some View {
-        VStack(alignment: .leading, spacing: 18) {
-            if agents.isEmpty {
-                Text("No coding agent to show. AgentBar reads Claude Code and Codex from their own folders in your home directory; pick the agents in Settings.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        let glass = Palette.glass(scheme)
+        VStack(spacing: 0) {
+            header(now: now)
+            Rectangle().fill(glass.hairline).frame(height: 0.5)
+            VStack(alignment: .leading, spacing: 16) {
+                if agents.isEmpty {
+                    Note("No coding agent to show. AgentBar reads Claude Code and Codex from their own folders in your home directory; pick the agents in Settings.")
+                }
+                ForEach(agents) { agent in
+                    UsageSection(agent: agent, limits: snapshot.limits(for: agent),
+                                 written: snapshot.lastWritten[agent],
+                                 activeSince: snapshot.latestActivity(for: agent), now: now, showsClock: $showsClock)
+                }
+                if !conversations.isEmpty {
+                    ConversationsSection(conversations: conversations)
+                }
             }
-            if !conversations.isEmpty {
-                ConversationsSection(conversations: conversations)
-            }
-            ForEach(agents) { agent in
-                UsageSection(agent: agent, limits: snapshot.limits(for: agent),
-                             written: snapshot.lastWritten[agent], now: now)
-            }
+            .padding(11)
+            Rectangle().fill(glass.hairline).frame(height: 0.5)
+            footer
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+    }
+
+    private func header(now: Date) -> some View {
+        let glass = Palette.glass(scheme)
+        let windows = snapshot.limits.filter { agents.contains($0.agent) && !$0.hasRolledOver(by: now) }.count
+        return HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text("AgentBar")
+                .font(.system(size: 14, weight: .semibold))
+                .tracking(-0.14)
+                .foregroundStyle(glass.primary)
+            Text("\(agents.count) \(agents.count == 1 ? "agent" : "agents") · \(windows) \(windows == 1 ? "window" : "windows")")
+                .font(.system(size: 10.5))
+                .foregroundStyle(glass.tertiary)
+            Spacer()
+            Text(snapshot.readAt, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute())
+                .font(.system(size: 10))
+                .monospacedDigit()
+                .foregroundStyle(glass.tertiary)
+                .help("When the agents' files were last read")
+        }
+        .padding(.top, 11)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 10)
+    }
+
+    private var footer: some View {
+        HStack(spacing: 6) {
+            Spacer()
+            FooterButton(symbol: "gearshape", help: "Settings…", action: onSettings)
+                .keyboardShortcut(",", modifiers: .command)
+            FooterButton(symbol: "power", help: "Quit AgentBar", action: onQuit)
+                .keyboardShortcut("q", modifiers: .command)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 11)
     }
 }
 
-#Preview {
+/// One of the two small translucent buttons at the panel's foot.
+private struct FooterButton: View {
+    let symbol: String
+    let help: String
+    let action: () -> Void
+
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let glass = Palette.glass(scheme)
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(glass.icon)
+                .frame(width: 26, height: 24)
+                .background(glass.buttonFill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+}
+
+/// The panel's material: the popover's own blur underneath, the design's translucent
+/// gradient over it, a hairline border around it.
+struct GlassBackground: View {
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let glass = Palette.glass(scheme)
+        LinearGradient(colors: [glass.backgroundTop, glass.backgroundBottom], startPoint: .top, endPoint: .bottom)
+            .overlay(alignment: .top) { glass.border.frame(height: 0.5) }
+    }
+}
+
+#Preview("Dark") {
     OverviewView(snapshot: .sample, agents: Agent.allCases)
         .frame(width: 340)
+        .background(GlassBackground())
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Light") {
+    OverviewView(snapshot: .sample, agents: Agent.allCases)
+        .frame(width: 340)
+        .background(GlassBackground())
+        .preferredColorScheme(.light)
 }

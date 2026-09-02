@@ -4,13 +4,14 @@ import AgentBarKit
 /// AgentBar's panes. v1 settings: agents shown, gauge on/off, Dock on/off, launch at login,
 /// updates. Dock and launch at login arrive with their features.
 nonisolated enum AgentBarSettingsPane: String, SettingsPane {
-    case general, agents, changelog, support, about
+    case general, appearance, agents, changelog, support, about
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .general: "General"
+        case .appearance: "Appearance"
         case .agents: "Agents"
         case .changelog: "Changelog"
         case .support: "Support"
@@ -21,6 +22,7 @@ nonisolated enum AgentBarSettingsPane: String, SettingsPane {
     var symbol: String {
         switch self {
         case .general: "gearshape"
+        case .appearance: "paintbrush"
         case .agents: "cpu"
         case .changelog: "list.bullet.rectangle"
         case .support: "questionmark.bubble"
@@ -34,6 +36,7 @@ struct SettingsView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(UpdateController.self) private var updates
     @Environment(LoginItemController.self) private var loginItem
+    @Environment(AgentsModel.self) private var model
 
     static let website = URL(string: "https://agentbar.greatpixels.com")!
     static let supportRows = [
@@ -46,6 +49,7 @@ struct SettingsView: View {
         SettingsShell(selection: selection) { (pane: AgentBarSettingsPane) in
             switch pane {
             case .general: general
+            case .appearance: appearance
             case .agents: agents
             case .changelog: ChangelogPane()
             case .support: SupportPane(intro: "Get in touch for any feedback, questions or feature requests.", rows: Self.supportRows)
@@ -80,21 +84,6 @@ struct SettingsView: View {
             Footnote("AgentBar reads the agents' files only while it runs, and the widget shows what it last read; starting at login keeps both current.")
         }
         Section {
-            Picker("Appearance", selection: $settings.appearance) {
-                ForEach(AppAppearance.allCases, id: \.self) { Text($0.displayName).tag($0) }
-            }
-            .pickerStyle(.segmented)
-        } footer: {
-            Footnote("For the popover and this window. The menu bar item always follows the menu bar.")
-        }
-        Section {
-            Toggle("Show the fullest window as a percentage", isOn: $settings.gaugeEnabled)
-        } header: {
-            Text("Menu Bar")
-        } footer: {
-            Footnote("The menu bar shows how much of the fullest rate-limit window is used, refreshed every minute. Off, it shows the AgentBar symbol.")
-        }
-        Section {
             Toggle("Check for updates automatically", isOn: $updates.automaticallyChecksForUpdates)
                 .disabled(!updates.isStarted)
             checkForUpdates
@@ -104,7 +93,87 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
+    private var appearance: some View {
+        @Bindable var settings = settings
+        Section {
+            Picker("Theme", selection: $settings.appearance) {
+                ForEach(AppAppearance.allCases, id: \.self) { Text($0.displayName).tag($0) }
+            }
+            .pickerStyle(.segmented)
+        } footer: {
+            Footnote("For the popover, the Dock window and this window. The menu bar item follows the menu bar, and the widget follows macOS: neither can be themed by an app.")
+        }
+        Section {
+            Picker("Show resets as", selection: $settings.showsResetClock) {
+                Text("Time left").tag(false)
+                Text("Clock time").tag(true)
+            }
+            .pickerStyle(.segmented)
+        } header: {
+            Text("Windows")
+        } footer: {
+            Footnote("\"4h 52m\" or \"14:05\". Clicking a time in the panel flips this too.")
+        }
+        menuBar
+    }
+
+    /// What the menu bar item shows besides the symbol: which windows as bars, whose time
+    /// left beside them.
+    @ViewBuilder
+    private var menuBar: some View {
+        @Bindable var settings = settings
+        let windows = model.snapshot.limits.filter { settings.agents.contains($0.agent) }
+        Section {
+            Picker("Show", selection: $settings.gaugeEnabled) {
+                Text("The AgentBar symbol").tag(false)
+                Text("Usage bars and time left").tag(true)
+            }
+        } header: {
+            Text("Menu Bar")
+        } footer: {
+            Footnote("A bar per window, filled as it is used and coloured by how full it is, refreshed every minute.")
+        }
+        if settings.gaugeEnabled {
+            Section {
+                if windows.isEmpty {
+                    Text("Windows appear here once an agent reports them.")
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(windows) { window in
+                    Toggle(isOn: Binding(
+                        get: { settings.menuBarBars.isEmpty ? window.agent == .claude : settings.menuBarBars.contains(window.id) },
+                        set: { on in
+                            var chosen = settings.menuBarBars.isEmpty ? windows.filter { $0.agent == .claude }.map(\.id) : settings.menuBarBars
+                            if on { if !chosen.contains(window.id) { chosen.append(window.id) } } else { chosen.removeAll { $0 == window.id } }
+                            // Kept in the windows' own order, so the bars never reorder.
+                            settings.menuBarBars = windows.map(\.id).filter { chosen.contains($0) }
+                        }
+                    )) {
+                        LabeledContent(window.title) { Text(window.agent.title).foregroundStyle(.tertiary) }
+                    }
+                }
+            } header: {
+                Text("Bars")
+            } footer: {
+                Footnote("Claude's windows by default. Turn every bar off and the bars fall back to whatever is reported.")
+            }
+            Section {
+                Picker("Time left of", selection: $settings.menuBarTime) {
+                    Text("The fullest window shown").tag(AppSettings.MenuBarTime.fullest)
+                    ForEach(windows) { window in
+                        Text("\(window.title) (\(window.agent.title))").tag(AppSettings.MenuBarTime.window(window.id))
+                    }
+                    Text("None").tag(AppSettings.MenuBarTime.none)
+                }
+            } footer: {
+                Footnote("Written in that window's colour: green, amber, then red as it fills.")
+            }
+        }
+    }
+
+    @ViewBuilder
     private var agents: some View {
+        @Bindable var settings = settings
         Section {
             ForEach(Agent.allCases) { agent in
                 Toggle(isOn: Binding(get: { settings.isEnabled(agent) }, set: { settings.setEnabled(agent, $0) })) {
@@ -119,6 +188,11 @@ struct SettingsView: View {
             }
         } footer: {
             Footnote("AgentBar reads each agent's own files under its folder in your home directory (~/.claude, ~/.codex). No account is contacted and nothing is sent anywhere.")
+        }
+        Section {
+            Toggle("Preview with sample data", isOn: $settings.showsSampleData)
+        } footer: {
+            Footnote("Shows made-up windows and conversations in the panel and the menu bar, so every row can be seen without waiting for the agents. Nothing is read while it is on.")
         }
     }
 
@@ -137,4 +211,5 @@ struct SettingsView: View {
         .environment(AppSettings())
         .environment(UpdateController())
         .environment(LoginItemController())
+        .environment(AgentsModel())
 }

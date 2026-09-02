@@ -28,9 +28,16 @@ struct ScreenshotTests {
         try await MainActor.run {
             for scheme in [ColorScheme.light, .dark] {
                 let suffix = scheme == .dark ? "dark" : "light"
+                // On a soft gradient, as the design page shows it: the glass has to sit on something.
+                let backdrop = scheme == .dark
+                    ? [Color(red: 0.16, green: 0.20, blue: 0.42), Color(red: 0.45, green: 0.22, blue: 0.40), Color(red: 0.75, green: 0.42, blue: 0.30)]
+                    : [Color(red: 0.72, green: 0.85, blue: 0.95), Color(red: 0.96, green: 0.92, blue: 0.82), Color(red: 0.95, green: 0.72, blue: 0.75)]
                 let view = OverviewView(snapshot: .sample, agents: Agent.allCases)
                     .frame(width: 340)
-                    .background(.background)
+                    .background(GlassBackground())
+                    .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                    .padding(28)
+                    .background(LinearGradient(colors: backdrop, startPoint: .topLeading, endPoint: .bottomTrailing))
                     .preferredColorScheme(scheme)
                 try Self.write(view, name: "popover-\(suffix).png", to: directory)
             }

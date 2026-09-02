@@ -19,13 +19,13 @@ final class AppDependencies {
         model = AgentsModel()
         statusItem = StatusItemController()
         updates = UpdateController()
-        let settings = settings, updates = updates, loginItem = loginItem
+        let settings = settings, updates = updates, loginItem = loginItem, model = model
         settingsWindow = SettingsWindowController(
             size: SettingsShell<AgentBarSettingsPane, EmptyView>.size,
             minimumSize: SettingsShell<AgentBarSettingsPane, EmptyView>.minimumSize,
             initialPane: AgentBarSettingsPane.general
         ) { selection in
-            AnyView(SettingsView(selection: selection).environment(settings).environment(updates).environment(loginItem))
+            AnyView(SettingsView(selection: selection).environment(settings).environment(updates).environment(loginItem).environment(model))
         }
         wire()
     }
@@ -64,13 +64,14 @@ final class AppDependencies {
 
     /// Settings flow into the model; the model never reads UserDefaults itself.
     private func observeSettings() {
-        let (agents, gauge) = withObservationTracking {
-            (settings.agents, settings.gaugeEnabled)
+        let (agents, gauge, sample) = withObservationTracking {
+            (settings.agents, settings.gaugeEnabled, settings.showsSampleData)
         } onChange: { [weak self] in
             Task { @MainActor in self?.observeSettings() }
         }
         model.agents = agents
         model.gaugeEnabled = gauge
+        model.showsSampleData = sample
     }
 
     /// The user's appearance choice goes to the popover and the Settings window, never through
@@ -86,19 +87,15 @@ final class AppDependencies {
         settingsWindow.appearance = appearance.nsAppearance
     }
 
-    /// The status item shows the fullest live window, or the symbol when there is none.
+    /// The status item shows the gauge - Claude's windows as bars and the time left on
+    /// the fullest - or the symbol when the gauge is off or nothing is reported.
     private func observeGauge() {
-        let (snapshot, gauge) = withObservationTracking {
-            (model.snapshot, model.gaugeEnabled)
+        let (snapshot, gauge, agents, bars, time) = withObservationTracking {
+            (model.snapshot, model.gaugeEnabled, model.agents, settings.menuBarBars, settings.menuBarTime)
         } onChange: { [weak self] in
             Task { @MainActor in self?.observeGauge() }
         }
-        if gauge, let worst = snapshot.worstLimit() {
-            statusItem.title = Format.percent(worst.percentUsed)
-            statusItem.summary = "AgentBar — the fullest window is \(Format.percent(worst.percentUsed)) used (\(worst.agent.title), \(worst.title))"
-        } else {
-            statusItem.title = nil
-            statusItem.summary = snapshot.isEmpty ? "AgentBar — nothing reported yet" : "AgentBar"
-        }
+        statusItem.gauge = gauge ? MenuBarGauge.make(from: snapshot, agents: agents, bars: bars, time: time, now: .now) : nil
+        statusItem.summary = snapshot.isEmpty ? "AgentBar — nothing reported yet" : "AgentBar"
     }
 }

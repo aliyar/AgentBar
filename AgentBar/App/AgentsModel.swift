@@ -22,6 +22,10 @@ final class AgentsModel {
     var gaugeEnabled = true {
         didSet { if gaugeEnabled != oldValue { reschedule() } }
     }
+    /// Sample data instead of a read; the loop keeps running so the sample's clock ticks.
+    var showsSampleData = false {
+        didSet { if showsSampleData != oldValue { refresh() } }
+    }
 
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
     @ObservationIgnored private var loopTask: Task<Void, Never>?
@@ -37,8 +41,9 @@ final class AgentsModel {
         guard refreshTask == nil else { return }
         isRefreshing = true
         let agents = agents
+        let sample = showsSampleData
         refreshTask = Task {
-            let read = await Task.detached(priority: .utility) {
+            let read = sample ? Snapshot.sample : await Task.detached(priority: .utility) {
                 SnapshotReader.read(agents: agents)
             }.value
             snapshot = read

@@ -10,13 +10,14 @@ public enum Format {
         return "\(tokens)"
     }
 
-    /// "4h", "2d 3h", "40m" - the shorthand a status line uses. `coarse` drops the smaller
-    /// unit once the number is days: "27d ago", not "27d 2h ago".
+    /// "4h 52m", "2d 3h", "40m" - the shorthand a status line uses: two units at most, the
+    /// smaller one kept under a day because a five-hour window is watched by the minute.
+    /// `coarse` keeps one unit: "27d ago", "4h ago".
     public static func short(_ seconds: TimeInterval, coarse: Bool = false) -> String {
         let total = max(0, Int(seconds))
         let days = total / 86400, hours = (total % 86400) / 3600, minutes = (total % 3600) / 60
         if days > 0 { return (hours > 0 && !coarse) ? "\(days)d \(hours)h" : "\(days)d" }
-        if hours > 0 { return (minutes > 0 && hours < 3 && !coarse) ? "\(hours)h \(minutes)m" : "\(hours)h" }
+        if hours > 0 { return (minutes > 0 && !coarse) ? "\(hours)h \(minutes)m" : "\(hours)h" }
         return "\(max(1, minutes))m"
     }
 

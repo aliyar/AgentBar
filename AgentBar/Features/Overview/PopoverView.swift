@@ -1,26 +1,19 @@
 import SwiftUI
 import AgentBarKit
 
-/// The popover: the agents' meters and conversations, and a way to Settings and out.
+/// The popover: the overview on the glass material.
 struct PopoverView: View {
     @Environment(AgentsModel.self) private var model
     @Environment(AppSettings.self) private var settings
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            OverviewView(snapshot: model.snapshot, agents: settings.agents)
-            Divider()
-                .padding(.horizontal, 12)
-            HStack {
-                Button("Settings…") { AppDependencies.shared.settingsWindow.show() }
-                Spacer()
-                Button("Quit") { NSApp.terminate(nil) }
-            }
-            .controlSize(.small)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-        }
-        .frame(width: 340)
+        OverviewView(snapshot: model.snapshot, agents: settings.agents,
+                     onSettings: { AppDependencies.shared.settingsWindow.show() },
+                     onQuit: { NSApp.terminate(nil) })
+            .frame(width: 340)
+            // The popover's own material gives the blur; the gradient on top gives the
+            // glass its body, so what is behind the menu bar no longer shows through.
+            .background(GlassBackground())
     }
 }
 

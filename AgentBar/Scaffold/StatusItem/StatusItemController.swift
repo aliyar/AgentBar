@@ -2,13 +2,29 @@ import OSLog
 import AppKit
 import SwiftUI
 
+/// A small gauge drawn in the menu bar: a few vertical bars and a short text beside them.
+/// Colours come in pairs because the menu bar may be light or dark regardless of the app.
+struct StatusItemGauge: Equatable {
+    struct Bar: Equatable {
+        let fraction: Double
+        let dark: NSColor
+        let light: NSColor
+    }
+    let bars: [Bar]
+    let title: String
+    let titleDark: NSColor
+    let titleLight: NSColor
+    /// Tooltip and accessibility label.
+    let summary: String
+}
+
 /// Owns the `NSStatusItem` and the `NSPopover` that hosts the SwiftUI panel.
 ///
-/// The item shows either the app symbol or a short text title (the usage gauge, "78%", set by a
-/// later milestone). Left click toggles the popover; right click shows a small menu whose
-/// items are all reachable from Settings too.
+/// The item shows either the app symbol or a gauge (bars and a short text). Left click
+/// toggles the popover; right click shows a small menu whose items are all reachable from
+/// Settings too.
 final class StatusItemController: NSObject, NSPopoverDelegate {
-    /// Symbol drawn when there is no title. Set by the app before `install()`.
+    /// Symbol drawn when there is no gauge. Set by the app before `install()`.
     var symbolName = "circle.dashed" {
         didSet { if symbolName != oldValue { render() } }
     }
@@ -16,17 +32,16 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     /// use ~16 pt template images). Without this the symbol takes the button font's size.
     static let symbolSize: CGFloat = 16
 
-    /// Text shown instead of the symbol (monospaced digits, so it does not jiggle). nil → symbol.
-    var title: String? {
-        didSet { if title != oldValue { render() } }
+    /// Bars and text instead of the symbol. nil → symbol.
+    var gauge: StatusItemGauge? {
+        didSet { if gauge != oldValue { render() } }
     }
-    /// Tooltip and accessibility label.
+    /// Tooltip and accessibility label while the symbol shows.
     var summary = StatusItemController.appName {
         didSet { if summary != oldValue { render() } }
     }
     /// Builds the SwiftUI root of the popover. Set before `install()`.
     var panelRoot: (() -> AnyView)?
-
     /// nil follows the system. Applied to the popover only, so the status item glyph keeps
     /// matching the menu bar rather than the app's chosen theme.
     var appearance: NSAppearance? {
@@ -42,6 +57,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
     private var statusItem: NSStatusItem?
     private let popover = NSPopover()
+    private var appearanceObservation: NSKeyValueObservation?
     private var globalMonitor: Any?
     private var resignObserver: NSObjectProtocol?
 
@@ -59,7 +75,11 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             button.target = self
             button.action = #selector(statusItemClicked(_:))
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-            button.font = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .medium)
+            button.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
+            // The menu bar turns light or dark with the wallpaper; the gauge's colours follow it.
+            appearanceObservation = button.observe(\.effectiveAppearance, options: [.new]) { [weak self] _, _ in
+                Task { @MainActor in self?.render() }
+            }
         }
 
         popover.behavior = .transient
@@ -75,20 +95,49 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
     func render() {
         guard let button = statusItem?.button else { return }
-        button.toolTip = summary
-        button.setAccessibilityLabel(summary)
-        if let title, !title.isEmpty {
-            button.image = nil
-            button.imagePosition = .noImage
-            button.title = title
+        let dark = button.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        if let gauge {
+            button.toolTip = gauge.summary
+            button.setAccessibilityLabel(gauge.summary)
+            button.image = Self.barsImage(gauge.bars, dark: dark, trailing: gauge.title.isEmpty ? 0 : 4)
+            button.imagePosition = gauge.title.isEmpty ? .imageOnly : .imageLeading
+            button.attributedTitle = NSAttributedString(string: gauge.title, attributes: [
+                .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium),
+                .foregroundColor: dark ? gauge.titleDark : gauge.titleLight,
+            ])
         } else {
-            button.title = ""
+            button.toolTip = summary
+            button.setAccessibilityLabel(summary)
+            button.attributedTitle = NSAttributedString(string: "")
             button.imagePosition = .imageOnly
             let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: summary)?
                 .withSymbolConfiguration(.init(pointSize: Self.symbolSize, weight: .regular))
             image?.isTemplate = true
             button.image = image
         }
+    }
+
+    /// Vertical bars 3 pt wide, 13 pt tall, 2.5 pt apart, each filled from the bottom; a
+    /// 4 pt clear margin on the right keeps the title off them. Not a template image: the
+    /// colours mean something.
+    private static func barsImage(_ bars: [StatusItemGauge.Bar], dark: Bool, trailing: CGFloat) -> NSImage {
+        let barWidth: CGFloat = 3, height: CGFloat = 13, gap: CGFloat = 2.5
+        let width = CGFloat(bars.count) * barWidth + CGFloat(max(0, bars.count - 1)) * gap + trailing
+        let image = NSImage(size: NSSize(width: width, height: height), flipped: false) { _ in
+            let track = dark ? NSColor.white.withAlphaComponent(0.26) : NSColor.black.withAlphaComponent(0.22)
+            for (index, bar) in bars.enumerated() {
+                let x = CGFloat(index) * (barWidth + gap)
+                let full = NSRect(x: x, y: 0, width: barWidth, height: height)
+                track.setFill()
+                NSBezierPath(roundedRect: full, xRadius: 1.5, yRadius: 1.5).fill()
+                let lit = NSRect(x: x, y: 0, width: barWidth, height: (height * min(1, max(0, bar.fraction))).rounded())
+                (dark ? bar.dark : bar.light).setFill()
+                NSBezierPath(roundedRect: lit, xRadius: 1.5, yRadius: 1.5).fill()
+            }
+            return true
+        }
+        image.isTemplate = false
+        return image
     }
 
     // MARK: Popover

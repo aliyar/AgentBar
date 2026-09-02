@@ -23,6 +23,11 @@ public struct Snapshot: Equatable, Codable, Sendable {
 
     public func limits(for agent: Agent) -> [UsageLimit] { limits.filter { $0.agent == agent } }
 
+    /// The last time any of the agent's conversations moved.
+    public func latestActivity(for agent: Agent) -> Date? {
+        conversations.filter { $0.agent == agent }.compactMap(\.lastActivity).max()
+    }
+
     /// The live window that is fullest - what the menu bar gauge shows. Rolled-over
     /// windows are history and do not count.
     public func worstLimit(at now: Date = .now) -> UsageLimit? {

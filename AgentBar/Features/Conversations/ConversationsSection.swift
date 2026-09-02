@@ -2,129 +2,131 @@ import AppKit
 import SwiftUI
 import AgentBarKit
 
-/// The conversations running right now, newest activity first.
+/// The conversations running right now, newest activity first: a caption, then a rounded
+/// group with a row per conversation - agent mark, name, context meter, percent, chevron.
 struct ConversationsSection: View {
     let conversations: [Conversation]
 
+    @Environment(\.colorScheme) private var scheme
+    /// Only one row is open at a time.
+    @State private var expandedID: String?
+
+    private var working: Int { conversations.filter(\.isBusy).count }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            RuledHeading(text: "Active")
-            ForEach(conversations) { conversation in
-                ConversationRow(conversation: conversation)
+        let glass = Palette.glass(scheme)
+        VStack(alignment: .leading, spacing: 5) {
+            GroupCaption(title: "Active", trailing: "context · \(working) working")
+            GroupBox_ {
+                ForEach(Array(conversations.enumerated()), id: \.element.id) { index, conversation in
+                    if index > 0 { Rectangle().fill(glass.hairline).frame(height: 0.5) }
+                    ConversationRow(conversation: conversation, expanded: expandedID == conversation.id) {
+                        expandedID = expandedID == conversation.id ? nil : conversation.id
+                    }
+                }
             }
         }
     }
 }
 
 /// A conversation the agent is running: whether it is working, its name, and how full
-/// its context is. Clicking it brings forward the app it runs in - the terminal or
-/// editor the agent was started from.
+/// its context is. One click opens its details; a second brings forward the app it runs
+/// in - the terminal or editor the agent was started from.
 private struct ConversationRow: View {
     let conversation: Conversation
+    let expanded: Bool
+    let toggle: () -> Void
 
+    @Environment(\.colorScheme) private var scheme
     @State private var hovering = false
-    @State private var expanded = false
-    @State private var pulsing = false
 
     /// A lookup, not a walk: the reader already found which process owns the window.
     private var app: NSRunningApplication? {
         conversation.appPID.flatMap { NSRunningApplication(processIdentifier: pid_t($0)) }
     }
 
-    /// The details, each only when there is one: "Cursor · Opus 5 · high · main".
+    /// The details, each only when there is one: "Ghostty · Fable 5.1 · high · main".
     private var details: [String] {
         [app?.localizedName, conversation.model, conversation.effort, conversation.branch]
             .compactMap { $0 }.filter { !$0.isEmpty }
     }
 
+    private var detailLine: String {
+        let parts = details.joined(separator: " · ")
+        guard app != nil else { return parts }
+        return parts.isEmpty ? "click to focus" : "\(parts) — click to focus"
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            row
-            if expanded, !details.isEmpty {
-                Text(details.joined(separator: " · "))
-                    .font(.system(size: 9.5))
-                    .foregroundStyle(.tertiary)
+        let glass = Palette.glass(scheme)
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 8) {
+                AgentMark(agent: conversation.agent, working: conversation.isBusy)
+                Text(conversation.name)
+                    .font(.system(size: 11.5, weight: glass.bodyWeight))
+                    .foregroundStyle(glass.body)
+                    .lineLimit(1)
+                    // A sentence is recognised by how it starts, so the end is what
+                    // gives way - cutting the middle leaves neither half readable.
+                    .truncationMode(.tail)
+                Spacer(minLength: 0)
+                context
+                    .padding(.leading, 6)
+                Button(action: toggle) {
+                    Image(systemName: expanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 8, weight: .semibold))
+                        .foregroundStyle(glass.tertiary)
+                        .frame(width: 12, height: 12)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("What it is running as")
+            }
+            if expanded, !detailLine.isEmpty {
+                Text(detailLine)
+                    .font(.system(size: 9))
+                    .foregroundStyle(glass.tertiary)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                    .padding(.leading, 20)
-                    .padding(.bottom, 3)
+                    .padding(.leading, 22)
                     .transition(.opacity)
             }
         }
-        .animation(.easeOut(duration: 0.14), value: expanded)
-    }
-
-    private var row: some View {
-        HStack(spacing: 8) {
-            Button(action: focusOwningApp) {
-                HStack(spacing: 8) {
-                    StatusDot(busy: conversation.isBusy, pulsing: pulsing)
-                    Text(conversation.name)
-                        .font(.system(size: 12, weight: .regular))
-                        .lineLimit(1)
-                        // A sentence is recognised by how it starts, so the end is what
-                        // gives way - cutting the middle leaves neither half readable.
-                        .truncationMode(.tail)
-                    Spacer(minLength: 6)
-                    context
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help(helpText)
-
-            // Always there, so the row is visibly one that opens; it only brightens under
-            // the pointer. Pointing right closed and down open is the disclosure every Mac
-            // list uses, and says which way it goes.
-            Button {
-                expanded.toggle()
-            } label: {
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 8, weight: .semibold))
-                    .rotationEffect(.degrees(expanded ? 0 : -90))
-                    .foregroundStyle(hovering || expanded ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary))
-                    .frame(width: 14, height: 14)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .opacity(details.isEmpty ? 0 : 1)
-            .disabled(details.isEmpty)
-            .animation(.easeOut(duration: 0.12), value: hovering)
-            .help("What it is running as")
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .background(expanded ? glass.selectedRow : (hovering ? glass.hoverRow : .clear))
+        .contentShape(Rectangle())
+        // First click opens the row (what it is running as, "click to focus"); the second
+        // brings the app it runs in forward.
+        .onTapGesture {
+            if expanded { app?.activate() } else { toggle() }
         }
-        .padding(.vertical, 3)
-        // The highlight reaches past the content, but the content keeps the left edge
-        // every other row sits on.
-        .padding(.horizontal, 5)
-        .background(RoundedRectangle(cornerRadius: 6, style: .continuous)
-            .fill(hovering ? Color.primary.opacity(0.07) : .clear))
-        .padding(.horizontal, -5)
         .onHover { hovering = $0 }
-        .onAppear { pulsing = true }
+        .animation(.easeOut(duration: 0.14), value: expanded)
+        .animation(.easeOut(duration: 0.12), value: hovering)
+        .help(helpText)
     }
 
     @ViewBuilder
     private var context: some View {
+        let glass = Palette.glass(scheme)
         if let percent = conversation.contextPercent {
-            HStack(spacing: 5) {
-                TickMeter(fraction: percent / 100, tint: Palette.level(percent), ticks: 12, height: 7)
-                    .frame(width: 34)
-                Text(Format.percent(percent))
-                    .font(.system(size: 10, weight: .medium))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
+            let level = Palette.level(percent)
+            ThinBar(fraction: percent / 100, tint: Palette.color(level, scheme))
+                .frame(width: 44)
+            Text(Format.percent(percent))
+                .font(.system(size: 10))
+                .monospacedDigit()
+                .foregroundStyle(level == .calm ? glass.secondary : Palette.color(level, scheme))
+                .frame(width: 28, alignment: .trailing)
         } else if let tokens = conversation.contextTokens {
             // The limit is unknown here, so the tokens are the honest figure.
             Text(Format.compact(tokens))
-                .font(.system(size: 10, weight: .medium))
+                .font(.system(size: 10))
                 .monospacedDigit()
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(glass.tertiary)
+                .frame(width: 44 + 8 + 28, alignment: .trailing)
         }
-    }
-
-    private func focusOwningApp() {
-        app?.activate()
     }
 
     private var helpText: String {
@@ -141,32 +143,66 @@ private struct ConversationRow: View {
     }
 }
 
-/// Filled and breathing while the agent works, an outline while it waits. One shape for
-/// the whole state, and the only thing in the view that moves.
-private struct StatusDot: View {
-    let busy: Bool
-    let pulsing: Bool
+/// The agent's logo in its colour; a green dot in the corner, breathing, while the agent
+/// works. The only thing in the panel that moves.
+private struct AgentMark: View {
+    let agent: Agent
+    let working: Bool
+
+    @Environment(\.colorScheme) private var scheme
+    @State private var pulsing = false
 
     var body: some View {
-        ZStack {
-            if busy {
-                Circle()
-                    .fill(Palette.calm.opacity(0.35))
-                    .scaleEffect(pulsing ? 2.1 : 1)
-                    .opacity(pulsing ? 0 : 1)
-                    .animation(.easeOut(duration: 1.6).repeatForever(autoreverses: false), value: pulsing)
-                Circle().fill(Palette.calm)
-            } else {
-                Circle().strokeBorder(Color.secondary.opacity(0.5), lineWidth: 1.2)
+        let glass = Palette.glass(scheme)
+        ZStack(alignment: .bottomTrailing) {
+            AgentGlyph(agent: agent, size: 12)
+                .foregroundStyle(Palette.agent(agent, scheme))
+                .frame(width: 14, height: 14)
+            if working {
+                ZStack {
+                    Circle()
+                        .fill(Palette.color(.calm, scheme).opacity(0.6))
+                        .scaleEffect(pulsing ? 1.8 : 1)
+                        .opacity(pulsing ? 0 : 1)
+                        .animation(.easeOut(duration: 1.8).repeatForever(autoreverses: false), value: pulsing)
+                    Circle()
+                        .fill(Palette.color(.calm, scheme))
+                        .overlay(Circle().strokeBorder(glass.dotRing, lineWidth: 1))
+                }
+                .frame(width: 6, height: 6)
+                .offset(x: 2, y: 2)
+                .onAppear { pulsing = true }
             }
         }
-        .frame(width: 7, height: 7)
-        .frame(width: 12, height: 12)
+        .frame(width: 14, height: 14)
     }
 }
 
 #Preview {
     ConversationsSection(conversations: Snapshot.sample.conversations)
-        .padding(12)
+        .padding(11)
         .frame(width: 340)
+        .background(GlassBackground())
+}
+
+/// A thin solid bar for a conversation's context: a capsule track, filled from the left.
+/// Quieter than the quota meters' ticks, as befits a secondary figure.
+private struct ThinBar: View {
+    let fraction: Double
+    let tint: Color
+
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let clamped = min(1, max(0, fraction))
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Palette.glass(scheme).track)
+                Capsule().fill(tint)
+                    // Anything above nothing shows at least a dot's worth.
+                    .frame(width: clamped > 0 ? max(3, proxy.size.width * clamped) : 0)
+            }
+        }
+        .frame(height: 3)
+    }
 }
