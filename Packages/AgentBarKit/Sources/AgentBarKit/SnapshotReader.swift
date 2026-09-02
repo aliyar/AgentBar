@@ -5,7 +5,7 @@ import Foundation
 ///
 /// Nothing is asked of any server - these are the agents' own files, and the app never
 /// sees a credential.
-public enum UsageReader {
+public enum SnapshotReader {
     /// Reads the given agents (those installed and readable; the rest contribute nothing).
     public static func read(agents: [Agent] = Agent.allCases, now: Date = .now) -> Snapshot {
         var snapshot = Snapshot(readAt: now)

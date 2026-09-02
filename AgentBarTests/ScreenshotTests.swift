@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import Testing
+import AgentBarKit
 @testable import AgentBar
 
 /// Renders the README screenshots from the real SwiftUI views. `screencapture` is not available
@@ -25,10 +26,12 @@ struct ScreenshotTests {
         let directory = try #require(Self.outputDirectory)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try await MainActor.run {
-            let updates = UpdateController()
             for scheme in [ColorScheme.light, .dark] {
                 let suffix = scheme == .dark ? "dark" : "light"
-                let view = PopoverView().environment(updates).preferredColorScheme(scheme)
+                let view = OverviewView(snapshot: .sample, agents: Agent.allCases)
+                    .frame(width: 340)
+                    .background(.background)
+                    .preferredColorScheme(scheme)
                 try Self.write(view, name: "popover-\(suffix).png", to: directory)
             }
         }

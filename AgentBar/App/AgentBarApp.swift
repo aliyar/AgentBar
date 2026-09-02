@@ -12,6 +12,7 @@ struct AgentBarApp: App {
     var body: some Scene {
         Settings {
             SettingsView()
+                .environment(AppDependencies.shared.settings)
                 .environment(AppDependencies.shared.updates)
         }
         .windowResizability(.contentSize)
