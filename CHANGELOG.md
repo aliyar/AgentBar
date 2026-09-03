@@ -61,6 +61,8 @@ version heading and uses them as the release notes.
   has a light and a dark variant and the theme picks which, Dark by default. A background
   opacity slider (0–100%) sets how sheer either panel is.
 - **Launch at login**, through the system's Login Items.
+- Hover an agent's name in the panel and a small arrow (Terminal: `:usage`) appears; it
+  opens that agent's own usage page in the browser.
 - The Active group stays when nothing is running and says so, so the panel keeps its
   shape; a context at "100%" no longer wraps; while a refresh runs, the clock in the
   header walks "..." (the Terminal panel's `:r` flashes when clicked, too).

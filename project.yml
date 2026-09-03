@@ -74,7 +74,7 @@ targets:
         # (`generate_keys --account agentbar`, see docs/RELEASING.md); the updater does not start
         # while it is empty.
         SUFeedURL: "https://agentbar.greatpixels.com/appcast.xml"
-        SUPublicEDKey: ""
+        SUPublicEDKey: "lXUV7eofupmNcuoyn/TLer94TTXPleMXFTKsDq13tjs="
         SUEnableAutomaticChecks: true
         SUScheduledCheckInterval: 86400
     entitlements:

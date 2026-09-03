@@ -35,6 +35,16 @@ public enum Agent: String, CaseIterable, Identifiable, Codable, Sendable, Coding
 
     public var defaultURL: URL { HomeDirectory.url.appendingPathComponent(folderName) }
 
+    /// Where the agent's own account shows its usage, for the panel's "open usage" button
+    /// beside the agent's name.
+    public var usagePage: URL {
+        switch self {
+        case .claude: URL(string: "https://claude.ai/settings/usage")!
+        case .codex: URL(string: "https://chatgpt.com/codex/settings/usage")!
+        case .cursor: URL(string: "https://cursor.com/dashboard?tab=usage")!
+        }
+    }
+
     /// The folder as a person would write it.
     public var folderPath: String { "~/\(folderName)" }
 

@@ -111,13 +111,7 @@ struct TerminalOverview: View {
         let limits = context.snapshot.limits(for: agent)
         let activeSince = context.snapshot.latestActivity(for: agent)
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline) {
-                SectionHeader(text: agent.title, palette: palette)
-                Spacer()
-                if let note = note(for: agent, limits: limits, now: now) {
-                    Text(note).font(Self.mono(9.5)).foregroundStyle(palette.ghost)
-                }
-            }
+            AgentHeader(agent: agent, note: note(for: agent, limits: limits, now: now), palette: palette)
             if !agent.isInstalled {
                 Text("not installed").font(Self.mono(10.5)).foregroundStyle(palette.faint)
             } else if limits.isEmpty {
@@ -231,6 +225,30 @@ struct TerminalOverview: View {
 }
 
 // MARK: - Pieces
+
+/// `[ CLAUDE ]`, and on hover `:usage`, which opens the agent's own usage page.
+private struct AgentHeader: View {
+    let agent: Agent
+    let note: String?
+    let palette: TerminalPalette
+    @State private var hovering = false
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            SectionHeader(text: agent.title, palette: palette)
+            Command(":usage", palette: palette, color: palette.ghost, help: "Open \(agent.title)'s usage page") {
+                NSWorkspace.shared.open(agent.usagePage)
+            }
+            .opacity(hovering ? 1 : 0)
+            Spacer()
+            if let note {
+                Text(note).font(TerminalOverview.mono(9.5)).foregroundStyle(palette.ghost)
+            }
+        }
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+    }
+}
 
 /// `[ CLAUDE ]`
 private struct SectionHeader: View {

@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import AgentBarKit
 
@@ -27,7 +28,8 @@ struct UsageSection: View {
     var body: some View {
         let glass = Palette.glass(scheme)
         VStack(alignment: .leading, spacing: 5) {
-            GroupCaption(title: agent.title, trailing: caption)
+            GroupCaption(title: agent.title, trailing: caption, link: agent.usagePage,
+                         linkHelp: "Open \(agent.title)'s usage page")
             GroupBox_ {
                 if !agent.isInstalled {
                     Note("Not installed — \(agent.folderPath) is not on this Mac")
@@ -156,15 +158,30 @@ private struct UsageRow: View {
 struct GroupCaption: View {
     let title: String
     var trailing: String?
+    /// A page to open in the browser, offered by a small arrow that shows on hover.
+    var link: URL?
+    var linkHelp: String = "Open in the browser"
 
     @Environment(\.colorScheme) private var scheme
+    @State private var hovering = false
 
     var body: some View {
         let glass = Palette.glass(scheme)
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
             Text(title)
                 .font(.system(size: 10.5, weight: .semibold))
                 .foregroundStyle(glass.primary)
+            if let link {
+                Button { NSWorkspace.shared.open(link) } label: {
+                    Image(systemName: "arrow.up.right.square")
+                        .font(.system(size: 9.5, weight: .medium))
+                        .foregroundStyle(glass.secondary)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(linkHelp)
+                .opacity(hovering ? 1 : 0)
+            }
             Spacer()
             if let trailing {
                 Text(trailing)
@@ -174,6 +191,8 @@ struct GroupCaption: View {
             }
         }
         .padding(.horizontal, 1)
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
     }
 }
 

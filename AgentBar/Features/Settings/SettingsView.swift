@@ -40,7 +40,7 @@ struct SettingsView: View {
 
     static let website = URL(string: "https://agentbar.greatpixels.com")!
     static let supportRows = [
-        SupportPane.Row(question: "Have a question?", action: "Visit FAQ", url: website.appending(path: "faq")),
+        SupportPane.Row(question: "Have a question?", action: "Visit FAQ", url: URL(string: "https://agentbar.greatpixels.com/#faq")!),
         SupportPane.Row(question: "Need assistance?", action: "Contact Us", url: URL(string: "mailto:support@greatpixels.com")!),
         SupportPane.Row(question: "Found a bug or have an idea?", action: "Share It", url: URL(string: "mailto:support@greatpixels.com?subject=AgentBar%20feedback")!),
     ]
@@ -227,11 +227,14 @@ struct SettingsView: View {
                 .disabled(!agent.isInstalled)
             }
         }
+        #if DEBUG
+        // A development aid, kept out of what users see.
         Section {
             Toggle("Preview with sample data", isOn: $settings.showsSampleData)
         } footer: {
             Footnote("Shows made-up windows and conversations in the panel and the menu bar, so every row can be seen without waiting for the agents. Nothing is read while it is on.")
         }
+        #endif
     }
 
     private var checkForUpdates: some View {

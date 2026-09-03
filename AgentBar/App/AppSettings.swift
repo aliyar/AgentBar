@@ -134,7 +134,8 @@ final class AppSettings {
     }
 
     /// Draw the handoff's sample snapshot instead of what the agents wrote: a way to see
-    /// every row of the panel without waiting for the agents to fill them.
+    /// every row of the panel without waiting for the agents to fill them. A development
+    /// aid: Release builds neither offer nor honour it.
     var showsSampleData: Bool {
         didSet { defaults.set(showsSampleData, forKey: Keys.sampleData) }
     }
@@ -165,7 +166,11 @@ final class AppSettings {
         appearance = defaults.string(forKey: Keys.appearance).flatMap(AppAppearance.init(rawValue:)) ?? .dark
         panelStyle = defaults.string(forKey: Keys.panelStyle).flatMap(PanelStyleID.init(rawValue:)) ?? .glass
         panelOpacity = defaults.object(forKey: Keys.panelOpacity) as? Double ?? Self.defaultPanelOpacity
+        #if DEBUG
         showsSampleData = defaults.bool(forKey: Keys.sampleData)
+        #else
+        showsSampleData = false
+        #endif
         menuBarBars = defaults.stringArray(forKey: Keys.menuBarBars) ?? []
         menuBarTime = MenuBarTime(rawValue: defaults.string(forKey: Keys.menuBarTime) ?? "fullest")
         showsResetClock = defaults.bool(forKey: Keys.resetClock)

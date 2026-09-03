@@ -192,7 +192,8 @@ samples, dated in the test names.
   length (the used figure stays 0% until the next read). Without activity, the row shows
   0% and the window's full length, dimmed.
 - **Sample data lives in the package** (`Snapshot.sample`): the app's previews and screenshot
-  harness, the Settings "Preview with sample data" switch and the widget gallery all draw it.
+  harness, the Settings "Preview with sample data" switch (Debug builds only) and the widget
+  gallery all draw it.
 - **Claude conversations**: `~/.claude/sessions/<pid>.json` — one file per running session, with
   the name Claude Code gave it and `status: "busy"`. Files outlive their process: check the pid
   with `kill(pid, 0)`.
@@ -351,6 +352,22 @@ time rather than keeping copies.
 `render.yaml` carries a build filter on `site/**` so app commits do not republish the site.
 `site/app/release.ts` is the one place the site states the version and the download link;
 `scripts/release.sh` rewrites it. The appcast is `site/public/appcast.xml`.
+
+The page is a Mac desktop with AgentBar living on it: the menu bar strip (its menus are the
+page's sections), the panel hanging from the status item, the Dock with the icon that raises
+the same panel, an authored SVG wallpaper per appearance (`public/wallpaper-*.svg`). Below it,
+a sheet of drawn scenes. Nothing is a screenshot: `app/demo/` holds the panel (`Panel.tsx`,
+`TerminalPanel.tsx`), the widget in its three sizes (`Widgets.tsx`), the menu bar and Dock,
+all in HTML/CSS with the app's own palettes (`globals.css` carries `Palette.Glass`,
+`TerminalPalette` and the widget grounds as CSS variables, light and dark) and the numbers of
+`Snapshot.sample` (`sample.ts`, with `Format`'s rules). When the app's panel changes, the site's
+mirror changes with it. The page's faces are Martian Mono (Evil Martians, SIL OFL) for headlines and buttons and
+Atkinson Hyperlegible Next (Braille Institute, SIL OFL) for the text, self-hosted
+as variable files in `public/fonts/` so no third-party domain is ever loaded; the drawn app
+elements keep the Mac's own face, because they are the app. Tailwind v4 is set up
+(`postcss.config.mjs`, `@import "tailwindcss"`) but the page is written with semantic classes. `PRODUCT.md` and `DESIGN.md` in `site/`
+record what the site is for and how it is drawn; `.impeccable/` holds the design skill's
+working files (the surface brief is tracked, captures and logs are not).
 
 ## Conventions
 
