@@ -5,5 +5,105 @@
     <link>https://agentbar.greatpixels.com/appcast.xml</link>
     <description>Updates for AgentBar</description>
     <language>en</language>
+    <item>
+      <title>AgentBar 1.0.0</title>
+      <pubDate>Thu, 03 Sep 2026 17:06:06 +0000</pubDate>
+      <sparkle:version>6</sparkle:version>
+      <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+<h3>Added</h3>
+<ul>
+<li>The app: a menu bar item, a popover, and a Settings window with the update controls.</li>
+<li><strong>The icon</strong>: a dark terminal squircle holding the app&#x27;s own panel, a <code>&gt;</code> prompt and a</li>
+</ul>
+<p>green block cursor. The menu bar shows the same mark; so does the panel&#x27;s header.</p>
+<ul>
+<li><strong>The limits come from the agents&#x27; accounts</strong>, so what was spent on another Mac or while</li>
+</ul>
+<p>the agent was not running counts too: Claude through Claude Code&#x27;s sign-in, Codex through</p>
+<p>its ChatGPT sign-in, Cursor through the editor&#x27;s. One read-only request every five</p>
+<p>minutes, and on the panel&#x27;s refresh button; nothing is stored. What the agents write on</p>
+<p>disk stays the fallback.</p>
+<ul>
+<li><strong>Cursor</strong> joins Claude Code and Codex: its plan&#x27;s monthly usage, and its agent chats</li>
+</ul>
+<p>among the active conversations.</p>
+<ul>
+<li><strong>Where the app lives is a choice</strong>: Settings › General › &quot;Show AgentBar in&quot; the menu</li>
+</ul>
+<p>bar (default), the Dock, or both. In the Dock, clicking the icon opens the panel above</p>
+<p>the Dock, as the menu bar icon does, or a window if you prefer (the choice is in the Dock</p>
+<p>icon&#x27;s right-click menu too); Window › AgentBar (⌘0) and the widget open the window,</p>
+<p>whose header stands in for its title bar.</p>
+<ul>
+<li><strong>A widget</strong> for Notification Center and the desktop, in three sizes: each agent&#x27;s</li>
+</ul>
+<p>fullest window with its meter and time left; every window as a row; the rows and the</p>
+<p>running conversations. Right-click › Edit &quot;AgentBar&quot; picks the windows to show (any</p>
+<p>set; none means all), a theme (system, dark or light) and, for the large size, whether</p>
+<p>the running conversations are listed. A size left with a single window shows it as a</p>
+<p>card: the figure large, a wide meter, the time left. When there are more windows than</p>
+<p>a size has rows, it shows each agent&#x27;s fullest rather than dropping the last agents.</p>
+<p>It shows what the app last read and says &quot;as of&quot; when that is old; tapping a</p>
+<p>conversation brings its terminal or editor forward.</p>
+<ul>
+<li><strong>The panel shows what the coding agents on this Mac are doing.</strong> For Claude Code and</li>
+</ul>
+<p>Codex: every rate-limit window as a meter that fills as you spend, the percentage, and</p>
+<p>how long until it starts over; and the conversations running right now, named by what</p>
+<p>was last said in them, with a pulsing dot while one is working and how full its context</p>
+<p>is. Clicking a conversation opens its details; clicking again brings its terminal or</p>
+<p>editor forward. Codex sessions are found through their running process and its rollout;</p>
+<p>their context is a real percentage, since Codex writes its window size.</p>
+<ul>
+<li><strong>The panel is glass</strong>, in a dark and a light variant: a header with the agent and</li>
+</ul>
+<p>window count and when the files were last read; each agent&#x27;s windows as rows in a</p>
+<p>rounded group (label, meter, percent, time left; click a time to see the clock</p>
+<p>time it starts over instead, or pick the default in Settings › Appearance); the running conversations with the</p>
+<p>agent&#x27;s mark, a breathing dot while one works, its context and a chevron for the</p>
+<p>details; and a footer with Settings and Quit.</p>
+<ul>
+<li>The menu bar can show a gauge instead of the symbol: a small bar per window and the</li>
+</ul>
+<p>time left on one of them, in its colour. Settings › Appearance › Menu Bar chooses the</p>
+<p>windows shown as bars and whose time left is written (the fullest, a given window, or</p>
+<p>none). Off by default.</p>
+<ul>
+<li>Settings, laid out like System Settings with a sidebar: General (launch at login,</li>
+</ul>
+<p>appearance, the menu bar percentage, updates), Agents (which agents to show), Changelog</p>
+<p>(these notes, inside the app), Support and About. Back and forward buttons walk the</p>
+<p>panes you visited.</p>
+<ul>
+<li><strong>Appearance</strong>: System, Light or Dark for the popover and the Settings window. The menu</li>
+</ul>
+<p>bar item always follows the menu bar.</p>
+<ul>
+<li><strong>Style</strong>: how the panel is drawn, apart from the theme. Glass (the design) or Terminal</li>
+</ul>
+<p>(a terminal readout: monospaced, green on black, <code>▌</code> meters, a blinking prompt); each</p>
+<p>has a light and a dark variant and the theme picks which, Dark by default. A background</p>
+<p>opacity slider (0–100%) sets how sheer either panel is.</p>
+<ul>
+<li><strong>Launch at login</strong>, through the system&#x27;s Login Items.</li>
+<li>Hover an agent&#x27;s name in the panel and a small arrow (Terminal: <code>:usage</code>) appears; it</li>
+</ul>
+<p>opens that agent&#x27;s own usage page in the browser.</p>
+<ul>
+<li>The Active group stays when nothing is running and says so, so the panel keeps its</li>
+</ul>
+<p>shape; a context at &quot;100%&quot; no longer wraps; while a refresh runs, the clock in the</p>
+<p>header walks &quot;...&quot; (the Terminal panel&#x27;s <code>:r</code> flashes when clicked, too).</p>
+<ul>
+<li>Nothing is shown that cannot be stood behind: a window that has already started over</li>
+</ul>
+<p>shows &quot;—&quot;, a figure written hours ago says how old it is, and a context whose limit is</p>
+<p>not written anywhere reports its tokens instead of a made-up percentage.</p>
+<p>[Unreleased]: https://github.com/aliyar/AgentBar/compare/main...HEAD</p>
+      ]]></description>
+      <enclosure url="https://agentbar.greatpixels.com/releases/AgentBar-1.0.0.zip" length="4081676" type="application/octet-stream" sparkle:edSignature="hUJAgbzkI6aJ7G/1WisSa08N2vIgbjuV/LcahF2N5y/68di35AhhkYQgmDS1QwgXjzyrmyySn7Y/tlKYprZDCQ=="/>
+    </item>
   </channel>
 </rss>

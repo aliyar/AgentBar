@@ -8,6 +8,8 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-03
+
 ### Added
 - The app: a menu bar item, a popover, and a Settings window with the update controls.
 - **The icon**: a dark terminal squircle holding the app's own panel, a `>` prompt and a
@@ -70,4 +72,5 @@ version heading and uses them as the release notes.
   shows "—", a figure written hours ago says how old it is, and a context whose limit is
   not written anywhere reports its tokens instead of a made-up percentage.
 
-[Unreleased]: https://github.com/aliyar/AgentBar/compare/main...HEAD
+[Unreleased]: https://github.com/aliyar/AgentBar/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/aliyar/AgentBar/releases/tag/v1.0.0
