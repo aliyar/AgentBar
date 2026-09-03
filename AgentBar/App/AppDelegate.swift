@@ -1,4 +1,5 @@
 import AppKit
+import AgentBarKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillFinishLaunching(_ notification: Notification) {
@@ -16,6 +17,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    /// Deep links from the widget: `agentbar://open` shows the panel; `agentbar://focus?pid=N`
+    /// brings the app a conversation runs in forward, as clicking its row does.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls where url.scheme == "agentbar" {
+            switch url.host() {
+            case "focus":
+                let pid = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?
+                    .first { $0.name == "pid" }?.value.flatMap(Int.init)
+                if let pid, let owner = ProcessTree.owningApplicationPID(of: pid),
+                   let app = NSRunningApplication(processIdentifier: pid_t(owner)) {
+                    app.activate()
+                } else {
+                    AppDependencies.shared.statusItem.showPopover()
+                }
+            default:
+                AppDependencies.shared.statusItem.showPopover()
+            }
+        }
     }
 }
 

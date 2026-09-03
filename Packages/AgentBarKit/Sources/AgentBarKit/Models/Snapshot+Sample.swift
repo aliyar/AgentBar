@@ -1,10 +1,9 @@
 import Foundation
-import AgentBarKit
 
-/// A snapshot with something in every row, for previews and the screenshot harness. The
-/// figures are the design handoff's.
+/// A snapshot with something in every row, for previews, the screenshot harness and the
+/// widget gallery. The figures are the design handoff's.
 extension Snapshot {
-    static var sample: Snapshot {
+    public static var sample: Snapshot {
         let now = Date()
         return Snapshot(
             limits: [

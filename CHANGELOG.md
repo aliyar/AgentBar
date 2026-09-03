@@ -19,6 +19,10 @@ version heading and uses them as the release notes.
   disk stays the fallback.
 - **Cursor** joins Claude Code and Codex: its plan's monthly usage, and its agent chats
   among the active conversations.
+- **A widget** for Notification Center and the desktop, in three sizes: the fullest window
+  as a ring; every window as a meter with its time left; the meters and the running
+  conversations. It shows what the app last read (and says "as of" when that is old);
+  tapping it opens the app, tapping a conversation brings its terminal or editor forward.
 - **The panel shows what the coding agents on this Mac are doing.** For Claude Code and
   Codex: every rate-limit window as a meter that fills as you spend, the percentage, and
   how long until it starts over; and the conversations running right now, named by what

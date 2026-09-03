@@ -56,8 +56,17 @@ case "$APP_SIGNATURE" in
   *"Authority=Developer ID Application"*)
     ok "$APP_NAME $VERSION ($BUILD) is already Developer ID signed; keeping its signature and ticket" ;;
   *)
-    "$ROOT/scripts/sign-app.sh" "$APP_PATH" >/dev/null || die "codesign failed"
-    ok "Signed $APP_NAME $VERSION ($BUILD) ad-hoc" ;;
+    # With the Developer ID certificate when this Mac has it: the App Group entitlement
+    # is Team-ID-prefixed, and an ad-hoc signature carries no Team ID, so the sandboxed
+    # widget could not open the shared container and would show nothing.
+    IDENTITY="${SIGN_IDENTITY:-$(security find-identity -v -p codesigning 2>/dev/null \
+      | sed -n 's/.*"\(Developer ID Application: [^"]*\)".*/\1/p' | head -1)}"
+    SIGN_IDENTITY="${IDENTITY:--}" "$ROOT/scripts/sign-app.sh" "$APP_PATH" >/dev/null || die "codesign failed"
+    if [ -n "$IDENTITY" ] && [ "$IDENTITY" != "-" ]; then
+      ok "Signed $APP_NAME $VERSION ($BUILD) with $IDENTITY"
+    else
+      ok "Signed $APP_NAME $VERSION ($BUILD) ad-hoc (no Developer ID certificate: the widget will stay empty)"
+    fi ;;
 esac
 
 # 3. Replace the app

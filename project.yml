@@ -49,6 +49,8 @@ targets:
     dependencies:
       - package: AgentBarKit
       - package: Sparkle
+      - target: AgentBarWidget
+        embed: true
     info:
       path: Supporting/Info.plist
       properties:
@@ -63,6 +65,10 @@ targets:
         NSSupportsAutomaticTermination: false
         NSSupportsSuddenTermination: false
         ITSAppUsesNonExemptEncryption: false
+        # Deep links from the widget: agentbar://open, agentbar://focus?pid=…
+        CFBundleURLTypes:
+          - CFBundleURLName: com.greatpixels.AgentBar
+            CFBundleURLSchemes: [agentbar]
         # Sparkle 2: the feed and the zips are served from the site, never from GitHub, so the
         # repository can stay private. SUPublicEDKey is filled in once the EdDSA key pair exists
         # (`generate_keys --account agentbar`, see docs/RELEASING.md); the updater does not start
@@ -76,6 +82,10 @@ targets:
       properties:
         # Not sandboxed: the app exists to read ~/.claude and ~/.codex.
         com.apple.security.app-sandbox: false
+        # Shared with the widget: the app writes a snapshot there, the widget reads it.
+        # Team-ID form on purpose (see docs/DEVELOPMENT.md, "Not sandboxed").
+        com.apple.security.application-groups:
+          - RCQFGHVGQJ.com.greatpixels.AgentBar
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.greatpixels.AgentBar
@@ -88,6 +98,40 @@ targets:
         - AgentBarTests
         - package: AgentBarKit/AgentBarKitTests
       gatherCoverageData: true
+
+  AgentBarWidget:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: AgentBarWidget
+    dependencies:
+      - package: AgentBarKit
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+    info:
+      path: Supporting/AgentBarWidget-Info.plist
+      properties:
+        CFBundleDisplayName: AgentBar
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        NSHumanReadableCopyright: "© 2026 GreatPixels. All rights reserved."
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Supporting/AgentBarWidget.entitlements
+      properties:
+        # App extensions must be sandboxed; the App Group is all it needs.
+        com.apple.security.app-sandbox: true
+        com.apple.security.application-groups:
+          - RCQFGHVGQJ.com.greatpixels.AgentBar
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.greatpixels.AgentBar.Widget
+        PRODUCT_NAME: AgentBarWidget
+        ENABLE_HARDENED_RUNTIME: YES
+        SKIP_INSTALL: YES
+        # Widget views are plain SwiftUI; the app's main-actor default is not wanted here.
+        SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
 
   AgentBarTests:
     type: bundle.unit-test

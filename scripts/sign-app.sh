@@ -57,6 +57,17 @@ for fw in "$APP_PATH"/Contents/Frameworks/*; do
   sign --options runtime "$fw"
 done
 
+# The widget extension: sandboxed, with its own entitlements (the App Group), signed
+# before the app that embeds it. Always with the hardened runtime: an extension is loaded
+# by the system, which requires it even for local builds.
+for appex in "$APP_PATH"/Contents/PlugIns/*.appex; do
+  [ -e "$appex" ] || continue
+  NAME="$(basename "$appex" .appex)"
+  APPEX_ENTITLEMENTS="$ROOT/Supporting/$NAME.entitlements"
+  [ -f "$APPEX_ENTITLEMENTS" ] || { echo "Entitlements file missing: $APPEX_ENTITLEMENTS (run: make generate)" >&2; exit 1; }
+  sign --options runtime --entitlements "$APPEX_ENTITLEMENTS" "$appex"
+done
+
 # The app itself, last, with its entitlements (no --deep: it would overwrite the nested signatures above).
 sign $APP_RUNTIME --entitlements "$ENTITLEMENTS" "$APP_PATH"
 

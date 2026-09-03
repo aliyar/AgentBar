@@ -61,7 +61,7 @@ logs:                ## Follow $(APP) OSLog output
 	log stream --level debug --predicate 'subsystem == "$(SUBSYSTEM)"'
 
 clean:               ## Remove build output and generated project files
-	rm -rf build dist $(APP).xcodeproj Supporting/Info.plist Supporting/$(APP).entitlements $(PKG)/.build site/.next site/out
+	rm -rf build dist $(APP).xcodeproj Supporting/*.plist Supporting/*.entitlements $(PKG)/.build site/.next site/out
 
 release:             ## Publish a release: make release VERSION=1.2.3 [NOTES=notes.md] [FLAGS=--draft]
 	@test -n "$(VERSION)" || (echo "usage: make release VERSION=1.2.3 [NOTES=notes.md] [FLAGS=...]"; exit 2)

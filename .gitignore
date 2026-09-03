@@ -2,6 +2,8 @@
 AgentBar.xcodeproj/
 Supporting/Info.plist
 Supporting/AgentBar.entitlements
+Supporting/AgentBarWidget-Info.plist
+Supporting/AgentBarWidget.entitlements
 
 # build output
 build/

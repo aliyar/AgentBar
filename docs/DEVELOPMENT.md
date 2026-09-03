@@ -190,6 +190,8 @@ samples, dated in the test names.
   `UsageLimit.currentWindowEnd(now:activeSince:)` projects the end forward by the window's
   length (the used figure stays 0% until the next read). Without activity, the row shows
   0% and the window's full length, dimmed.
+- **Sample data lives in the package** (`Snapshot.sample`): the app's previews and screenshot
+  harness, the Settings "Preview with sample data" switch and the widget gallery all draw it.
 - **Claude conversations**: `~/.claude/sessions/<pid>.json` — one file per running session, with
   the name Claude Code gave it and `status: "busy"`. Files outlive their process: check the pid
   with `kill(pid, 0)`.
@@ -214,6 +216,29 @@ samples, dated in the test names.
 - **Cost is not shown.** Claude Code writes a `totalCostUSD` it computed itself; Codex writes
   none and its prices are in no public table. A figure for one and a blank for the other reads
   as a bug.
+
+## The widget
+
+`AgentBarWidget` is a WidgetKit extension (`AgentBarWidget/`, bundle id
+`com.greatpixels.AgentBar.Widget`), sandboxed as every app extension must be, so it cannot
+read the agents' folders or ask an account. The app reads, and after every read
+`AgentsModel.publishToWidget` writes the `Snapshot` as JSON into the App Group container
+(`SnapshotStore`, `AppGroup.id = RCQFGHVGQJ.com.greatpixels.AgentBar`) and reloads the
+widget's timelines. The widget decodes that file and nothing else; its provider hands out an
+entry every 15 minutes so the countdowns and the "as of" note stay honest between the app's
+writes, and it shows "Open AgentBar once" until the first write. Three families:
+`systemSmall` (the fullest live window as a ring), `systemMedium` (every live window as a
+row), `systemLarge` (the rows, then the running conversations). Deep links: the widget opens
+`agentbar://open`; a conversation row `agentbar://focus?pid=N`, which `AppDelegate` answers
+by activating the process's owning app. `Snapshot.sample` (in AgentBarKit) feeds the widget
+gallery. The widget draws in its own plain style for now; the panel styles live in the app
+target and would have to move into a package to reach it.
+
+- **The App Group needs a Team ID in the signature.** The entitlement is
+  `RCQFGHVGQJ.com.greatpixels.AgentBar`; an ad-hoc signature has no Team ID, so a sandboxed
+  extension signed that way cannot open the shared container and the widget shows "Open
+  AgentBar once" forever (found 3 Sep 2026). `install-local.sh` therefore signs with the
+  Developer ID certificate when the Mac has one; Debug builds use the development team.
 
 ## The accounts
 

@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import OSLog
+import WidgetKit
 import AgentBarKit
 
 /// Owns the snapshot the surfaces draw and the loops that keep it current.
@@ -95,11 +96,27 @@ final class AgentsModel {
             snapshot = sample ? Snapshot.sample : merged(read, now: now)
             isRefreshing = false
             refreshTask = nil
+            publishToWidget(snapshot)
             Log.app.debug("read \(read.limits.count) limits, \(read.conversations.count) conversations; asked \(due.count) accounts")
             if let next = pendingReason {
                 pendingReason = nil
                 refresh(next)
             }
+        }
+    }
+
+    /// The widget cannot read the agents' folders (app extensions are sandboxed), so every
+    /// snapshot is written into the App Group for it, and its timelines reloaded.
+    private func publishToWidget(_ snapshot: Snapshot) {
+        guard let store = SnapshotStore() else {
+            Log.app.error("no App Group container: the widget will stay empty")
+            return
+        }
+        do {
+            try store.write(snapshot)
+            WidgetCenter.shared.reloadAllTimelines()
+        } catch {
+            Log.app.error("snapshot not written for the widget: \(error.localizedDescription, privacy: .public)")
         }
     }
 
