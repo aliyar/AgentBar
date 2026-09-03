@@ -118,6 +118,12 @@ final class AppDependencies {
         observeGauge()
         observeAppearance()
         loginItem.refresh()
+        // Launch at login is on by default: the first launch registers it (macOS tells
+        // the user, and Settings › General can turn it off); later launches leave the
+        // user's choice alone.
+        if settings.takeFirstLaunch(), !loginItem.isEnabled, !loginItem.requiresApproval {
+            loginItem.register()
+        }
         model.start()
         updates.start()
         Log.app.notice("AgentBar started")

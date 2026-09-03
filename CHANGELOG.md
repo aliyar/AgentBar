@@ -8,6 +8,11 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+### Changed
+- The defaults a first launch lands on: the menu bar gauge (bars and the time left) on,
+  the app in the menu bar and the Dock both, and launch at login registered on the first
+  run. Each can be turned off in Settings.
+
 ## [1.0.0] - 2026-09-03
 
 ### Added

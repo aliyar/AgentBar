@@ -18,6 +18,9 @@ final class AppSettings {
         static let dockClick = "dockClickOpens"
         static let panelOpacity = panelOpacityKey
         static let sampleData = "sampleData"
+        /// Set after the first launch has registered the login item, so a user who turns
+        /// it off later is not opted back in.
+        static let loginItemOffered = "loginItemOffered"
         static let menuBarBars = "menuBarBars"
         static let menuBarTime = "menuBarTime"
         /// Shared with `OverviewView`'s `@AppStorage`: clicking a time in the panel flips it too.
@@ -51,9 +54,7 @@ final class AppSettings {
 
     private let defaults: UserDefaults
 
-    /// Show the fullest live window as a percentage in the menu bar instead of the symbol.
-    /// Off by default: a bare "78%" does not say what it is; how the item should look is
-    /// still to be designed.
+    /// The menu bar gauge (bars and the time left) instead of the symbol. On by default.
     var gaugeEnabled: Bool {
         didSet { defaults.set(gaugeEnabled, forKey: Keys.gauge) }
     }
@@ -157,9 +158,12 @@ final class AppSettings {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        gaugeEnabled = defaults.object(forKey: Keys.gauge) as? Bool ?? false
+        // The defaults a first launch lands on: the gauge in the menu bar, the app in the
+        // menu bar and the Dock both, and launch at login (registered once, see
+        // `AppDependencies.start`). Each can be turned off in Settings.
+        gaugeEnabled = defaults.object(forKey: Keys.gauge) as? Bool ?? true
         presence = defaults.string(forKey: Keys.presence).flatMap(Presence.init(rawValue:))
-            ?? (defaults.bool(forKey: Keys.dock) ? .both : .menuBar)
+            ?? (defaults.object(forKey: Keys.dock) == nil || defaults.bool(forKey: Keys.dock) ? .both : .menuBar)
         dockClickOpens = defaults.string(forKey: Keys.dockClick).flatMap(DockClick.init(rawValue:)) ?? .popover
         enabledAgents = Self.included(excluding: Keys.disabledAgents, in: defaults)
         // Dark by default: both styles were designed dark-first.
@@ -174,6 +178,13 @@ final class AppSettings {
         menuBarBars = defaults.stringArray(forKey: Keys.menuBarBars) ?? []
         menuBarTime = MenuBarTime(rawValue: defaults.string(forKey: Keys.menuBarTime) ?? "fullest")
         showsResetClock = defaults.bool(forKey: Keys.resetClock)
+    }
+
+    /// True once per install: the first launch registers the login item and remembers it did.
+    func takeFirstLaunch() -> Bool {
+        guard !defaults.bool(forKey: Keys.loginItemOffered) else { return false }
+        defaults.set(true, forKey: Keys.loginItemOffered)
+        return true
     }
 
     /// Enabled agents in their canonical order.
