@@ -11,6 +11,7 @@ final class AppSettings {
         /// Stored as exclusions, so an agent added by an update is on until turned off.
         static let disabledAgents = "disabledAgents"
         static let appearance = "appearance"
+        static let panelStyle = "panelStyle"
         static let sampleData = "sampleData"
         static let menuBarBars = "menuBarBars"
         static let menuBarTime = "menuBarTime"
@@ -71,6 +72,11 @@ final class AppSettings {
         didSet { defaults.set(appearance.rawValue, forKey: Keys.appearance) }
     }
 
+    /// How the panel is drawn (glass, terminal, …); the appearance picks the variant.
+    var panelStyle: PanelStyleID {
+        didSet { defaults.set(panelStyle.rawValue, forKey: Keys.panelStyle) }
+    }
+
     /// Draw the handoff's sample snapshot instead of what the agents wrote: a way to see
     /// every row of the panel without waiting for the agents to fill them.
     var showsSampleData: Bool {
@@ -97,6 +103,7 @@ final class AppSettings {
         gaugeEnabled = defaults.object(forKey: Keys.gauge) as? Bool ?? false
         enabledAgents = Self.included(excluding: Keys.disabledAgents, in: defaults)
         appearance = defaults.string(forKey: Keys.appearance).flatMap(AppAppearance.init(rawValue:)) ?? .system
+        panelStyle = defaults.string(forKey: Keys.panelStyle).flatMap(PanelStyleID.init(rawValue:)) ?? .glass
         showsSampleData = defaults.bool(forKey: Keys.sampleData)
         menuBarBars = defaults.stringArray(forKey: Keys.menuBarBars) ?? []
         menuBarTime = MenuBarTime(rawValue: defaults.string(forKey: Keys.menuBarTime) ?? "fullest")

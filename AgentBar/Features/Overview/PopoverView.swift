@@ -1,21 +1,19 @@
 import SwiftUI
 import AgentBarKit
 
-/// The popover: the overview on the glass material.
+/// The popover: the overview in the chosen style.
 struct PopoverView: View {
     @Environment(AgentsModel.self) private var model
     @Environment(AppSettings.self) private var settings
 
     var body: some View {
-        OverviewView(snapshot: model.snapshot, agents: settings.agents,
-                     onSettings: { AppDependencies.shared.settingsWindow.show() },
-                     onQuit: { NSApp.terminate(nil) },
-                     isRefreshing: model.isRefreshing,
-                     onRefresh: { model.refresh(.manual) })
-            .frame(width: 340)
-            // The popover's own material gives the blur; the gradient on top gives the
-            // glass its body, so what is behind the menu bar no longer shows through.
-            .background(GlassBackground())
+        OverviewView(style: settings.panelStyle, context: OverviewContext(
+            snapshot: model.snapshot, agents: settings.agents,
+            isRefreshing: model.isRefreshing,
+            onRefresh: { model.refresh(.manual) },
+            onSettings: { AppDependencies.shared.settingsWindow.show() },
+            onQuit: { NSApp.terminate(nil) }))
+            .frame(width: PanelStyles.style(settings.panelStyle).width)
     }
 }
 

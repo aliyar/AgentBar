@@ -32,14 +32,19 @@ struct ScreenshotTests {
                 let backdrop = scheme == .dark
                     ? [Color(red: 0.16, green: 0.20, blue: 0.42), Color(red: 0.45, green: 0.22, blue: 0.40), Color(red: 0.75, green: 0.42, blue: 0.30)]
                     : [Color(red: 0.72, green: 0.85, blue: 0.95), Color(red: 0.96, green: 0.92, blue: 0.82), Color(red: 0.95, green: 0.72, blue: 0.75)]
-                let view = OverviewView(snapshot: .sample, agents: Agent.allCases)
-                    .frame(width: 340)
-                    .background(GlassBackground())
-                    .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-                    .padding(28)
-                    .background(LinearGradient(colors: backdrop, startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .preferredColorScheme(scheme)
-                try Self.write(view, name: "popover-\(suffix).png", to: directory)
+                for style in PanelStyleID.allCases {
+                    let view = OverviewView(style: style, context: OverviewContext(snapshot: .sample, agents: Agent.allCases))
+                        .frame(width: PanelStyles.style(style).width)
+                        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                        .padding(28)
+                        .background(LinearGradient(colors: backdrop, startPoint: .topLeading, endPoint: .bottomTrailing))
+                        // Both: the window appearance follows `preferredColorScheme` a beat later
+                        // than the render, and the environment value is what the views read.
+                        .environment(\.colorScheme, scheme)
+                        .preferredColorScheme(scheme)
+                    let name = style == .glass ? "popover-\(suffix).png" : "popover-\(style.rawValue)-\(suffix).png"
+                    try Self.write(view, name: name, to: directory)
+                }
             }
         }
         #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("popover-light.png").path))

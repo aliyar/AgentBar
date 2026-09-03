@@ -93,9 +93,7 @@ private struct UsageRow: View {
 
     /// "14:05" when the window starts over today, "Thu 14:05" when it is another day.
     static func clock(_ date: Date, now: Date) -> String {
-        let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute())
-        if Calendar.current.isDate(date, inSameDayAs: now) { return time }
-        return "\(date.formatted(.dateTime.weekday(.abbreviated))) \(time)"
+        Format.clock(date, now: now)
     }
 
     /// "Weekly · all models" is too long for its column; the design writes "Weekly · all".

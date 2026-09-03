@@ -40,6 +40,9 @@ version heading and uses them as the release notes.
   panes you visited.
 - **Appearance**: System, Light or Dark for the popover and the Settings window. The menu
   bar item always follows the menu bar.
+- **Style**: how the panel is drawn, apart from the theme. Glass (the design) or Terminal
+  (a terminal readout: monospaced, green on black, `▌` meters, a blinking prompt); each
+  has a light and a dark variant and the theme picks which.
 - **Launch at login**, through the system's Login Items.
 - Nothing is shown that cannot be stood behind: a window that has already started over
   shows "—", a figure written hours ago says how old it is, and a context whose limit is

@@ -25,4 +25,14 @@ public enum Format {
     public static func percent(_ value: Double) -> String {
         "\(Int(value.rounded()))%"
     }
+
+    /// When a window starts over, as a clock: "14:44" today, "Sat 14:44" within the week,
+    /// "12 Sep" beyond it - a weekday alone stops saying which one after six days.
+    public static func clock(_ date: Date, now: Date, calendar: Calendar = .current) -> String {
+        let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute())
+        if calendar.isDate(date, inSameDayAs: now) { return time }
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: date)).day ?? 0
+        if days >= 0, days < 7 { return "\(date.formatted(.dateTime.weekday(.abbreviated))) \(time)" }
+        return date.formatted(.dateTime.day().month(.abbreviated))
+    }
 }

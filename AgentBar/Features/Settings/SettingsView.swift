@@ -104,15 +104,29 @@ struct SettingsView: View {
             Footnote("For the popover, the Dock window and this window. The menu bar item follows the menu bar, and the widget follows macOS: neither can be themed by an app.")
         }
         Section {
-            Picker("Show resets as", selection: $settings.showsResetClock) {
-                Text("Time left").tag(false)
-                Text("Clock time").tag(true)
+            Picker("Style", selection: $settings.panelStyle) {
+                ForEach(PanelStyleID.allCases, id: \.self) { id in
+                    Text(PanelStyles.style(id).title).tag(id)
+                }
             }
-            .pickerStyle(.segmented)
-        } header: {
-            Text("Windows")
         } footer: {
-            Footnote("\"4h 52m\" or \"14:05\". Clicking a time in the panel flips this too.")
+            Footnote("How the panel is drawn. \(PanelStyles.style(settings.panelStyle).summary) Each style has a light and a dark variant; the theme above picks which.")
+        }
+        // What follows depends on the style: its own options, and only the shared
+        // options it honours.
+        PanelStyles.style(settings.panelStyle).settings(settings)
+        if PanelStyles.style(settings.panelStyle).features.contains(.resetClock) {
+            Section {
+                Picker("Show resets as", selection: $settings.showsResetClock) {
+                    Text("Time left").tag(false)
+                    Text("Clock time").tag(true)
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                Text("Windows")
+            } footer: {
+                Footnote("\"4h 52m\" or \"14:05\". Clicking a time in the panel flips this too.")
+            }
         }
         menuBar
     }
