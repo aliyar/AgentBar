@@ -113,7 +113,7 @@ struct SettingsView: View {
             }
             .pickerStyle(.segmented)
         } footer: {
-            Footnote("For the popover, the Dock window and this window. The menu bar item follows the menu bar, and the widget follows macOS: neither can be themed by an app.")
+            Footnote("For the popover, the Dock window and this window. The menu bar item follows the menu bar. The widget has its own theme: right-click it and choose Edit “AgentBar”.")
         }
         Section {
             Picker("Style", selection: $settings.panelStyle) {
@@ -170,13 +170,7 @@ struct SettingsView: View {
                 Text("The AgentBar symbol").tag(false)
                 Text("Usage bars and time left").tag(true)
             }
-        } header: {
-            Text("Menu Bar")
-        } footer: {
-            Footnote("A bar per window, filled as it is used and coloured by how full it is, refreshed every minute.")
-        }
-        if settings.gaugeEnabled {
-            Section {
+            if settings.gaugeEnabled {
                 if windows.isEmpty {
                     Text("Windows appear here once an agent reports them.")
                         .foregroundStyle(.secondary)
@@ -194,11 +188,15 @@ struct SettingsView: View {
                         LabeledContent(window.title) { Text(window.agent.title).foregroundStyle(.tertiary) }
                     }
                 }
-            } header: {
-                Text("Bars")
-            } footer: {
-                Footnote("Claude's windows by default. Turn every bar off and the bars fall back to whatever is reported.")
             }
+        } header: {
+            Text("Menu Bar")
+        } footer: {
+            Footnote(settings.gaugeEnabled
+                ? "A bar per window, filled as it is used and coloured by how full it is, refreshed every minute. Claude's windows by default; turn every bar off and the bars fall back to whatever is reported."
+                : "The AgentBar symbol, or a bar per window with the time left on one of them.")
+        }
+        if settings.gaugeEnabled {
             Section {
                 Picker("Time left of", selection: $settings.menuBarTime) {
                     Text("The fullest window shown").tag(AppSettings.MenuBarTime.fullest)

@@ -16,6 +16,15 @@ struct ConversationsSection: View {
         VStack(alignment: .leading, spacing: 5) {
             GroupCaption(title: "Active")
             GroupBox_ {
+                if conversations.isEmpty {
+                    // The group stays so the panel keeps its shape; the row says why it is empty.
+                    Text("No conversation running right now")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(glass.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                }
                 ForEach(Array(conversations.enumerated()), id: \.element.id) { index, conversation in
                     if index > 0 { Rectangle().fill(glass.hairline).frame(height: 0.5) }
                     ConversationRow(conversation: conversation, expanded: expandedID == conversation.id) {
@@ -116,14 +125,17 @@ private struct ConversationRow: View {
                 .font(.system(size: 10))
                 .monospacedDigit()
                 .foregroundStyle(level == .calm ? glass.secondary : Palette.color(level, scheme))
-                .frame(width: 28, alignment: .trailing)
+                .lineLimit(1)
+                .fixedSize()
+                .frame(width: 31, alignment: .trailing)
         } else if let tokens = conversation.contextTokens {
             // The limit is unknown here, so the tokens are the honest figure.
             Text(Format.compact(tokens))
                 .font(.system(size: 10))
                 .monospacedDigit()
                 .foregroundStyle(glass.tertiary)
-                .frame(width: 44 + 8 + 28, alignment: .trailing)
+                .lineLimit(1)
+                .frame(width: 44 + 8 + 31, alignment: .trailing)
         }
     }
 

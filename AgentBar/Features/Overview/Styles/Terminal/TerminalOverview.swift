@@ -34,7 +34,7 @@ struct TerminalOverview: View {
                     ForEach(context.agents) { agent in
                         usage(agent, now: tick.date, palette: palette)
                     }
-                    if !context.conversations.isEmpty {
+                    if !context.agents.isEmpty {
                         Rectangle().fill(palette.bodyHairline).frame(height: 0.5)
                         active(palette: palette)
                     }
@@ -62,14 +62,23 @@ struct TerminalOverview: View {
                 .foregroundStyle(palette.title)
         }
         let controls = HStack(spacing: 4) {
-            Command(":r", palette: palette, color: palette.ghost, help: "Read again now (:refresh)", action: context.onRefresh)
+            Command(":r", palette: palette, color: palette.ghost, help: "Read again now (:refresh)", flashes: true, action: context.onRefresh)
                 .opacity(context.isRefreshing ? 0.5 : 1)
-            Text(context.snapshot.readAt, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute())
-                .font(Self.mono(9.5))
-                .monospacedDigit()
-                .foregroundStyle(palette.faint)
-                .help("When the agents were last read")
-                .padding(.leading, 4)
+            // While a read is in flight the clock gives way to a walking "...", then comes
+            // back with the new time.
+            Group {
+                if context.isRefreshing {
+                    WalkingDots(palette: palette)
+                } else {
+                    Text(context.snapshot.readAt, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute())
+                }
+            }
+            .font(Self.mono(9.5))
+            .monospacedDigit()
+            .foregroundStyle(palette.faint)
+            .frame(width: 34, alignment: .leading)
+            .help(context.isRefreshing ? "Reading…" : "When the agents were last read")
+            .padding(.leading, 4)
         }
         return Group {
             switch context.presentation {
@@ -188,6 +197,11 @@ struct TerminalOverview: View {
     private func active(palette: TerminalPalette) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             SectionHeader(text: "ACTIVE · \(context.conversations.count)", palette: palette)
+            if context.conversations.isEmpty {
+                Text("nothing running")
+                    .font(Self.mono(10.5)).foregroundStyle(palette.faint)
+                    .padding(.top, 2)
+            }
             ForEach(context.conversations) { conversation in
                 TerminalConversationRow(conversation: conversation, palette: palette,
                                         expanded: expandedID == conversation.id) {
@@ -292,7 +306,9 @@ private struct TerminalConversationRow: View {
                     Text(Format.percent(percent))
                         .font(TerminalOverview.mono(9.5)).monospacedDigit()
                         .foregroundStyle(Palette.level(percent) == .hot ? palette.alertValue : (busy ? palette.dim : palette.ghost))
-                        .frame(width: 28, alignment: .trailing)
+                        .lineLimit(1)
+                        .fixedSize()
+                        .frame(width: 31, alignment: .trailing)
                 } else if let tokens = conversation.contextTokens {
                     Text(Format.compact(tokens))
                         .font(TerminalOverview.mono(9.5)).monospacedDigit()
@@ -328,29 +344,57 @@ private struct Command: View {
     let palette: TerminalPalette
     let color: Color
     let help: String
+    /// Inverse video for a moment on click - a terminal's way of showing a key was taken -
+    /// for commands whose effect is not otherwise visible right away, like `:r`.
+    let flashes: Bool
     let action: () -> Void
 
-    init(_ word: String, palette: TerminalPalette, color: Color, help: String, action: @escaping () -> Void) {
+    init(_ word: String, palette: TerminalPalette, color: Color, help: String, flashes: Bool = false, action: @escaping () -> Void) {
         self.word = word
         self.palette = palette
         self.color = color
         self.help = help
+        self.flashes = flashes
         self.action = action
     }
 
     @State private var hovering = false
+    @State private var flashing = false
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            action()
+            guard flashes else { return }
+            flashing = true
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(160))
+                flashing = false
+            }
+        } label: {
             Text(word)
                 .font(TerminalOverview.mono(10.5))
-                .foregroundStyle(hovering ? palette.value : color)
-                .underline(hovering, color: palette.meterLit.opacity(0.5))
+                .foregroundStyle(flashing ? palette.panel : (hovering ? palette.value : color))
+                .underline(hovering && !flashing, color: palette.meterLit.opacity(0.5))
+                .padding(.horizontal, 2)
+                .background(flashing ? palette.meterLit : .clear)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
         .help(help)
+    }
+}
+
+/// ".", "..", "..." in step, the terminal's progress indicator; the same width as the
+/// clock it replaces so nothing else moves.
+private struct WalkingDots: View {
+    let palette: TerminalPalette
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 0.3)) { timeline in
+            let step = Int(timeline.date.timeIntervalSinceReferenceDate / 0.3) % 3 + 1
+            Text(String(repeating: ".", count: step))
+        }
     }
 }
 

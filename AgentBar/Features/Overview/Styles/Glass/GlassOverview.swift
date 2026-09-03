@@ -45,7 +45,7 @@ struct GlassOverview: View {
                                  written: snapshot.lastWritten[agent], account: snapshot.accounts[agent],
                                  activeSince: snapshot.latestActivity(for: agent), now: now, showsClock: $showsClock)
                 }
-                if !conversations.isEmpty {
+                if !agents.isEmpty {
                     ConversationsSection(conversations: conversations)
                 }
             }
@@ -66,11 +66,20 @@ struct GlassOverview: View {
         }
         let controls = HStack(spacing: 8) {
             RefreshButton(isRefreshing: isRefreshing, action: onRefresh)
-            Text(snapshot.readAt, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute())
-                .font(.system(size: 10))
-                .monospacedDigit()
-                .foregroundStyle(glass.tertiary)
-                .help("When the agents were last read")
+            // While a read is in flight the clock gives way to a walking "...", then comes
+            // back with the new time; the arrow keeps turning beside it.
+            Group {
+                if isRefreshing {
+                    WalkingDots()
+                } else {
+                    Text(snapshot.readAt, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute())
+                }
+            }
+            .font(.system(size: 10))
+            .monospacedDigit()
+            .foregroundStyle(glass.tertiary)
+            .frame(width: 30, alignment: .leading)
+            .help(isRefreshing ? "Reading…" : "When the agents were last read")
         }
         return Group {
             switch presentation {
@@ -108,6 +117,17 @@ struct GlassOverview: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 11)
+    }
+}
+
+/// ".", "..", "..." in step while a read is in flight; the same width as the clock it
+/// replaces so nothing else moves.
+private struct WalkingDots: View {
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 0.3)) { timeline in
+            let step = Int(timeline.date.timeIntervalSinceReferenceDate / 0.3) % 3 + 1
+            Text(String(repeating: ".", count: step))
+        }
     }
 }
 

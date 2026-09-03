@@ -24,10 +24,15 @@ version heading and uses them as the release notes.
   the Dock, as the menu bar icon does, or a window if you prefer (the choice is in the Dock
   icon's right-click menu too); Window › AgentBar (⌘0) and the widget open the window,
   whose header stands in for its title bar.
-- **A widget** for Notification Center and the desktop, in three sizes: the fullest window
-  as a ring; every window as a meter with its time left; the meters and the running
-  conversations. It shows what the app last read (and says "as of" when that is old);
-  tapping it opens the app, tapping a conversation brings its terminal or editor forward.
+- **A widget** for Notification Center and the desktop, in three sizes: each agent's
+  fullest window with its meter and time left; every window as a row; the rows and the
+  running conversations. Right-click › Edit "AgentBar" picks the windows to show (any
+  set; none means all), a theme (system, dark or light) and, for the large size, whether
+  the running conversations are listed. A size left with a single window shows it as a
+  card: the figure large, a wide meter, the time left. When there are more windows than
+  a size has rows, it shows each agent's fullest rather than dropping the last agents.
+  It shows what the app last read and says "as of" when that is old; tapping a
+  conversation brings its terminal or editor forward.
 - **The panel shows what the coding agents on this Mac are doing.** For Claude Code and
   Codex: every rate-limit window as a meter that fills as you spend, the percentage, and
   how long until it starts over; and the conversations running right now, named by what
@@ -56,6 +61,9 @@ version heading and uses them as the release notes.
   has a light and a dark variant and the theme picks which, Dark by default. A background
   opacity slider (0–100%) sets how sheer either panel is.
 - **Launch at login**, through the system's Login Items.
+- The Active group stays when nothing is running and says so, so the panel keeps its
+  shape; a context at "100%" no longer wraps; while a refresh runs, the clock in the
+  header walks "..." (the Terminal panel's `:r` flashes when clicked, too).
 - Nothing is shown that cannot be stood behind: a window that has already started over
   shows "—", a figure written hours ago says how old it is, and a context whose limit is
   not written anywhere reports its tokens instead of a made-up percentage.

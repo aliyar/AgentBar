@@ -180,9 +180,11 @@ public enum ClaudeReader {
     ///
     /// **The limit is not reliably written anywhere.** `message.model` says `claude-opus-5`
     /// whether the session is the 200K or the 1M one; a fresh session names neither. So the
-    /// percentage is offered only when the limit is actually known - a `[1m]` marker anywhere
-    /// in the tail, or a context already past 200K, which can only be a 1M one. Otherwise
-    /// the tokens are reported and the caller shows those instead of inventing a denominator.
+    /// percentage is offered only when the limit is actually known - a `[1m]` marker in the
+    /// model's name, or a context already past 200K, which can only be a 1M one (a Fable
+    /// session was watched compacting at 997K: the 1M window is real). Otherwise the tokens
+    /// are reported and the caller shows those instead of inventing a denominator - so a
+    /// freshly compacted session shows tokens until it grows past 200K again.
     public static func contextUse(fromTranscript text: String) -> ContextUse? {
         var tokens: Int?
         var model: String?

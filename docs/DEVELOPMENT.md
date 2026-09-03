@@ -243,19 +243,49 @@ read the agents' folders or ask an account. The app reads, and after every read
 (`SnapshotStore`, `AppGroup.id = RCQFGHVGQJ.com.greatpixels.AgentBar`) and reloads the
 widget's timelines. The widget decodes that file and nothing else; its provider hands out an
 entry every 15 minutes so the countdowns and the "as of" note stay honest between the app's
-writes, and it shows "Open AgentBar once" until the first write. Three families:
-`systemSmall` (the fullest live window as a ring), `systemMedium` (every live window as a
-row), `systemLarge` (the rows, then the running conversations). Deep links: the widget opens
-`agentbar://open`; a conversation row `agentbar://focus?pid=N`, which `AppDelegate` answers
-by activating the process's owning app. `Snapshot.sample` (in AgentBarKit) feeds the widget
-gallery. The widget draws in its own plain style for now; the panel styles live in the app
-target and would have to move into a package to reach it.
+writes, and it shows "Open AgentBar once" until the first write. Three families
+(`WidgetViews.swift`): `systemSmall` (a block per agent with its fullest window, or one
+window large), `systemMedium` (every live window as a row), `systemLarge` (a titled group
+per agent, then the running conversations). Each family has a row budget (`Rows.fit`):
+past it, one row per agent - its fullest window - so every agent stays on the widget.
+Tapping the widget opens nothing; a conversation row links to `agentbar://focus?pid=N`,
+which `AppDelegate` answers by activating the process's owning app. `Snapshot.sample` (in
+AgentBarKit) feeds the widget gallery.
+
+The widget has one design of its own, not the panel's styles shrunk, drawn on the system's
+own ground (`WidgetPalette.ground`: flat near-black or white) in semantic colours. Two things were learnt the hard way (3 Sep 2026): the desktop's glass
+under the Battery widget is not available to a third-party widget on macOS 26 (a clear
+container background, a fill and a material were all tried, and every one reads as paint);
+and the ground must be **opaque**, because the host paints its own backing under the
+widget in the *system's* appearance, so a translucent ground blends with that and the same
+theme looks different on a light and a dark Mac. Which appearance the system is in comes
+from the `AppleInterfaceStyle` preference at timeline time (`SystemAppearance`), not from
+the view's `colorScheme` - the extension renders with its own, not the desktop's - and the
+app reloads the timelines on `AppleInterfaceThemeChangedNotification`. It has no title
+row: the desktop knows whose widget it is. It is configurable
+(`AppIntentConfiguration`, right-click › Edit "AgentBar"; `WidgetConfiguration.swift`), and
+the intent's `parameterSummary` uses `When(widgetFamily:)` so each size sees only its own
+settings: **Theme** and **Windows** for all (a multi-select of `WindowEntity`, whose
+choices are the last snapshot's windows by `UsageLimit.id`; none chosen means all), **Show
+active conversations** for the large. A size left with a single window draws `WindowCard`
+scaled to it; the small one draws up to three chosen windows as `Blocks`, and past that
+one block per agent. The intent lives in the extension only.
 
 - **The App Group needs a Team ID in the signature.** The entitlement is
   `RCQFGHVGQJ.com.greatpixels.AgentBar`; an ad-hoc signature has no Team ID, so a sandboxed
   extension signed that way cannot open the shared container and the widget shows "Open
   AgentBar once" forever (found 3 Sep 2026). `install-local.sh` therefore signs with the
   Developer ID certificate when the Mac has one; Debug builds use the development team.
+- **chronod caches the widget descriptor by bundle version.** The daemon behind widgets
+  asks an extension what it offers (kinds, families, whether it is configurable) once, and
+  asks again only when the extension's `CFBundleVersion` changes. A widget that goes from
+  `StaticConfiguration` to `AppIntentConfiguration` without a version bump keeps its old
+  descriptor: no "Edit Widget" in the right-click menu, and every timeline reload fails
+  with "Intent configuration is required but was not provided", so the widget shows its
+  last rendering forever. Bump `CURRENT_PROJECT_VERSION`, then remove and re-add the
+  placed widgets - instances keep the intent they were created with. Read the story in
+  the log with `/usr/bin/log show --predicate 'process == "chronod"'` (the full path:
+  zsh has a `log` builtin that swallows the arguments and prints nothing).
 
 ## The accounts
 

@@ -1,10 +1,12 @@
+import AppIntents
+import OSLog
 import SwiftUI
 import WidgetKit
 import AgentBarKit
 
 /// The widget only decodes the snapshot the app wrote into the App Group; it reads no
-/// agent's folder and asks no account. Tapping it opens the app; tapping a conversation in
-/// the large widget brings the terminal or editor it runs in forward.
+/// agent's folder and asks no account. It opens nothing when tapped; a conversation in the
+/// large widget brings the terminal or editor it runs in forward.
 @main
 struct AgentBarWidgetBundle: WidgetBundle {
     var body: some Widget {
@@ -16,12 +18,10 @@ struct UsageWidget: Widget {
     static let kind = "com.greatpixels.AgentBar.usage"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: Self.kind, provider: SnapshotProvider()) { entry in
-            UsageWidgetView(entry: entry)
-                .containerBackground(for: .widget) { Color(nsColor: .windowBackgroundColor) }
-                .widgetURL(URL(string: "agentbar://open"))
+        AppIntentConfiguration(kind: Self.kind, intent: ConfigureAgentBarWidget.self, provider: SnapshotProvider()) { entry in
+            WidgetRoot(entry: entry)
         }
-        .configurationDisplayName("Agents")
+        .configurationDisplayName("AgentBar")
         .description("How much of each coding agent's quota is used, when it starts over, and what is running right now.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
@@ -30,276 +30,93 @@ struct UsageWidget: Widget {
 struct SnapshotEntry: TimelineEntry {
     let date: Date
     let snapshot: Snapshot?
+    /// nil follows macOS.
+    let scheme: ColorScheme?
+    /// macOS's appearance when the entry was made. The view's own `colorScheme` cannot be
+    /// trusted for this: the extension renders with its own, not the desktop's.
+    let systemIsDark: Bool
+    /// What to show, as the configuration put it; `Selection.all` before any choice.
+    let selection: Selection
+
+    struct Selection {
+        /// The windows, by `UsageLimit.id`; empty for every window.
+        var windowIDs: Set<String> = []
+        /// Large: the running conversations under the windows.
+        var showsActive = true
+
+        static let all = Selection()
+
+        init(windowIDs: Set<String> = [], showsActive: Bool = true) {
+            self.windowIDs = windowIDs
+            self.showsActive = showsActive
+        }
+
+        init(_ configuration: ConfigureAgentBarWidget) {
+            self.init(windowIDs: Set((configuration.windows ?? []).map(\.id)), showsActive: configuration.showsActive)
+        }
+
+        func keeps(_ limit: UsageLimit) -> Bool { windowIDs.isEmpty || windowIDs.contains(limit.id) }
+    }
+
+    init(date: Date, snapshot: Snapshot?, scheme: ColorScheme? = nil, selection: Selection = .all) {
+        self.date = date
+        self.snapshot = snapshot
+        self.scheme = scheme
+        self.systemIsDark = SystemAppearance.isDark
+        self.selection = selection
+    }
 }
 
-/// Reads the shared file. A timeline of one entry: the app reloads the widget whenever it
-/// writes, and a fresh entry every 15 minutes keeps the "as of" note and the countdowns
-/// honest in between.
-struct SnapshotProvider: TimelineProvider {
+/// macOS's appearance, from the global preference the Appearance setting writes. The app
+/// reloads the timelines when it changes, so an entry never outlives the answer.
+enum SystemAppearance {
+    static var isDark: Bool {
+        UserDefaults.standard.string(forKey: "AppleInterfaceStyle")?.lowercased() == "dark"
+    }
+}
+
+/// Reads the shared file. The app reloads the widget whenever it writes; a fresh entry
+/// every 15 minutes keeps the "as of" note and the countdowns honest in between.
+typealias Selection = SnapshotEntry.Selection
+
+struct SnapshotProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> SnapshotEntry {
         SnapshotEntry(date: .now, snapshot: .sample)
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (SnapshotEntry) -> Void) {
-        completion(SnapshotEntry(date: .now, snapshot: context.isPreview ? .sample : SnapshotStore()?.read()))
+    func snapshot(for configuration: ConfigureAgentBarWidget, in context: Context) async -> SnapshotEntry {
+        SnapshotEntry(date: .now, snapshot: context.isPreview ? .sample : SnapshotStore()?.read(),
+                      scheme: configuration.theme.colorScheme, selection: Selection(configuration))
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<SnapshotEntry>) -> Void) {
+    func timeline(for configuration: ConfigureAgentBarWidget, in context: Context) async -> Timeline<SnapshotEntry> {
         let snapshot = SnapshotStore()?.read()
+        let scheme = configuration.theme.colorScheme
+        // One line per timeline, so `/usr/bin/log show --predicate 'subsystem == "com.greatpixels.AgentBar.Widget"'`
+        // says what each widget was asked to draw.
+        Logger(subsystem: "com.greatpixels.AgentBar.Widget", category: "timeline")
+            .notice("\(String(describing: context.family), privacy: .public): theme=\(configuration.theme.rawValue, privacy: .public) windows=\(configuration.windows?.count ?? 0, privacy: .public) active=\(configuration.showsActive, privacy: .public) snapshot=\(snapshot == nil ? "none" : "read", privacy: .public)")
+        let selection = Selection(configuration)
         let entries = (0..<4).map { step in
-            SnapshotEntry(date: Date().addingTimeInterval(Double(step) * 15 * 60), snapshot: snapshot)
+            SnapshotEntry(date: Date().addingTimeInterval(Double(step) * 15 * 60), snapshot: snapshot, scheme: scheme, selection: selection)
         }
-        completion(Timeline(entries: entries, policy: .atEnd))
+        return Timeline(entries: entries, policy: .atEnd)
     }
 }
 
-// MARK: - Views
-
-struct UsageWidgetView: View {
+/// The theme applied, then the family's view on the widget's own ground: near-white or
+/// near-black, a little translucent so the desktop shows faintly through, with a soft
+/// light from the top. (The desktop's own glass, the Battery widget's, is not on offer to
+/// a third-party widget on this macOS: whatever is painted here replaces it, and nothing
+/// painted here leaves it.)
+private struct WidgetRoot: View {
     let entry: SnapshotEntry
     @Environment(\.widgetFamily) private var family
 
     var body: some View {
-        if let snapshot = entry.snapshot {
-            switch family {
-            case .systemSmall: SmallView(snapshot: snapshot, now: entry.date)
-            case .systemLarge: LargeView(snapshot: snapshot, now: entry.date)
-            default: MediumView(snapshot: snapshot, now: entry.date)
-            }
-        } else {
-            VStack(spacing: 6) {
-                Image(systemName: "terminal")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
-                Text("Open AgentBar once")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-        }
+        let scheme = entry.scheme ?? (entry.systemIsDark ? .dark : .light)
+        UsageWidgetView(entry: entry, family: family)
+            .containerBackground(for: .widget) { WidgetPalette.ground(scheme) }
+            .environment(\.colorScheme, scheme)
     }
-}
-
-/// The fullest live window as a ring, its figure and its name.
-private struct SmallView: View {
-    let snapshot: Snapshot
-    let now: Date
-
-    var body: some View {
-        if let worst = snapshot.worstLimit(at: now) {
-            VStack(alignment: .leading, spacing: 4) {
-                Gauge(value: worst.percentUsed, in: 0...100) {
-                    EmptyView()
-                } currentValueLabel: {
-                    Text(Format.percent(worst.percentUsed))
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                }
-                .gaugeStyle(.accessoryCircular)
-                .tint(Levels.color(worst.percentUsed))
-                .frame(width: 58, height: 58)
-                Spacer(minLength: 0)
-                Text(worst.agent.title)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(worst.title)
-                    .font(.caption.weight(.medium))
-                    .lineLimit(1)
-                ResetText(limit: worst, now: now)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        } else {
-            Empty(snapshot: snapshot, now: now)
-        }
-    }
-}
-
-/// Every live window as a row: agent, name, meter, percent, time left.
-private struct MediumView: View {
-    let snapshot: Snapshot
-    let now: Date
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Header(snapshot: snapshot, now: now)
-            let live = snapshot.limits.filter { !$0.hasRolledOver(by: now) }
-            if live.isEmpty {
-                Empty(snapshot: snapshot, now: now)
-            } else {
-                ForEach(live.prefix(5)) { limit in
-                    LimitRow(limit: limit, now: now)
-                }
-            }
-            Spacer(minLength: 0)
-        }
-    }
-}
-
-/// The windows, then the conversations running right now.
-private struct LargeView: View {
-    let snapshot: Snapshot
-    let now: Date
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Header(snapshot: snapshot, now: now)
-            let live = snapshot.limits.filter { !$0.hasRolledOver(by: now) }
-            ForEach(live.prefix(7)) { limit in
-                LimitRow(limit: limit, now: now)
-            }
-            if !snapshot.conversations.isEmpty {
-                Text("Active")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 6)
-                ForEach(snapshot.conversations.prefix(4)) { conversation in
-                    ConversationRow(conversation: conversation)
-                }
-            }
-            Spacer(minLength: 0)
-        }
-    }
-}
-
-private struct Header: View {
-    let snapshot: Snapshot
-    let now: Date
-
-    var body: some View {
-        HStack {
-            Text("AgentBar")
-                .font(.caption.weight(.semibold))
-            Spacer()
-            // The widget is only as fresh as the app's last read; say so once it is old.
-            if now.timeIntervalSince(snapshot.readAt) > 10 * 60 {
-                Text("as of \(snapshot.readAt, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute())")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-    }
-}
-
-private struct LimitRow: View {
-    let limit: UsageLimit
-    let now: Date
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Text("\(limit.agent.title) · \(limit.title)")
-                .font(.caption)
-                .lineLimit(1)
-                .frame(width: 118, alignment: .leading)
-            TickMeter(fraction: limit.percentUsed / 100, tint: Levels.color(limit.percentUsed))
-            Text(Format.percent(limit.percentUsed))
-                .font(.caption2.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(width: 30, alignment: .trailing)
-            ResetText(limit: limit, now: now)
-                .font(.caption.weight(.medium).monospacedDigit())
-                .frame(width: 44, alignment: .trailing)
-        }
-    }
-}
-
-private struct ConversationRow: View {
-    let conversation: Conversation
-
-    var body: some View {
-        Link(destination: URL(string: "agentbar://focus?pid=\(conversation.pid)")!) {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(conversation.isBusy ? Levels.calm : Color.secondary.opacity(0.4))
-                    .frame(width: 6, height: 6)
-                Text(conversation.name)
-                    .font(.caption)
-                    .lineLimit(1)
-                Spacer(minLength: 4)
-                if let percent = conversation.contextPercent {
-                    Text(Format.percent(percent))
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                } else if let tokens = conversation.contextTokens {
-                    Text(Format.compact(tokens))
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-}
-
-/// Time left, counting down between the app's writes.
-private struct ResetText: View {
-    let limit: UsageLimit
-    let now: Date
-
-    var body: some View {
-        if let resetsAt = limit.resetsAt, resetsAt > now {
-            Text(Format.short(resetsAt.timeIntervalSince(now)))
-        } else {
-            Text("—")
-        }
-    }
-}
-
-private struct Empty: View {
-    let snapshot: Snapshot
-    let now: Date
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Nothing reported yet")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            if now.timeIntervalSince(snapshot.readAt) > 10 * 60 {
-                Text("as of \(snapshot.readAt, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute())")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-}
-
-/// A row of ticks, the lit ones showing how much is spent (the app's meter, in fewer ticks).
-private struct TickMeter: View {
-    let fraction: Double
-    let tint: Color
-    var ticks = 24
-
-    var body: some View {
-        let clamped = min(1, max(0, fraction))
-        let lit = clamped > 0 ? max(1, Int((Double(ticks) * clamped).rounded())) : 0
-        HStack(spacing: 1.5) {
-            ForEach(0..<ticks, id: \.self) { index in
-                RoundedRectangle(cornerRadius: 0.5, style: .continuous)
-                    .fill(index < lit ? tint : Color.primary.opacity(0.12))
-                    .frame(maxWidth: .infinity)
-            }
-        }
-        .frame(height: 8)
-    }
-}
-
-/// Green, amber, red at the app's thresholds (60 / 85).
-private enum Levels {
-    static let calm = Color(red: 0.16, green: 0.62, blue: 0.44)
-    static let warm = Color(red: 0.85, green: 0.58, blue: 0.14)
-    static let hot = Color(red: 0.83, green: 0.29, blue: 0.26)
-
-    static func color(_ percent: Double) -> Color {
-        switch percent {
-        case ..<60: calm
-        case ..<85: warm
-        default: hot
-        }
-    }
-}
-
-#Preview("Medium", as: .systemMedium) {
-    UsageWidget()
-} timeline: {
-    SnapshotEntry(date: .now, snapshot: .sample)
 }

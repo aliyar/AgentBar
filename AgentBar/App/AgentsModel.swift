@@ -54,6 +54,13 @@ final class AgentsModel {
     func start() {
         refresh(.manual)
         reschedule()
+        // The widget bakes macOS's appearance into its entries (its own views cannot see
+        // the desktop's); a change here redraws them with the right one.
+        DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name("AppleInterfaceThemeChangedNotification"), object: nil, queue: .main
+        ) { _ in
+            WidgetCenter.shared.reloadAllTimelines()
+        }
     }
 
     /// Re-reads every enabled agent, and asks the accounts that are due. Coalesced: a
@@ -94,6 +101,12 @@ final class AgentsModel {
                 }
             }
             snapshot = sample ? Snapshot.sample : merged(read, now: now)
+            // A read of the files alone takes milliseconds; the panels show a read in
+            // progress, so a manual one stays visible long enough to register.
+            if reason == .manual {
+                let elapsed = Date().timeIntervalSince(now)
+                if elapsed < 0.7 { try? await Task.sleep(for: .seconds(0.7 - elapsed)) }
+            }
             isRefreshing = false
             refreshTask = nil
             publishToWidget(snapshot)

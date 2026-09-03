@@ -76,6 +76,9 @@ if pgrep -x "$APP_NAME" >/dev/null; then
   pgrep -x "$APP_NAME" >/dev/null && pkill -x "$APP_NAME" || true
   sleep 1
 fi
+# The widget extension is a separate process that chronod keeps alive; left running, it
+# keeps rendering the widgets with the old code after the bundle is replaced.
+pkill -f "$DEST/Contents/PlugIns/" 2>/dev/null || true
 if [ -d "$DEST" ]; then
   OLD_VERSION="$(defaults read "$DEST/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo '?')"
   rm -rf "$DEST"
