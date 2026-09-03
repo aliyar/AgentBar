@@ -46,3 +46,8 @@ CLAUDE.local.md
 .copilot/
 *.plan.md
 .vscode/
+
+# impeccable working files (the design skill): questions, review captures, mocks
+site/.impeccable/questions/
+site/.impeccable/review/
+site/.impeccable/mocks/

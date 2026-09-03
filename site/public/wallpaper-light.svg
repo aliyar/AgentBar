@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- The desktop's wallpaper, light: warm ribbons - cream, sand, terracotta, a little rose - blurred as a macOS wallpaper is, in the register of the page's cream sheet. Authored for this page; no photograph. -->
+  <defs>
+    <filter id="b" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="70"/></filter>
+    <filter id="b2" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="26"/></filter>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3ebdf"/><stop offset="0.5" stop-color="#ecdfcf"/><stop offset="1" stop-color="#e3cfbf"/></linearGradient>
+    <linearGradient id="r1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e9a27a"/><stop offset="1" stop-color="#d97757"/></linearGradient>
+    <linearGradient id="r2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f1c58f"/><stop offset="1" stop-color="#e8a672"/></linearGradient>
+    <linearGradient id="r3" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d9a3a6"/><stop offset="1" stop-color="#c9877d"/></linearGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#g)"/>
+  <g filter="url(#b)" opacity="0.7">
+    <path d="M-100 620 C 250 420, 520 760, 860 560 S 1400 330, 1750 520 L 1750 760 C 1350 640, 1100 900, 760 760 S 200 700, -100 880 Z" fill="url(#r1)"/>
+    <path d="M-100 300 C 300 180, 500 420, 900 300 S 1350 120, 1750 260 L 1750 380 C 1300 300, 1050 520, 700 420 S 250 380, -100 480 Z" fill="url(#r2)" opacity="0.8"/>
+    <ellipse cx="1320" cy="840" rx="520" ry="220" fill="url(#r3)" opacity="0.6"/>
+  </g>
+  <g filter="url(#b2)" opacity="0.75">
+    <path d="M-50 560 C 300 380, 560 700, 900 500 S 1420 300, 1700 470" fill="none" stroke="#fff6ea" stroke-width="10" stroke-linecap="round"/>
+    <path d="M-50 640 C 260 500, 560 780, 940 610 S 1440 420, 1700 560" fill="none" stroke="#fff6ea" stroke-width="6" stroke-linecap="round" opacity="0.7"/>
+  </g>
+</svg>

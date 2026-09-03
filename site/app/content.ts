@@ -1,0 +1,96 @@
+/** The page's words, in the app's own register: short, exact, nothing it cannot stand behind. */
+
+export const agents = [
+  {
+    name: "Claude Code",
+    windows: "The session window, the weekly window, and the weekly window per model, each with the time until it starts over.",
+    conversations:
+      "Every conversation running right now, named by what was last said in it, with a breathing dot while it works and how full its context is.",
+  },
+  {
+    name: "Codex",
+    windows: "Its daily and weekly windows, from the rollout it writes while it runs and from the ChatGPT sign-in.",
+    conversations:
+      "Sessions found through their running process; their context is a real percentage, since Codex writes its window size.",
+  },
+  {
+    name: "Cursor",
+    windows: "The plan's monthly usage, from the editor's own sign-in — Cursor writes no usage on disk.",
+    conversations: "Agent chats, from the editor's transcripts.",
+  },
+] as const;
+
+export const places = [
+  {
+    name: "The menu bar",
+    text: "The symbol, or a bar per window with the time left on one of them, coloured green, amber, then red as it fills. A click opens the panel.",
+  },
+  {
+    name: "The Dock",
+    text: "An icon in the Dock and ⌘-Tab if you want one. A click opens the same panel above the icon, or a window if you prefer; ⌘0 opens the window from anywhere.",
+  },
+  {
+    name: "The widget",
+    text: "Three sizes for the desktop and Notification Center. Right-click › Edit picks the theme, the windows to show, and whether the running conversations are listed.",
+  },
+] as const;
+
+export const honesty = [
+  {
+    lead: "Read from the agents’ own files.",
+    text: "Claude Code and Codex write their windows and sessions under your home folder; AgentBar reads them there. Conversations never leave the Mac.",
+  },
+  {
+    lead: "Live limits from the agents’ own sign-in.",
+    text: "For the figures that only the account knows — what was spent on another Mac, or while the agent was not running — it asks each agent’s account with the sign-in that agent already keeps on this Mac. One read-only request every five minutes, and on the panel’s refresh. Nothing is stored or logged.",
+  },
+  {
+    lead: "Nothing invented.",
+    text: "A window that has already started over shows “—”. A figure written hours ago says how old it is. A context whose limit is not written anywhere shows its tokens rather than a made-up percentage.",
+  },
+] as const;
+
+export const install = [
+  { step: "Download the zip and open it.", note: "Signed with a Developer ID and notarized by Apple; macOS opens it without a fuss." },
+  { step: "Drag AgentBar to Applications and open it.", note: "It appears in the menu bar. Nothing else happens until you click it." },
+  { step: "Settings › General, if you like.", note: "Launch at login, where it lives, what a Dock click opens. Updates arrive on their own." },
+] as const;
+
+export const faq = [
+  {
+    q: "Why does it ask my accounts, and what does it send?",
+    a: "Claude Code, Codex and Cursor each keep a sign-in on this Mac. AgentBar uses it, read-only, to ask the account how much of each window is used — the same page you would open in the browser. One request every five minutes, one when you open the panel (at most once a minute), one when you press refresh. Nothing is stored, nothing is logged, and no token is ever shown or sent anywhere else.",
+  },
+  {
+    q: "Does it read my conversations?",
+    a: "It reads the tail of each running conversation’s transcript, on this Mac, to name it by what was last said and to read its context figure. That is all it looks for, and it stays on the Mac.",
+  },
+  {
+    q: "Why does a window show “—”, or say “as of 14:05”?",
+    a: "“—” means the window has already started over and the agent has not written a fresh figure yet; AgentBar will not guess. “as of” means the figure it shows is old enough that you should know how old.",
+  },
+  {
+    q: "Why does a conversation show tokens instead of a percentage?",
+    a: "Claude Code does not write a session’s context limit anywhere. When the limit is known (a 1M-context session, or a context already past 200K), you get a percentage; otherwise you get the tokens, which is the honest figure.",
+  },
+  {
+    q: "Cursor shows only the monthly plan. Codex shows nothing.",
+    a: "Cursor writes no usage on disk, so its figures come from the account only. Codex writes its windows while it runs on this Mac; before its first session here, or on a Mac where it never ran, there is nothing on disk — and the account is asked for the rest.",
+  },
+  {
+    q: "Launch at login asked me to approve something.",
+    a: "AgentBar registers through the system’s Login Items, which macOS may ask you to confirm once in System Settings. It reads the agents’ files only while it runs, and the widget shows what it last read; starting at login keeps both current.",
+  },
+  {
+    q: "The widget says “Open AgentBar once”.",
+    a: "The widget cannot read the agents’ folders itself (app extensions are sandboxed); it shows what the app last wrote. Open the app once and it fills in.",
+  },
+  {
+    q: "How do updates work?",
+    a: "The app checks this site once a day and installs updates itself; you can turn that off in Settings › General. Builds are signed with a Developer ID, notarized by Apple, and the update feed is signed with a key only this app accepts.",
+  },
+  {
+    q: "Which agents next?",
+    a: "The three here are the ones on this Mac. Others follow as they get used; usage is the first thing AgentBar shows, not the last.",
+  },
+] as const;
