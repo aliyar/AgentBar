@@ -11,8 +11,17 @@ public enum CodexReader {
             let window_minutes: Double?
             let resets_at: Double?
         }
+        /// `{"has_credits": false, "unlimited": false, "balance": "0"}` - written whether
+        /// or not the account has any, and the balance arrives as a string.
+        struct Credits: Decodable {
+            let has_credits: Bool?
+            let unlimited: Bool?
+            let balance: Flexible<Double>?
+        }
         let primary: Window?
         let secondary: Window?
+        let credits: Credits?
+        let plan_type: String?
     }
 
     struct Line: Decodable {
@@ -20,16 +29,24 @@ public enum CodexReader {
         let payload: Payload?
     }
 
-    /// The limits from the newest rollout, and when that file was written.
-    public static func readLimits(in root: URL) -> (limits: [UsageLimit], written: Date?) {
-        guard let file = newestRollout(in: root.appendingPathComponent("sessions")),
-              let text = FileTail.read(file) else { return ([], nil) }
-        return (limits(fromTranscript: text), FileTail.modificationDate(of: file))
+    /// Everything the newest rollout says about the account, and when it was written.
+    public static func read(in root: URL, now: Date = .now) -> Reading {
+        var reading = Reading()
+        if let file = newestRollout(in: root.appendingPathComponent("sessions")),
+           let text = FileTail.read(file) {
+            reading = self.reading(fromTranscript: text)
+            reading.written = FileTail.modificationDate(of: file)
+        }
+        // The sign-in names the person even when no session has run on this Mac.
+        if let signIn = Credentials.codex(home: root.deletingLastPathComponent(), now: now) {
+            reading.identity = signIn.identity.merged(with: reading.identity)
+        }
+        return reading
     }
 
     /// The parsing on its own, testable without a session file on disk.
-    public static func limits(fromTranscript text: String) -> [UsageLimit] {
-        guard let limits = lastRateLimits(in: text) else { return [] }
+    public static func reading(fromTranscript text: String) -> Reading {
+        guard let limits = lastRateLimits(in: text) else { return Reading() }
         var result: [UsageLimit] = []
         for window in [limits.primary, limits.secondary] {
             guard let window, let used = window.used_percent else { continue }
@@ -38,13 +55,28 @@ public enum CodexReader {
                                      resetsAt: window.resets_at.map { Date(timeIntervalSince1970: $0) },
                                      windowLength: window.window_minutes.flatMap { $0 > 0 ? $0 * 60 : nil }))
         }
-        return result
+        return Reading(limits: result.sortedByWindow(), credits: credits(from: limits.credits),
+                       identity: Identity(plan: Reading.planName(limits.plan_type)))
     }
 
+    static func credits(from reported: RateLimits.Credits?) -> Credits? {
+        guard let reported else { return nil }
+        let unlimited = reported.unlimited == true
+        let balance = reported.balance?.value
+        // `has_credits: false` with a zero balance is the account saying it has none.
+        guard unlimited || (balance ?? 0) > 0 else { return nil }
+        return Credits(balance: balance, isUnlimited: unlimited)
+    }
+
+    /// Codex writes the window's length but never its name. The short window is named by
+    /// that length, as Codex names it in `/status` ("5h limit"); the longer ones read as
+    /// the calendar period they run for.
     static func title(minutes: Double?) -> String {
         guard let minutes, minutes > 0 else { return "Usage" }
         return switch minutes {
         case ..<61: "Hourly"
+        // Codex's short window is 5 h. Anything up to 8 h is that window, not a day.
+        case ..<(60 * 8 + 1): "5h"
         case ..<(60 * 24 + 1): "Daily"
         case ..<(60 * 24 * 7 + 1): "Weekly"
         default: "Monthly"

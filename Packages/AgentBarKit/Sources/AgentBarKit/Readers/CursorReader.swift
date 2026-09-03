@@ -9,6 +9,12 @@ import Foundation
 public enum CursorReader {
     static let activeFor: TimeInterval = 30 * 60
 
+    /// Cursor leaves no usage on disk - that comes from the account - but it does cache
+    /// who is signed in and which plan they are on, beside its token.
+    public static func read(home: URL = HomeDirectory.url) -> Reading {
+        Reading(identity: Credentials.cursorIdentity(home: home))
+    }
+
     struct Composer: Decodable {
         struct Header: Decodable {
             struct Grouping: Decodable {

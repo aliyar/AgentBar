@@ -8,6 +8,68 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+### Added
+- **What is left once a plan runs out.** Claude's extra usage and its prepaid credits
+  become a row of their own, and Codex's balance is said beside the agent's name — both
+  only when the account actually holds them, so a panel without credits is unchanged.
+  Codex writes its balance into every session it runs, so it is read without asking the
+  account at all.
+- Codex's model-specific limits (`additional_rate_limits`) are shown among the plan's own
+  windows, named for what tells them apart: GPT-5.3-Codex-Spark reads "Session · Spark" and
+  "Weekly · Spark". Resting on the row gives the model's whole name.
+- **The account beside the agent's name**: the plan as a small badge — "Max 20x", "Pro
+  Lite", "Free" — and, on resting there, who is signed in. Quiet enough to be read second;
+  it answers "whose numbers are these?" without taking a row. Every part of it is already
+  on this Mac, beside the sign-ins the agents keep, so none of it costs a request. Cursor's
+  monthly row is now just "Monthly", since the plan it used to carry is said above it.
+- Cursor reads the figures every plan reports, not only an individual's: a team member's
+  personal cap and the pool a team spends from each fill the monthly bar that was empty
+  before, and an unlimited plan says so instead of drawing a percentage of no ceiling.
+
+### Changed
+- **One name per window, one order for every row.** A window is named for the period it
+  runs — "5h", "Weekly", "Monthly" — and what it is scoped to follows it: "Weekly · all",
+  "Weekly · Fable", "5h · Spark". Rows are ordered by how long their window runs, shortest
+  first, and within one window the plan's own row comes before the models that meter their
+  own; what is spent once the plan is full sorts last, having no window at all. Codex
+  previously called its short window "Session (5h)" while a model's read "5h · Spark", and
+  listed every plan window before every model one, so the same length appeared twice in a
+  list that looked sorted.
+- **The panel draws its own tooltips.** `help(_:)` waits out the system's delay — over a
+  second, not ours to set — and draws in the system's yellow; inside a panel that answers
+  a glance, that is the whole visit. Tips now appear in a third of the time, in the
+  panel's own materials, placed against the row they belong to and kept inside the
+  panel's edges.
+- The agent's name in the panel is the link to its usage page. The small arrow that
+  appeared beside it on hover is gone: it was a second thing to find for what the name was
+  already pointing at.
+
+### Fixed
+- **The website on a phone.** The page could be scrolled sideways: the callouts beside the
+  drawn panel reached past the viewport, and the laptop kept its negative margins. The
+  widgets inside the laptop drew at full size on iOS, where nested `zoom` dropped the inner
+  scale — the inner layers use a transform now, which is scaled once and reliably. Section
+  headings and the questions were still at their desktop size on a 390 pt screen. The
+  callouts are left out below 420 pt, where a marker over a row covers the very figure it
+  points at; the notes below keep their numbers and read in the same order.
+- **A panel on the website closes when you press away from it**, or on Escape, as a menu on
+  the Mac does. The Dock's panel could only be closed from the Dock icon that opened it.
+- The website drew windows the app no longer names that way ("Daily" for Codex, "Pro ·
+  monthly" for Cursor), and said Codex reports a daily window. It reports a 5-hour one.
+- `next build` wrote `AGENTS.md` and `CLAUDE.md` into `site/` on every run; this project
+  keeps its instructions in the notes repo (`agentRules: false`).
+- Codex's 5-hour window was labelled "Daily" — a window named after a period four times
+  its own. It reads "5h".
+- Claude's session and weekly windows are read from the account's own named fields again.
+  A `limits` array carrying only a model-scoped week used to replace them, which would
+  have dropped the session row entirely. Scoped weeks still come from that array, and a
+  scope naming every model no longer draws the weekly window a second time.
+- The terminal style wrote "—" against a limit that starts over on no date anyone writes.
+  The dash means a window has rolled over; the column is now blank for limits that have
+  no reset at all.
+- Codex's windows are ordered shortest first, as Claude's are. Its `primary` window is not
+  always the shorter one — on some plans it is the week.
+
 ### Changed
 - The website's link preview and its search metadata: the Open Graph card now states the
   image's size, type and alt text, so Slack, iMessage, X and LinkedIn draw the large card on

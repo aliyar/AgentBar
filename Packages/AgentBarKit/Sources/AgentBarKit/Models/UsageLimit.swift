@@ -12,16 +12,24 @@ public struct UsageLimit: Identifiable, Hashable, Codable, Sendable {
     /// How long the window runs, when known: what a rolled-over window offers once it is
     /// used again (Claude's session is 5 h, its weekly windows 7 d; Codex writes its own).
     public let windowLength: TimeInterval?
+    /// What the title was shortened from, when it was: the row says "Weekly · Spark" and
+    /// resting on it says which model that is.
+    public let fullName: String?
 
-    public init(agent: Agent, title: String, percentUsed: Double, resetsAt: Date?, windowLength: TimeInterval? = nil) {
+    public init(agent: Agent, title: String, percentUsed: Double, resetsAt: Date?,
+                windowLength: TimeInterval? = nil, fullName: String? = nil) {
         self.agent = agent
         self.title = title
         self.percentUsed = percentUsed
         self.resetsAt = resetsAt
         self.windowLength = windowLength
+        self.fullName = fullName
     }
 
     public var id: String { "\(agent.rawValue)|\(title)" }
+
+    /// The window is one model's rather than the whole plan's: "Weekly · Fable".
+    var isScoped: Bool { title.contains(" \u{00B7} ") }
 
     /// True once the window this measured has started over: the figure describes a
     /// window that no longer exists, so it is history, not a reading. Codex only writes
@@ -41,5 +49,22 @@ public struct UsageLimit: Identifiable, Hashable, Codable, Sendable {
         guard let windowLength, windowLength > 0, let lastActivity, lastActivity > resetsAt else { return nil }
         let windowsPassed = (now.timeIntervalSince(resetsAt) / windowLength).rounded(.down) + 1
         return resetsAt.addingTimeInterval(windowsPassed * windowLength)
+    }
+}
+
+public extension [UsageLimit] {
+    /// Shortest window first - the one that fills soonest is the one being watched - and
+    /// within one window the plan's own row before the models that meter their own. A
+    /// limit with no window at all (what is spent once the plan is full) sorts last.
+    func sortedByWindow() -> [UsageLimit] {
+        enumerated().sorted { left, right in
+            let a = left.element.windowLength ?? .greatestFiniteMagnitude
+            let b = right.element.windowLength ?? .greatestFiniteMagnitude
+            if a != b { return a < b }
+            let scoped = (left.element.isScoped, right.element.isScoped)
+            if scoped.0 != scoped.1 { return !scoped.0 }
+            return left.offset < right.offset
+        }
+        .map(\.element)
     }
 }

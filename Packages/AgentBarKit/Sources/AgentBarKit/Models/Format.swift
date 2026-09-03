@@ -21,6 +21,19 @@ public enum Format {
         return "\(max(1, minutes))m"
     }
 
+    /// "$12.40", "$8" - a balance in as few characters as it can be read in. Whole
+    /// amounts drop their zeros; an unknown currency code is written before the figure
+    /// rather than guessed at as a symbol.
+    public static func money(_ amount: Double, currency: String = "USD") -> String {
+        let rounded = (amount * 100).rounded() / 100
+        let digits = rounded == rounded.rounded() ? 0 : 2
+        let figure = String(format: "%.\(digits)f", rounded)
+        guard let symbol = symbols[currency.uppercased()] else { return "\(currency.uppercased()) \(figure)" }
+        return "\(symbol)\(figure)"
+    }
+
+    private static let symbols = ["USD": "$", "EUR": "\u{20AC}", "GBP": "\u{A3}", "JPY": "\u{A5}"]
+
     /// "78%" - a percentage as the gauge shows it.
     public static func percent(_ value: Double) -> String {
         "\(Int(value.rounded()))%"

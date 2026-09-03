@@ -43,6 +43,7 @@ struct GlassOverview: View {
                 ForEach(agents) { agent in
                     UsageSection(agent: agent, limits: snapshot.limits(for: agent),
                                  written: snapshot.lastWritten[agent], account: snapshot.accounts[agent],
+                                 credits: snapshot.credits[agent], identity: snapshot.identities[agent],
                                  activeSince: snapshot.latestActivity(for: agent), now: now, showsClock: $showsClock)
                 }
                 if !agents.isEmpty {
@@ -79,7 +80,7 @@ struct GlassOverview: View {
             .monospacedDigit()
             .foregroundStyle(glass.tertiary)
             .frame(width: 30, alignment: .leading)
-            .help(isRefreshing ? "Reading…" : "When the agents were last read")
+            .tip(isRefreshing ? "Reading…" : "When the agents were last read")
         }
         return Group {
             switch presentation {
@@ -149,7 +150,7 @@ private struct RefreshButton: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help("Read again now")
+        .tip("Read again now")
         .onChange(of: isRefreshing) { _, refreshing in
             guard refreshing else { return }
             withAnimation(.linear(duration: 0.6).repeatForever(autoreverses: false)) { turns += 360 }
@@ -179,7 +180,7 @@ private struct FooterButton: View {
                 .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .buttonStyle(.plain)
-        .help(help)
+        .tip(help)
     }
 }
 

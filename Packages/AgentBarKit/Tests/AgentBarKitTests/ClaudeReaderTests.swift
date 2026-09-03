@@ -7,48 +7,127 @@ import Testing
 /// and the reader has to follow it.
 @Suite("ClaudeReader")
 struct ClaudeReaderTests {
-    @Test func usageFileIsReadAsPercentUsed_2026_09_02() throws {
+    /// The exact shape `~/.claude/cache/usage.json` had on 3 Sep 2026, trimmed to the
+    /// fields the reader looks at. The named windows and `limits[]` both describe the
+    /// session and the week; the panel takes the named ones and reads `limits[]` only for
+    /// the scoped week that has nowhere else to come from.
+    @Test func theNamedWindowsAreTheReadingAndLimitsAddsTheScopedWeek_2026_09_03() throws {
         let json = """
-        {"five_hour":{"utilization":1.0,"resets_at":"2026-09-02T03:50:00.242541+00:00"},
-         "seven_day":{"utilization":3.0,"resets_at":"2026-09-03T17:00:00.242559+00:00"},
+        {"five_hour":{"utilization":7.0,"resets_at":"2026-09-03T22:00:00.029145+00:00","limit_dollars":null},
+         "seven_day":{"utilization":1.0,"resets_at":"2026-09-10T17:00:00.029167+00:00"},
+         "seven_day_opus":null,"seven_day_sonnet":null,"nimbus_quill":{"utilization":0.0,"resets_at":null},
+         "extra_usage":{"is_enabled":false,"monthly_limit":null,"utilization":null,"user_disabled":true},
+         "spend":{"used":{"amount_minor":0,"currency":"USD","exponent":2},"limit":null,"percent":0,"enabled":false,"balance":null},
          "limits":[
-           {"kind":"session","group":"session","percent":42,"severity":"none","resets_at":"2026-09-02T03:50:00.242541+00:00","scope":null,"is_active":true},
-           {"kind":"weekly_all","group":"weekly","percent":78,"severity":"none","resets_at":"2026-09-03T17:00:00.242559+00:00","scope":null,"is_active":true},
-           {"kind":"weekly_scoped","group":"weekly","percent":23,"severity":"none","resets_at":"2026-09-03T18:00:00.242751+00:00",
-            "scope":{"model":{"id":null,"display_name":"Fable"}},"is_active":true}]}
+           {"kind":"session","group":"session","percent":7,"resets_at":"2026-09-03T22:00:00.029145+00:00","scope":null,"is_active":true},
+           {"kind":"weekly_all","group":"weekly","percent":1,"resets_at":"2026-09-10T17:00:00.029167+00:00","scope":null,"is_active":false},
+           {"kind":"weekly_scoped","group":"weekly","percent":2,"resets_at":"2026-09-10T17:00:00.029358+00:00",
+            "scope":{"model":{"id":null,"display_name":"Fable"}},"is_active":false}]}
         """
-        let limits = ClaudeReader.limits(from: Data(json.utf8))
-        #expect(limits.map(\.title) == ["Session (5h)", "Weekly · all models", "Weekly · Fable"])
+        let reading = ClaudeReader.reading(from: Data(json.utf8))
+        #expect(reading.limits.map(\.title) == ["5h", "Weekly · all models", "Weekly · Fable"])
         // Used, never remaining: the number is taken as written.
-        #expect(limits.map(\.percentUsed) == [42, 78, 23])
-        #expect(limits.allSatisfy { $0.agent == .claude })
-        #expect(limits[0].resetsAt != nil)
+        #expect(reading.limits.map(\.percentUsed) == [7, 1, 2])
+        #expect(reading.limits.allSatisfy { $0.agent == .claude })
+        #expect(reading.limits[0].resetsAt != nil)
         let lengths: [TimeInterval?] = [5 * 3600, 7 * 86400, 7 * 86400]
-        #expect(limits.map(\.windowLength) == lengths)
+        #expect(reading.limits.map(\.windowLength) == lengths)
+        // Windows nobody can name ("nimbus_quill") are not rows; neither is a disabled
+        // allowance, and a zero balance is no balance.
+        #expect(reading.credits == nil)
+    }
+
+    /// The two windows that matter are read from the account's own named fields, so a
+    /// `limits[]` that one day arrives carrying only a scoped week cannot lose them.
+    @Test func aLimitsArrayWithOnlyAScopedWeekKeepsTheSessionAndTheWeek() {
+        let json = """
+        {"five_hour":{"utilization":12.0,"resets_at":"2026-09-02T03:50:00Z"},
+         "seven_day":{"utilization":5.0,"resets_at":null},
+         "limits":[{"kind":"weekly_scoped","group":"weekly","percent":40,"scope":{"model":{"display_name":"Fable"}}}]}
+        """
+        let limits = ClaudeReader.reading(from: Data(json.utf8)).limits
+        #expect(limits.map(\.title) == ["5h", "Weekly · all models", "Weekly · Fable"])
+        #expect(limits.map(\.percentUsed) == [12, 5, 40])
+    }
+
+    /// A build that writes only `limits[]` still gets its two windows from there.
+    @Test func theLimitsArrayStandsInWhenTheNamedWindowsAreMissing() {
+        let json = #"{"limits":[{"kind":"session","percent":9},{"kind":"weekly_all","percent":3}]}"#
+        let limits = ClaudeReader.reading(from: Data(json.utf8)).limits
+        #expect(limits.map(\.title) == ["5h", "Weekly · all models"])
+        #expect(limits.map(\.percentUsed) == [9, 3])
     }
 
     @Test func olderUsageFileFallsBackToTheNamedWindows() {
         let older = """
         {"five_hour":{"utilization":12.0,"resets_at":"2026-09-02T03:50:00Z"},"seven_day":{"utilization":5.0,"resets_at":null}}
         """
-        let fallback = ClaudeReader.limits(from: Data(older.utf8))
-        #expect(fallback.map(\.title) == ["Session (5h)", "Weekly · all models"])
+        let fallback = ClaudeReader.reading(from: Data(older.utf8)).limits
+        #expect(fallback.map(\.title) == ["5h", "Weekly · all models"])
         #expect(fallback[0].resetsAt == ISODate.parse("2026-09-02T03:50:00Z"))
         #expect(fallback[1].resetsAt == nil)
     }
 
     @Test func nonsenseIsNothingToShowNeverACrash() {
-        #expect(ClaudeReader.limits(from: Data("not json".utf8)).isEmpty)
-        #expect(ClaudeReader.limits(from: Data("{}".utf8)).isEmpty)
-        #expect(ClaudeReader.limits(from: Data(#"{"limits":[{"kind":"session"}]}"#.utf8)).isEmpty)
+        #expect(ClaudeReader.reading(from: Data("not json".utf8)).isEmpty)
+        #expect(ClaudeReader.reading(from: Data("{}".utf8)).isEmpty)
+        #expect(ClaudeReader.reading(from: Data(#"{"limits":[{"kind":"session"}]}"#.utf8)).isEmpty)
         #expect(ClaudeReader.contextUse(fromTranscript: "") == nil)
         #expect(ClaudeReader.contextUse(fromTranscript: "garbage\n{}\n") == nil)
     }
 
-    @Test func unknownLimitKindsGetAReadableTitle() {
-        let json = #"{"limits":[{"kind":"monthly_extra","percent":5},{"percent":6},{"kind":"weekly_scoped","percent":7,"scope":{"model":{}}}]}"#
-        let titles = ClaudeReader.limits(from: Data(json.utf8)).map(\.title)
-        #expect(titles == ["Monthly Extra", "Limit", "Weekly · one model"])
+    /// A scope that names every model is the weekly window again; two rows saying the
+    /// same thing is worse than one.
+    @Test func aScopeOverAllModelsIsNotASecondWeeklyRow() {
+        let json = """
+        {"seven_day":{"utilization":5.0,"resets_at":null},
+         "limits":[{"kind":"weekly_scoped","group":"weekly","percent":5,"scope":{"model":{"display_name":"All models"}}},
+                   {"kind":"weekly_scoped","group":"weekly","percent":8,"scope":{"model":{"display_name":"Fable"}}},
+                   {"kind":"weekly_scoped","group":"weekly","percent":9,"scope":{"model":{"display_name":"Fable"}}}]}
+        """
+        // The duplicate Fable entry is read once, and "All models" is left to `seven_day`.
+        #expect(ClaudeReader.reading(from: Data(json.utf8)).limits.map(\.title)
+            == ["Weekly · all models", "Weekly · Fable"])
+    }
+
+    /// Extra usage is money spent past the plan. It is a row only once the person has
+    /// turned it on - an allowance nobody enabled is not a reading.
+    @Test func extraUsageIsARowOnlyWhenItIsEnabled() {
+        let off = #"{"extra_usage":{"is_enabled":false,"monthly_limit":100,"used_credits":40,"utilization":40}}"#
+        #expect(ClaudeReader.reading(from: Data(off.utf8)).limits.isEmpty)
+
+        let on = #"{"extra_usage":{"is_enabled":true,"monthly_limit":100,"used_credits":40,"utilization":31.5,"currency":"USD"}}"#
+        let limits = ClaudeReader.reading(from: Data(on.utf8)).limits
+        #expect(limits.map(\.title) == ["Extra usage"])
+        #expect(limits[0].percentUsed == 31.5)
+        // Claude writes no reset for it, so the row states none rather than inventing a month.
+        #expect(limits[0].resetsAt == nil)
+        #expect(limits[0].windowLength == nil)
+
+        // Without a utilization the ratio is worked out from what it writes instead.
+        let ratio = #"{"extra_usage":{"is_enabled":true,"monthly_limit":80,"used_credits":20}}"#
+        #expect(ClaudeReader.reading(from: Data(ratio.utf8)).limits.map(\.percentUsed) == [25])
+    }
+
+    /// Prepaid credits spending against a ceiling are a window; a balance with no ceiling
+    /// is not, and belongs beside the agent's name.
+    @Test func creditsAreARowOnlyWhenTheySpendTowardsACeiling() {
+        let spending = """
+        {"spend":{"enabled":true,"percent":62,"used":{"amount_minor":6200,"currency":"USD","exponent":2},
+                  "limit":{"amount_minor":10000,"currency":"USD","exponent":2},"balance":null}}
+        """
+        let limits = ClaudeReader.reading(from: Data(spending.utf8)).limits
+        #expect(limits.map(\.title) == ["Credits"])
+        #expect(limits[0].percentUsed == 62)
+
+        let balanceOnly = """
+        {"spend":{"enabled":true,"percent":0,"used":{"amount_minor":0,"currency":"USD","exponent":2},
+                  "limit":null,"balance":{"amount_minor":1240,"currency":"USD","exponent":2}}}
+        """
+        let reading = ClaudeReader.reading(from: Data(balanceOnly.utf8))
+        #expect(reading.limits.isEmpty)
+        #expect(reading.credits == Credits(balance: 12.40, currency: "USD"))
+        #expect(reading.credits?.caption == "$12.40 credits")
     }
 
     @Test func contextComesFromTheNewestAnswerAndTheLastWords_2026_09_02() throws {

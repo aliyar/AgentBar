@@ -299,9 +299,9 @@ Claude Code writes `usage.json`, which it does not.
 
 | Agent | Sign-in read from | Endpoint | Answer |
 |---|---|---|---|
-| Claude | Keychain item `Claude Code-credentials` via `/usr/bin/security find-generic-password -w`; else `~/.claude/.credentials.json` | `api.anthropic.com/api/oauth/usage` (header `anthropic-beta: oauth-2025-04-20`) | the `usage.json` shape, `ClaudeReader.limits(from:)` |
-| Codex | `~/.codex/auth.json` → `tokens.access_token`, `account_id` (only `auth_mode: chatgpt`; expired tokens are not used, never refreshed — Codex refreshes its own file) | `chatgpt.com/backend-api/wham/usage` (header `ChatGPT-Account-Id`) | `rate_limit.primary_window/secondary_window` |
-| Cursor | `…/Cursor/User/globalStorage/state.vscdb` → `cursorAuth/accessToken`, sent as the cookie `WorkosCursorSessionToken=<user id>::<token>` | `cursor.com/api/usage-summary` | `individualUsage.plan.totalPercentUsed`, billing cycle |
+| Claude | Keychain item `Claude Code-credentials` via `/usr/bin/security find-generic-password -w`; else `~/.claude/.credentials.json` | `api.anthropic.com/api/oauth/usage` (header `anthropic-beta: oauth-2025-04-20`) | the `usage.json` shape, `ClaudeReader.reading(from:)` |
+| Codex | `~/.codex/auth.json` → `tokens.access_token`, `account_id` (only `auth_mode: chatgpt`; expired tokens are not used, never refreshed — Codex refreshes its own file) | `chatgpt.com/backend-api/wham/usage` (header `ChatGPT-Account-Id`) | `rate_limit.primary_window/secondary_window`, `additional_rate_limits[]`, `credits` |
+| Cursor | `…/Cursor/User/globalStorage/state.vscdb` → `cursorAuth/accessToken`, sent as the cookie `WorkosCursorSessionToken=<user id>::<token>` | `cursor.com/api/usage-summary` | `individualUsage.plan` → `overall` → `teamUsage.pooled`, billing cycle |
 
 - **Why the `security` tool and not the Security framework**: Claude Code stores the item
   through `security`, so macOS trusts that tool to read it back silently. A direct
@@ -322,6 +322,32 @@ Claude Code writes `usage.json`, which it does not.
   `modelConfig`. No context figure: Cursor writes none.
 - The endpoints are undocumented; the parsers are pinned to the shapes of 3 Sep 2026 and a
   shape that is not understood reads as "unexpected answer".
+
+## What is left when the windows are full
+
+A plan that runs out is not the end of the reading: an account may spend past it, or hold
+credits against it. Both come back through `Reading`, which is what a reader answers with —
+the windows, the balance, and when it was written.
+
+- **A ceiling makes a window.** Claude's `extra_usage` (once the person enables it) and its
+  `spend` block, when they meter against a limit, are `UsageLimit` rows like any other:
+  "Extra usage", "Credits". Neither carries a reset date, so their column stays blank
+  rather than borrowing the dash that means "rolled over".
+- **A balance is not a window.** Codex's `credits.balance` and a Cursor plan that is simply
+  unlimited have nothing to fill, so they are `Credits` and are said in the group's caption
+  ("$12.40 credits", "unlimited credits") instead of drawn as a meter.
+- The caption says one thing at a time, in the order that changes the reading: the account's
+  problem, then how old the figures are, then the balance. A balance beside a figure that
+  cannot be trusted would be the wrong thing to read first.
+- Codex writes `credits` into the `rate_limits` of every session it runs, so the balance is
+  read from the rollout without asking the account at all.
+- **The plan** (`plan_type` on Codex, `membershipType` on Cursor) rides in the same answers
+  and is drawn as a small badge beside the agent's name, not as a row. `Reading.planName`
+  tidies the account's own spelling ("prolite" → "Pro Lite") and never expands it into a
+  name the account did not use. Claude's usage file states no plan, so it carries no badge.
+- Claude's usage file carries windows nobody outside Anthropic can name (`nimbus_quill`,
+  `tangelo`, `iguana_necktie`, …), some of them populated. Only windows with a name a person
+  would recognise become rows; a key that turns up in the file is not a reason to draw it.
 
 ## The icon
 

@@ -12,7 +12,10 @@ struct CodexReaderTests {
         {"timestamp":"2026-08-05T22:30:00.000Z","type":"event_msg","payload":{"type":"agent_message"}}
         {"timestamp":"2026-08-05T22:31:24.115Z","type":"event_msg","payload":{"type":"token_count","rate_limits":{"limit_id":"codex","primary":{"used_percent":96.0,"window_minutes":10080,"resets_at":1786290599},"secondary":null,"plan_type":"plus"}}}
         """
-        let limits = CodexReader.limits(fromTranscript: transcript)
+        let reading = CodexReader.reading(fromTranscript: transcript)
+        let limits = reading.limits
+        // The plan rides along in the same event, so it costs nothing to read.
+        #expect(reading.identity.plan == "Plus")
         #expect(limits.count == 1)
         let weekly = try #require(limits.first)
         #expect(weekly.agent == .codex)
@@ -23,13 +26,15 @@ struct CodexReaderTests {
         #expect(weekly.windowLength == week)
     }
 
+    /// Codex writes the length and never the name. Its short window runs 5 h - calling
+    /// that "Daily" would name it after a period four times its own.
     @Test func windowsAreNamedForTheirLength() {
         func title(_ minutes: Double) -> String? {
-            CodexReader.limits(fromTranscript:
-                #"{"payload":{"type":"token_count","rate_limits":{"primary":{"used_percent":4.0,"window_minutes":\#(minutes),"resets_at":1}}}}"#).first?.title
+            CodexReader.reading(fromTranscript:
+                #"{"payload":{"type":"token_count","rate_limits":{"primary":{"used_percent":4.0,"window_minutes":\#(minutes),"resets_at":1}}}}"#).limits.first?.title
         }
         #expect(title(60) == "Hourly")
-        #expect(title(300) == "Daily")
+        #expect(title(300) == "5h")
         #expect(title(1440) == "Daily")
         #expect(title(10080) == "Weekly")
         #expect(title(43200) == "Monthly")
@@ -39,16 +44,31 @@ struct CodexReaderTests {
 
     @Test func bothWindowsAreReportedWhenPresent() {
         let both = #"{"payload":{"type":"token_count","rate_limits":{"primary":{"used_percent":30,"window_minutes":300,"resets_at":10},"secondary":{"used_percent":70,"window_minutes":10080,"resets_at":20}}}}"#
-        let limits = CodexReader.limits(fromTranscript: both)
-        #expect(limits.map(\.title) == ["Daily", "Weekly"])
+        let limits = CodexReader.reading(fromTranscript: both).limits
+        #expect(limits.map(\.title) == ["5h", "Weekly"])
         #expect(limits.map(\.percentUsed) == [30, 70])
     }
 
+    /// The rollout carries the account's credit balance beside its windows, and writes it
+    /// as a string. Nothing has to be asked of the account to read it.
+    @Test func creditsRideAlongWithTheWindows_2026_09_03() {
+        let none = #"{"payload":{"type":"token_count","rate_limits":{"primary":{"used_percent":2,"window_minutes":10080,"resets_at":1},"credits":{"has_credits":false,"unlimited":false,"balance":"0"}}}}"#
+        #expect(CodexReader.reading(fromTranscript: none).credits == nil)
+
+        let held = #"{"payload":{"type":"token_count","rate_limits":{"primary":{"used_percent":2,"window_minutes":10080,"resets_at":1},"credits":{"has_credits":true,"unlimited":false,"balance":"12.4"}}}}"#
+        let credits = CodexReader.reading(fromTranscript: held).credits
+        #expect(credits == Credits(balance: 12.4))
+        #expect(credits?.caption == "$12.40 credits")
+
+        let unlimited = #"{"payload":{"type":"token_count","rate_limits":{"primary":{"used_percent":2,"window_minutes":10080,"resets_at":1},"credits":{"has_credits":true,"unlimited":true,"balance":null}}}}"#
+        #expect(CodexReader.reading(fromTranscript: unlimited).credits?.caption == "unlimited credits")
+    }
+
     @Test func aTranscriptWithNoLimitsSaysNothing() {
-        #expect(CodexReader.limits(fromTranscript: #"{"payload":{"type":"message"}}"#).isEmpty)
-        #expect(CodexReader.limits(fromTranscript: "rate_limits but not json").isEmpty)
-        #expect(CodexReader.limits(fromTranscript: #"{"payload":{"rate_limits":{}}}"#).isEmpty)
-        #expect(CodexReader.limits(fromTranscript: "").isEmpty)
+        #expect(CodexReader.reading(fromTranscript: #"{"payload":{"type":"message"}}"#).isEmpty)
+        #expect(CodexReader.reading(fromTranscript: "rate_limits but not json").isEmpty)
+        #expect(CodexReader.reading(fromTranscript: #"{"payload":{"rate_limits":{}}}"#).isEmpty)
+        #expect(CodexReader.reading(fromTranscript: "").isEmpty)
     }
 
     @Test func newestRolloutIsFoundByDescendingDatedFolders() throws {

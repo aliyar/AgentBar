@@ -12,15 +12,33 @@ public struct Snapshot: Equatable, Codable, Sendable {
     public var readAt: Date
     /// What asking each agent's account gave: when it last answered, or why it did not.
     public var accounts: [Agent: AccountStatus]
+    /// What each agent holds against running out: a prepaid balance, or an unlimited
+    /// allowance. Not a window, so it is drawn beside the agent's name and not as a row.
+    public var credits: [Agent: Credits]
+    /// Whose figures each agent's are: the plan, and the person signed in.
+    public var identities: [Agent: Identity]
 
     public init(limits: [UsageLimit] = [], conversations: [Conversation] = [],
                 lastWritten: [Agent: Date] = [:], readAt: Date = .now,
-                accounts: [Agent: AccountStatus] = [:]) {
+                accounts: [Agent: AccountStatus] = [:], credits: [Agent: Credits] = [:],
+                identities: [Agent: Identity] = [:]) {
         self.limits = limits
         self.conversations = conversations
         self.lastWritten = lastWritten
         self.readAt = readAt
         self.accounts = accounts
+        self.credits = credits
+        self.identities = identities
+    }
+
+    /// Folds one agent's reading in: its windows, its balance, and when it was written.
+    public mutating func take(_ reading: Reading, for agent: Agent) {
+        limits += reading.limits
+        if let credits = reading.credits { self.credits[agent] = credits }
+        if !reading.identity.isEmpty {
+            identities[agent] = (identities[agent] ?? Identity()).merged(with: reading.identity)
+        }
+        if let written = reading.written { lastWritten[agent] = written }
     }
 
     public var isEmpty: Bool { limits.isEmpty && conversations.isEmpty }

@@ -87,7 +87,7 @@ private struct ConversationRow: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help("What it is running as")
+                .tip("What it is running as")
             }
             if expanded, !detailLine.isEmpty {
                 Text(detailLine)
@@ -111,7 +111,7 @@ private struct ConversationRow: View {
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.14), value: expanded)
         .animation(.easeOut(duration: 0.12), value: hovering)
-        .help(helpText)
+        .tip(helpText)
     }
 
     @ViewBuilder

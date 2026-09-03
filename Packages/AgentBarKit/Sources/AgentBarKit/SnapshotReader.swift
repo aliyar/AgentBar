@@ -13,17 +13,15 @@ public enum SnapshotReader {
             let root = agent.defaultURL
             switch agent {
             case .claude:
-                let (limits, written) = ClaudeReader.readLimits(in: root)
-                snapshot.limits += limits
-                snapshot.lastWritten[.claude] = written
+                snapshot.take(ClaudeReader.read(in: root), for: .claude)
                 snapshot.conversations += ClaudeReader.conversations(in: root)
             case .codex:
-                let (limits, written) = CodexReader.readLimits(in: root)
-                snapshot.limits += limits
-                snapshot.lastWritten[.codex] = written
+                snapshot.take(CodexReader.read(in: root), for: .codex)
                 snapshot.conversations += CodexReader.conversations(in: root)
             case .cursor:
-                // Cursor leaves no usage on disk (that comes from the account), only its chats.
+                // Cursor leaves no usage on disk (that comes from the account), only the
+                // account it is signed in as, and its chats.
+                snapshot.take(CursorReader.read(), for: .cursor)
                 snapshot.conversations += CursorReader.conversations(home: HomeDirectory.url, now: now)
             }
         }

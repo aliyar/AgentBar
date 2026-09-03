@@ -38,7 +38,7 @@ final class AgentsModel {
     }
 
     private struct AccountAnswer {
-        let limits: [UsageLimit]
+        let reading: Reading
         let at: Date
     }
 
@@ -81,20 +81,20 @@ final class AgentsModel {
             async let files = Task.detached(priority: .utility) {
                 SnapshotReader.read(agents: agents, now: now)
             }.value
-            var results: [Agent: Result<[UsageLimit], AccountUsage.Problem>] = [:]
-            await withTaskGroup(of: (Agent, Result<[UsageLimit], AccountUsage.Problem>).self) { group in
+            var results: [Agent: Result<Reading, AccountUsage.Problem>] = [:]
+            await withTaskGroup(of: (Agent, Result<Reading, AccountUsage.Problem>).self) { group in
                 for agent in due {
                     group.addTask { (agent, await AccountUsage.fetch(agent, now: now)) }
                 }
                 for await (agent, result) in group { results[agent] = result }
             }
-            var read = await files
+            let read = await files
             for (agent, result) in results {
                 switch result {
-                case .success(let limits):
-                    answers[agent] = AccountAnswer(limits: limits, at: now)
+                case .success(let reading):
+                    answers[agent] = AccountAnswer(reading: reading, at: now)
                     problems[agent] = nil
-                    Log.app.debug("\(agent.rawValue, privacy: .public) account: \(limits.count) windows")
+                    Log.app.debug("\(agent.rawValue, privacy: .public) account: \(reading.limits.count) windows")
                 case .failure(let problem):
                     problems[agent] = problem.description
                     Log.app.notice("\(agent.rawValue, privacy: .public) account: \(problem.description, privacy: .public)")
@@ -151,10 +151,20 @@ final class AgentsModel {
         for agent in agents {
             var status = AccountStatus(fetchedAt: answers[agent]?.at, problem: problems[agent])
             if liveAgents.contains(agent), let answer = answers[agent] {
+                // The plan is not a reading and does not go stale the way a window does,
+                // so it is taken from whichever source named it - Cursor and Claude name
+                // it only in their account answer, and have no file to lose it to.
+                if !answer.reading.identity.isEmpty {
+                    snapshot.identities[agent] = (snapshot.identities[agent] ?? Identity())
+                        .merged(with: answer.reading.identity)
+                }
                 let fileIsNewer = (read.lastWritten[agent] ?? .distantPast) > answer.at
                 if !fileIsNewer {
                     snapshot.limits.removeAll { $0.agent == agent }
-                    snapshot.limits += answer.limits
+                    snapshot.limits += answer.reading.limits
+                    // The account knows the balance the files cannot: what was bought or
+                    // spent elsewhere. Its answer replaces the file's, never the reverse.
+                    snapshot.credits[agent] = answer.reading.credits
                     snapshot.lastWritten[agent] = answer.at
                 }
             } else if !liveAgents.contains(agent) {

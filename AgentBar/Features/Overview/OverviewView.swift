@@ -7,8 +7,13 @@ struct OverviewView: View {
     let style: PanelStyleID
     let context: OverviewContext
 
+    @Environment(\.colorScheme) private var scheme
+
     var body: some View {
         PanelStyles.style(style).overview(context)
+            // One tip layer per panel, at its root: the cards are drawn over everything
+            // and placed inside the panel's own frame.
+            .tipLayer(style: style == .terminal ? .terminal(TerminalPalette.of(scheme)) : .glass(Palette.glass(scheme)))
     }
 }
 

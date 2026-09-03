@@ -36,7 +36,7 @@ public enum ProcessTree {
         for pid in pids.prefix(Int(count) / MemoryLayout<pid_t>.size) where pid > 0 {
             var buffer = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
             guard proc_pidpath(pid, &buffer, UInt32(buffer.count)) > 0 else { continue }
-            let path = String(cString: buffer)
+            let path = String(decoding: buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
             guard path.contains(needle) else { continue }
             var info = proc_vnodepathinfo()
             let size = Int32(MemoryLayout<proc_vnodepathinfo>.size)

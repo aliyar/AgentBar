@@ -15,6 +15,12 @@ struct UsageSection: View {
     let written: Date?
     /// What the agent's account said, when it is asked.
     let account: AccountStatus?
+    /// What the agent holds against its windows filling: a balance, or an unlimited
+    /// allowance. Not a window, so it is said beside the name rather than metered.
+    var credits: Credits?
+    /// Whose figures these are: the plan, drawn as a badge, and the account it names
+    /// when you rest on it.
+    var identity: Identity?
     /// When one of the agent's conversations last moved: a window that has rolled over
     /// is projected forward only while the agent is in use.
     let activeSince: Date?
@@ -28,7 +34,8 @@ struct UsageSection: View {
     var body: some View {
         let glass = Palette.glass(scheme)
         VStack(alignment: .leading, spacing: 5) {
-            GroupCaption(title: agent.title, trailing: caption, link: agent.usagePage,
+            GroupCaption(title: agent.title, badge: identity?.plan, badgeHelp: identity?.description(for: agent),
+                         trailing: caption, link: agent.usagePage,
                          linkHelp: "Open \(agent.title)'s usage page")
             GroupBox_ {
                 if !agent.isInstalled {
@@ -47,8 +54,10 @@ struct UsageSection: View {
         }
     }
 
-    /// Said only when it changes the reading: why the account did not answer, or how old
-    /// the numbers on disk are. Fresh numbers need no note.
+    /// Said only when it changes the reading, and only one thing at a time: why the
+    /// account did not answer, then how old the numbers are, then what is left to spend
+    /// once they run out. A balance beside a figure that cannot be trusted would be the
+    /// wrong thing to read first.
     private var caption: String? {
         if let problem = account?.problem {
             if let fetched = account?.fetchedAt {
@@ -56,9 +65,10 @@ struct UsageSection: View {
             }
             return problem
         }
-        guard !limits.isEmpty, let written else { return nil }
-        let age = now.timeIntervalSince(written)
-        return age > 3600 ? "\(Format.short(age, coarse: true)) ago" : nil
+        if !limits.isEmpty, let written, now.timeIntervalSince(written) > 3600 {
+            return "\(Format.short(now.timeIntervalSince(written), coarse: true)) ago"
+        }
+        return credits?.caption
     }
 }
 
@@ -131,11 +141,11 @@ private struct UsageRow: View {
                 .contentShape(Rectangle())
                 // The time is a toggle: time left ⇄ the clock time it starts over.
                 .onTapGesture { showsClock.toggle() }
-                .help(showsClock ? "Click for the time left" : "Click for the time it starts over")
+                .tip(showsClock ? "Click for the time left" : "Click for the time it starts over")
         }
         .padding(.vertical, 7)
         .padding(.horizontal, 10)
-        .help(helpText)
+        .tip(helpText)
     }
 
     private var helpText: String {
@@ -146,7 +156,9 @@ private struct UsageRow: View {
             let whole = limit.windowLength.map { " The next one runs \(Format.short($0)) from first use." } ?? ""
             return "\(limit.title): this window has started over since the figure was written; nothing has been used in the new one yet.\(whole)"
         }
-        let used = "\(limit.title): \(Format.percent(limit.percentUsed)) used"
+        let named = limit.fullName.map { "\(limit.title) (\($0))" } ?? limit.title
+        let window = limit.windowLength.map { " over \(Format.short($0))" } ?? ""
+        let used = "\(named): \(Format.percent(limit.percentUsed)) used\(window)"
         guard let remaining else { return used }
         return showsClock ? "\(used), starts over at \(remaining)" : "\(used), starts over in \(remaining)"
     }
@@ -157,6 +169,11 @@ private struct UsageRow: View {
 /// The line above a group: its name on the left, a short note on the right.
 struct GroupCaption: View {
     let title: String
+    /// The plan, next to the name: quiet enough to be read second, there for the glance
+    /// that asks "which account is this?".
+    var badge: String?
+    /// What resting on the badge says: the account behind the figures.
+    var badgeHelp: String?
     var trailing: String?
     /// A page to open in the browser, offered by a small arrow that shows on hover.
     var link: URL?
@@ -168,19 +185,30 @@ struct GroupCaption: View {
     var body: some View {
         let glass = Palette.glass(scheme)
         HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Text(title)
+            let name = Text(title)
                 .font(.system(size: 10.5, weight: .semibold))
                 .foregroundStyle(glass.primary)
             if let link {
                 Button { NSWorkspace.shared.open(link) } label: {
-                    Image(systemName: "arrow.up.right.square")
-                        .font(.system(size: 9.5, weight: .medium))
-                        .foregroundStyle(glass.secondary)
+                    name.underline(hovering, pattern: .solid)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help(linkHelp)
-                .opacity(hovering ? 1 : 0)
+                .tip(linkHelp)
+                .onHover { hovering = $0 }
+            } else {
+                name
+            }
+            if let badge {
+                Text(badge)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(glass.tertiary)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .background(glass.groupFill, in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                    .lineLimit(1)
+                    .fixedSize()
+                    .tip(badgeHelp ?? "")
             }
             Spacer()
             if let trailing {
@@ -191,8 +219,6 @@ struct GroupCaption: View {
             }
         }
         .padding(.horizontal, 1)
-        .contentShape(Rectangle())
-        .onHover { hovering = $0 }
     }
 }
 
@@ -228,7 +254,9 @@ struct Note: View {
 }
 
 #Preview {
-    UsageSection(agent: .claude, limits: Snapshot.sample.limits(for: .claude), written: .now, account: nil, activeSince: .now, now: .now, showsClock: .constant(false))
+    UsageSection(agent: .claude, limits: Snapshot.sample.limits(for: .claude), written: .now, account: nil,
+                 credits: Snapshot.sample.credits[.claude], identity: Snapshot.sample.identities[.claude],
+                 activeSince: .now, now: .now, showsClock: .constant(false))
         .padding(11)
         .frame(width: 340)
         .background(GlassBackground())

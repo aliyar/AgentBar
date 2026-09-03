@@ -77,7 +77,7 @@ struct TerminalOverview: View {
             .monospacedDigit()
             .foregroundStyle(palette.faint)
             .frame(width: 34, alignment: .leading)
-            .help(context.isRefreshing ? "Reading…" : "When the agents were last read")
+            .tip(context.isRefreshing ? "Reading…" : "When the agents were last read")
             .padding(.leading, 4)
         }
         return Group {
@@ -111,7 +111,8 @@ struct TerminalOverview: View {
         let limits = context.snapshot.limits(for: agent)
         let activeSince = context.snapshot.latestActivity(for: agent)
         VStack(alignment: .leading, spacing: 6) {
-            AgentHeader(agent: agent, note: note(for: agent, limits: limits, now: now), palette: palette)
+            AgentHeader(agent: agent, identity: context.snapshot.identities[agent],
+                        note: note(for: agent, limits: limits, now: now), palette: palette)
             if !agent.isInstalled {
                 Text("not installed").font(Self.mono(10.5)).foregroundStyle(palette.faint)
             } else if limits.isEmpty {
@@ -145,22 +146,25 @@ struct TerminalOverview: View {
                             .frame(minWidth: 40, alignment: .trailing)
                             .contentShape(Rectangle())
                             .onTapGesture { showsClock.toggle() }
-                            .help(showsClock ? "Click for the time left" : "Click for the time it starts over")
+                            .tip(showsClock ? "Click for the time left" : "Click for the time it starts over")
                     }
                 }
             }
         }
     }
 
-    /// `stale 5h` when the numbers are old, or why the account did not answer.
+    /// One note at a time, in the order that changes the reading: why the account did not
+    /// answer, then how old the numbers are, then the balance left once they run out.
     private func note(for agent: Agent, limits: [UsageLimit], now: Date) -> String? {
         if let problem = context.snapshot.accounts[agent]?.problem { return problem }
-        guard !limits.isEmpty, let written = context.snapshot.lastWritten[agent] else { return nil }
-        let age = now.timeIntervalSince(written)
-        return age > 3600 ? "stale \(Self.compact(age))" : nil
+        if !limits.isEmpty, let written = context.snapshot.lastWritten[agent],
+           now.timeIntervalSince(written) > 3600 {
+            return "stale \(Self.compact(now.timeIntervalSince(written)))"
+        }
+        return context.snapshot.credits[agent]?.caption
     }
 
-    /// "Session (5h)" → "session.5h", "Weekly · all models" → "weekly.all", "Weekly · Fable" → "weekly.fable".
+    /// "Weekly · all models" → "weekly.all", "Session · Spark" → "session.spark".
     static func label(_ title: String) -> String {
         title.lowercased()
             .replacingOccurrences(of: " models", with: "")
@@ -182,6 +186,10 @@ struct TerminalOverview: View {
             if clock { return Format.clock(windowEnd, now: now).lowercased() }
             return compact(windowEnd.timeIntervalSince(now))
         }
+        // A limit that starts over on no date anyone writes (extra usage, credits) has
+        // nothing to say here. The dash means "this window has rolled over" and would be
+        // read as a reading; blank is the honest column.
+        guard limit.resetsAt != nil else { return "" }
         if clock { return "—" }
         return limit.windowLength.map { compact($0) } ?? "—"
     }
@@ -229,6 +237,9 @@ struct TerminalOverview: View {
 /// `[ CLAUDE ]`, and on hover `:usage`, which opens the agent's own usage page.
 private struct AgentHeader: View {
     let agent: Agent
+    /// The account, in the readout's own register: the plan lowercase beside the
+    /// section's name, the rest said on hover.
+    let identity: Identity?
     let note: String?
     let palette: TerminalPalette
     @State private var hovering = false
@@ -236,6 +247,14 @@ private struct AgentHeader: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             SectionHeader(text: agent.title, palette: palette)
+            if let plan = identity?.plan {
+                Text(plan.lowercased())
+                    .font(TerminalOverview.mono(9.5))
+                    .foregroundStyle(palette.ghost)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .tip(identity?.description(for: agent) ?? "")
+            }
             Command(":usage", palette: palette, color: palette.ghost, help: "Open \(agent.title)'s usage page") {
                 NSWorkspace.shared.open(agent.usagePage)
             }
@@ -399,7 +418,7 @@ private struct Command: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
-        .help(help)
+        .tip(help)
     }
 }
 

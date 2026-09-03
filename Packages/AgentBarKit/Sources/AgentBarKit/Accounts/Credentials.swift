@@ -8,6 +8,14 @@ public enum Credentials {
     public struct Codex: Sendable {
         public let accessToken: String
         public let accountID: String?
+        /// The person the ChatGPT sign-in was issued to, from its id token.
+        public let identity: Identity
+    }
+
+    public struct Claude: Sendable {
+        public let accessToken: String
+        /// The plan the sign-in was issued for: "Max 20x", "Pro".
+        public let plan: String?
     }
 
     // MARK: Claude Code
@@ -18,25 +26,42 @@ public enum Credentials {
     /// app would put up a Keychain prompt; the tool does not.
     static let claudeKeychainService = "Claude Code-credentials"
 
-    /// The access token Claude Code signed in with, or nil when it is not signed in.
-    public static func claudeAccessToken(home: URL = HomeDirectory.url) -> String? {
-        if let json = keychainPassword(service: claudeKeychainService), let token = claudeToken(in: json) {
-            return token
+    /// The sign-in Claude Code holds - the token, and the plan it was issued for. Nil
+    /// when Claude Code is not signed in.
+    public static func claude(home: URL = HomeDirectory.url) -> Claude? {
+        if let json = keychainPassword(service: claudeKeychainService), let signIn = claude(in: json) {
+            return signIn
         }
         // Older builds and Linux keep the same JSON in a file.
-        if let data = try? Data(contentsOf: home.appendingPathComponent(".claude/.credentials.json")),
-           let token = claudeToken(in: data) {
-            return token
+        if let data = try? Data(contentsOf: home.appendingPathComponent(".claude/.credentials.json")) {
+            return claude(in: data)
         }
         return nil
     }
 
-    static func claudeToken(in data: Data) -> String? {
+    static func claude(in data: Data) -> Claude? {
         struct File: Decodable {
-            struct OAuth: Decodable { let accessToken: String? }
+            struct OAuth: Decodable {
+                let accessToken: String?
+                let subscriptionType: String?
+                /// "default_claude_max_20x" - the multiplier a Max plan was sold with.
+                let rateLimitTier: String?
+            }
             let claudeAiOauth: OAuth?
         }
-        return (try? JSONDecoder().decode(File.self, from: data))?.claudeAiOauth?.accessToken.flatMap { $0.isEmpty ? nil : $0 }
+        guard let oauth = (try? JSONDecoder().decode(File.self, from: data))?.claudeAiOauth,
+              let token = oauth.accessToken, !token.isEmpty else { return nil }
+        return Claude(accessToken: token, plan: claudePlan(oauth.subscriptionType, tier: oauth.rateLimitTier))
+    }
+
+    /// "max" with a 20x tier is the plan a person calls "Max 20x"; the multiplier is the
+    /// difference that matters, and Claude states it separately.
+    static func claudePlan(_ subscription: String?, tier: String?) -> String? {
+        guard let plan = Reading.planName(subscription) else { return nil }
+        guard let tier, let multiplier = tier.split(separator: "_").last.map(String.init),
+              multiplier.hasSuffix("x"), multiplier.dropLast().allSatisfy(\.isNumber),
+              !plan.lowercased().contains(multiplier) else { return plan }
+        return "\(plan) \(multiplier)"
     }
 
     private static func keychainPassword(service: String) -> Data? {
@@ -68,6 +93,7 @@ public enum Credentials {
         struct File: Decodable {
             struct Tokens: Decodable {
                 let access_token: String?
+                let id_token: String?
                 let account_id: String?
             }
             let auth_mode: String?
@@ -77,7 +103,10 @@ public enum Credentials {
               file.auth_mode == nil || file.auth_mode == "chatgpt",
               let token = file.tokens?.access_token, !token.isEmpty else { return nil }
         if let expiry = JWT.expiry(of: token), expiry < now { return nil }
-        return Codex(accessToken: token, accountID: file.tokens?.account_id)
+        // The id token is the one that names the person; the access token carries none.
+        let claims = file.tokens?.id_token.flatMap { JWT.claims(of: $0) }
+        return Codex(accessToken: token, accountID: file.tokens?.account_id,
+                     identity: Identity(email: claims?["email"] as? String, name: claims?["name"] as? String))
     }
 
     // MARK: Cursor
@@ -90,6 +119,15 @@ public enum Credentials {
         defer { db.close() }
         guard let token = db.value(in: "ItemTable", key: "cursorAuth/accessToken") else { return nil }
         return cursorSessionCookie(accessToken: token, now: now)
+    }
+
+    /// The account Cursor's editor has signed in, cached beside its token.
+    public static func cursorIdentity(home: URL = HomeDirectory.url) -> Identity {
+        let database = home.appendingPathComponent("Library/Application Support/Cursor/User/globalStorage/state.vscdb")
+        guard let db = SQLiteCopy(of: database) else { return Identity() }
+        defer { db.close() }
+        return Identity(plan: Reading.planName(db.value(in: "ItemTable", key: "cursorAuth/stripeMembershipType")),
+                        email: db.value(in: "ItemTable", key: "cursorAuth/cachedEmail"))
     }
 
     static func cursorSessionCookie(accessToken token: String, now: Date) -> String? {

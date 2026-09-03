@@ -8,6 +8,17 @@ struct FailableDecodable<T: Decodable>: Decodable {
     }
 }
 
+/// A number an agent may write either way round: `0` or `"0"`. Codex writes its credit
+/// balance as a string; the shape is not ours to insist on.
+struct Flexible<T>: Decodable where T: Decodable & LosslessStringConvertible {
+    let value: T?
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let number = try? container.decode(T.self) { value = number; return }
+        value = (try? container.decode(String.self)).flatMap(T.init)
+    }
+}
+
 enum FileTail {
     /// The last `bytes` of a file as text. Only the tail is read - a session file runs to
     /// megabytes and everything before the end is history.
@@ -65,6 +76,15 @@ enum Prose {
         ("(?<![*\\w])\\*([^*]+)\\*(?![*\\w])", "$1"), // italics
         ("~~([^~]*)~~", "$1"),
     ]
+
+    /// "GPT-5.3-Codex-Spark" -> "Spark": what tells this limit from the plan's own is the
+    /// last part of its name, and the row already sits under the agent that meters it.
+    /// The full name is not lost - it is what resting on the row says.
+    static func limitName(_ raw: String) -> String {
+        let parts = raw.split(separator: "-")
+        guard let last = parts.last, parts.count > 1, last.count > 2 else { return raw }
+        return String(last)
+    }
 
     /// "claude-opus-5" -> "Opus 5"; anything unexpected is left as it is.
     static func modelName(_ raw: String) -> String {

@@ -20,68 +20,151 @@ public enum ClaudeReader {
                 let model: Model?
             }
             let kind: String?
+            let group: String?
             let percent: Double?
             let resets_at: String?
             let scope: Scope?
         }
+        /// `extra_usage`: what the account spends once the plan's windows are full, as a
+        /// monthly allowance with its own utilization. Off unless the person turned it on.
+        struct ExtraUsage: Decodable {
+            let is_enabled: Bool?
+            let monthly_limit: Double?
+            let used_credits: Double?
+            let utilization: Double?
+            let currency: String?
+        }
+        /// `spend`: the prepaid usage credits that cover the same moment. A balance with
+        /// no limit is not a window; a limit with a percent is.
+        struct Spend: Decodable {
+            struct Money: Decodable {
+                let amount_minor: Double?
+                let currency: String?
+                let exponent: Int?
+
+                /// Minor units to whole ones: 1240 with exponent 2 is 12.40.
+                var amount: Double? {
+                    guard let amount_minor else { return nil }
+                    return amount_minor / pow(10, Double(exponent ?? 2))
+                }
+            }
+            let used: Money?
+            let limit: Money?
+            let balance: Money?
+            let percent: Double?
+            let enabled: Bool?
+        }
         let five_hour: Window?
         let seven_day: Window?
         let limits: [Limit]?
+        let extra_usage: ExtraUsage?
+        let spend: Spend?
     }
 
     /// `cache/usage.json`: one small file Claude Code keeps up to date on its own, whether
-    /// or not a session is running. Returns the limits and when the file was written.
-    public static func readLimits(in root: URL) -> (limits: [UsageLimit], written: Date?) {
+    /// or not a session is running. The account it belongs to is named next door, in
+    /// `~/.claude.json`.
+    public static func read(in root: URL, home: URL = HomeDirectory.url) -> Reading {
         let url = root.appendingPathComponent("cache/usage.json")
-        guard let data = try? Data(contentsOf: url) else { return ([], nil) }
-        return (limits(from: data), FileTail.modificationDate(of: url))
+        var found = Reading()
+        if let data = try? Data(contentsOf: url) {
+            found = reading(from: data)
+            found.written = FileTail.modificationDate(of: url)
+        }
+        found.identity = found.identity.merged(with: identity(home: home))
+        return found
+    }
+
+    /// Who Claude Code is signed in as, from the settings file it keeps beside its folder.
+    /// The plan is not written here - it rides in the sign-in itself.
+    static func identity(home: URL) -> Identity {
+        struct File: Decodable {
+            struct Account: Decodable { let emailAddress: String? }
+            let oauthAccount: Account?
+        }
+        guard let data = try? Data(contentsOf: home.appendingPathComponent(".claude.json")),
+              let file = try? JSONDecoder().decode(File.self, from: data) else { return Identity() }
+        return Identity(email: file.oauthAccount?.emailAddress)
     }
 
     /// The parsing on its own, so the shape can be pinned by a test.
-    public static func limits(from data: Data) -> [UsageLimit] {
-        guard let file = try? JSONDecoder().decode(UsageFile.self, from: data) else { return [] }
+    public static func reading(from data: Data) -> Reading {
+        guard let file = try? JSONDecoder().decode(UsageFile.self, from: data) else { return Reading() }
+        return Reading(limits: limits(in: file), credits: credits(in: file))
+    }
 
-        // The `limits` array carries the scoped windows too ("Weekly · Fable"); the two
-        // named windows are the fallback for a build that does not write it.
-        if let limits = file.limits, !limits.isEmpty {
-            let mapped = limits.compactMap { limit -> UsageLimit? in
-                guard let percent = limit.percent else { return nil }
-                return UsageLimit(agent: .claude, title: title(for: limit),
-                                  percentUsed: percent, resetsAt: ISODate.parse(limit.resets_at),
-                                  windowLength: windowLength(for: limit.kind))
-            }
-            if !mapped.isEmpty { return mapped }
-        }
-        var fallback: [UsageLimit] = []
+    /// The windows, in the order the panel reads them: the session, the weekly window, the
+    /// model-scoped weekly windows, then what is spent once they are full.
+    ///
+    /// The two named windows are the account's own answer for the two that matter, so they
+    /// are what the panel shows. `limits[]` is read only for the windows they do not
+    /// cover - a scoped week ("Weekly · Fable") - because it is the newer shape and may
+    /// one day arrive carrying nothing else.
+    static func limits(in file: UsageFile) -> [UsageLimit] {
+        var result: [UsageLimit] = []
         if let window = file.five_hour, let used = window.utilization {
-            fallback.append(UsageLimit(agent: .claude, title: "Session (5h)", percentUsed: used,
-                                       resetsAt: ISODate.parse(window.resets_at), windowLength: 5 * 3600))
+            result.append(UsageLimit(agent: .claude, title: "5h", percentUsed: used,
+                                     resetsAt: ISODate.parse(window.resets_at), windowLength: 5 * 3600))
+        } else if let session = file.limits?.first(where: { $0.kind == "session" }), let percent = session.percent {
+            result.append(UsageLimit(agent: .claude, title: "5h", percentUsed: percent,
+                                     resetsAt: ISODate.parse(session.resets_at), windowLength: 5 * 3600))
         }
         if let window = file.seven_day, let used = window.utilization {
-            fallback.append(UsageLimit(agent: .claude, title: "Weekly · all models", percentUsed: used,
-                                       resetsAt: ISODate.parse(window.resets_at), windowLength: 7 * 86400))
+            result.append(UsageLimit(agent: .claude, title: "Weekly · all models", percentUsed: used,
+                                     resetsAt: ISODate.parse(window.resets_at), windowLength: 7 * 86400))
+        } else if let weekly = file.limits?.first(where: { $0.kind == "weekly_all" }), let percent = weekly.percent {
+            result.append(UsageLimit(agent: .claude, title: "Weekly · all models", percentUsed: percent,
+                                     resetsAt: ISODate.parse(weekly.resets_at), windowLength: 7 * 86400))
         }
-        return fallback
+        result += scopedWeeklyLimits(in: file)
+        if let extra = extraUsageLimit(in: file) { result.append(extra) }
+        if let credits = creditsLimit(in: file) { result.append(credits) }
+        return result.sortedByWindow()
     }
 
-    /// Claude does not write the length; its kinds imply it.
-    private static func windowLength(for kind: String?) -> TimeInterval? {
-        switch kind {
-        case "session": 5 * 3600
-        case "weekly_all", "weekly_scoped": 7 * 86400
-        default: nil
+    /// The model-scoped weeks from `limits[]` - "Weekly · Fable". A scope that names all
+    /// models is the weekly window again under another name, and is left out.
+    private static func scopedWeeklyLimits(in file: UsageFile) -> [UsageLimit] {
+        var seen: Set<String> = []
+        return (file.limits ?? []).compactMap { limit -> UsageLimit? in
+            guard limit.kind == "weekly_scoped", let percent = limit.percent else { return nil }
+            let model = limit.scope?.model?.display_name?.trimmingCharacters(in: .whitespaces) ?? ""
+            guard !model.isEmpty, model.lowercased() != "all models" else { return nil }
+            guard seen.insert(model.lowercased()).inserted else { return nil }
+            return UsageLimit(agent: .claude, title: "Weekly \u{00B7} \(model)", percentUsed: percent,
+                              resetsAt: ISODate.parse(limit.resets_at), windowLength: 7 * 86400)
         }
     }
 
-    private static func title(for limit: UsageFile.Limit) -> String {
-        switch limit.kind {
-        case "session": "Session (5h)"
-        case "weekly_all": "Weekly · all models"
-        case "weekly_scoped":
-            if let model = limit.scope?.model?.display_name, !model.isEmpty { "Weekly · \(model)" } else { "Weekly · one model" }
-        case let other?: other.replacingOccurrences(of: "_", with: " ").capitalized
-        case nil: "Limit"
+    /// What the account spends past the plan, as a window of its own. Shown only once the
+    /// person has turned it on: an allowance nobody enabled is not a reading.
+    ///
+    /// Claude writes no reset for it, so the row carries none - the month it runs for is
+    /// not ours to date.
+    private static func extraUsageLimit(in file: UsageFile) -> UsageLimit? {
+        guard let extra = file.extra_usage, extra.is_enabled == true else { return nil }
+        if let used = extra.utilization {
+            return UsageLimit(agent: .claude, title: "Extra usage", percentUsed: used, resetsAt: nil)
         }
+        guard let spent = extra.used_credits, let limit = extra.monthly_limit, limit > 0 else { return nil }
+        return UsageLimit(agent: .claude, title: "Extra usage", percentUsed: spent / limit * 100, resetsAt: nil)
+    }
+
+    /// Prepaid credits that are being spent against a ceiling: a window like any other.
+    /// A balance with no ceiling has no percentage and comes back as `Credits` instead.
+    private static func creditsLimit(in file: UsageFile) -> UsageLimit? {
+        guard let spend = file.spend, spend.enabled == true else { return nil }
+        if let percent = spend.percent, spend.limit?.amount != nil {
+            return UsageLimit(agent: .claude, title: "Credits", percentUsed: percent, resetsAt: nil)
+        }
+        guard let used = spend.used?.amount, let limit = spend.limit?.amount, limit > 0 else { return nil }
+        return UsageLimit(agent: .claude, title: "Credits", percentUsed: used / limit * 100, resetsAt: nil)
+    }
+
+    /// A balance held against the plan running out, when the account reports one.
+    static func credits(in file: UsageFile) -> Credits? {
+        guard let spend = file.spend, let balance = spend.balance?.amount, balance > 0 else { return nil }
+        return Credits(balance: balance, currency: spend.balance?.currency ?? "USD")
     }
 
     // MARK: Conversations
