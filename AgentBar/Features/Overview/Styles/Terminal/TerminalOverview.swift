@@ -14,6 +14,8 @@ struct TerminalOverview: View {
     @State private var expandedID: String?
     /// Shared with the glass style and Settings: reset times as clock times.
     @AppStorage("showsResetClock") private var showsClock = false
+    /// Shared with the glass style and Settings: how opaque the panel is.
+    @AppStorage(AppSettings.panelOpacityKey) private var opacity = AppSettings.defaultPanelOpacity
 
     static func mono(_ size: CGFloat) -> Font { .system(size: size, design: .monospaced) }
 
@@ -45,13 +47,15 @@ struct TerminalOverview: View {
                     .background(palette.band)
             }
         }
-        .background(palette.panel)
+        // The popover's own blur shows through as the opacity drops.
+        .background(palette.panel.opacity(opacity))
     }
 
     // MARK: Header
 
     private func header(palette: TerminalPalette) -> some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .center, spacing: 6) {
+            MarkView(size: 13, tint: palette.title, cursor: palette.meterLit)
             Text("agentbar")
                 .font(Self.mono(10.5))
                 .tracking(0.63)

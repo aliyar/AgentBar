@@ -10,6 +10,8 @@ version heading and uses them as the release notes.
 
 ### Added
 - The app: a menu bar item, a popover, and a Settings window with the update controls.
+- **The icon**: a dark terminal squircle holding the app's own panel, a `>` prompt and a
+  green block cursor. The menu bar shows the same mark; so does the panel's header.
 - **The limits come from the agents' accounts**, so what was spent on another Mac or while
   the agent was not running counts too: Claude through Claude Code's sign-in, Codex through
   its ChatGPT sign-in, Cursor through the editor's. One read-only request every five
@@ -42,7 +44,8 @@ version heading and uses them as the release notes.
   bar item always follows the menu bar.
 - **Style**: how the panel is drawn, apart from the theme. Glass (the design) or Terminal
   (a terminal readout: monospaced, green on black, `▌` meters, a blinking prompt); each
-  has a light and a dark variant and the theme picks which.
+  has a light and a dark variant and the theme picks which, Dark by default. A background
+  opacity slider (0–100%) sets how sheer either panel is.
 - **Launch at login**, through the system's Login Items.
 - Nothing is shown that cannot be stood behind: a window that has already started over
   shows "—", a figure written hours ago says how old it is, and a context whose limit is

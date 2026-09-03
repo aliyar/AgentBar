@@ -56,7 +56,8 @@ struct GlassOverview: View {
 
     private func header(now: Date) -> some View {
         let glass = Palette.glass(scheme)
-        return HStack(alignment: .firstTextBaseline, spacing: 8) {
+        return HStack(alignment: .center, spacing: 7) {
+            MarkView(size: 16, tint: glass.primary, cursor: Palette.color(.calm, scheme))
             Text("AgentBar")
                 .font(.system(size: 14, weight: .semibold))
                 .tracking(-0.14)
@@ -139,14 +140,18 @@ private struct FooterButton: View {
     }
 }
 
-/// The panel's material: the popover's own blur underneath, the design's translucent
-/// gradient over it, a hairline border around it.
+/// The panel's material: the popover's own blur underneath, a translucent gradient over
+/// it at the opacity the user chose (Settings › Appearance, with the Glass style), a
+/// hairline border around it. The bottom sits a touch more opaque than the top, as the
+/// design's gradient did.
 struct GlassBackground: View {
     @Environment(\.colorScheme) private var scheme
+    @AppStorage(AppSettings.panelOpacityKey) private var opacity = AppSettings.defaultPanelOpacity
 
     var body: some View {
         let glass = Palette.glass(scheme)
-        LinearGradient(colors: [glass.backgroundTop, glass.backgroundBottom], startPoint: .top, endPoint: .bottom)
+        LinearGradient(colors: [glass.backgroundTop.opacity(opacity), glass.backgroundBottom.opacity(min(1, opacity + 0.06))],
+                       startPoint: .top, endPoint: .bottom)
             .overlay(alignment: .top) { glass.border.frame(height: 0.5) }
     }
 }

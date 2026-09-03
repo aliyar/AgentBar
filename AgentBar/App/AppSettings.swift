@@ -12,6 +12,7 @@ final class AppSettings {
         static let disabledAgents = "disabledAgents"
         static let appearance = "appearance"
         static let panelStyle = "panelStyle"
+        static let panelOpacity = panelOpacityKey
         static let sampleData = "sampleData"
         static let menuBarBars = "menuBarBars"
         static let menuBarTime = "menuBarTime"
@@ -77,6 +78,16 @@ final class AppSettings {
         didSet { defaults.set(panelStyle.rawValue, forKey: Keys.panelStyle) }
     }
 
+    /// Shared with the styles' `@AppStorage`, which read the same key.
+    static let panelOpacityKey = "panelOpacity"
+    static let defaultPanelOpacity = 0.85
+
+    /// The panel's background, 0 (only the popover's own blur) to 1 (opaque); every style
+    /// that has a background honours it.
+    var panelOpacity: Double {
+        didSet { defaults.set(panelOpacity, forKey: Keys.panelOpacity) }
+    }
+
     /// Draw the handoff's sample snapshot instead of what the agents wrote: a way to see
     /// every row of the panel without waiting for the agents to fill them.
     var showsSampleData: Bool {
@@ -102,8 +113,10 @@ final class AppSettings {
         self.defaults = defaults
         gaugeEnabled = defaults.object(forKey: Keys.gauge) as? Bool ?? false
         enabledAgents = Self.included(excluding: Keys.disabledAgents, in: defaults)
-        appearance = defaults.string(forKey: Keys.appearance).flatMap(AppAppearance.init(rawValue:)) ?? .system
+        // Dark by default: both styles were designed dark-first.
+        appearance = defaults.string(forKey: Keys.appearance).flatMap(AppAppearance.init(rawValue:)) ?? .dark
         panelStyle = defaults.string(forKey: Keys.panelStyle).flatMap(PanelStyleID.init(rawValue:)) ?? .glass
+        panelOpacity = defaults.object(forKey: Keys.panelOpacity) as? Double ?? Self.defaultPanelOpacity
         showsSampleData = defaults.bool(forKey: Keys.sampleData)
         menuBarBars = defaults.stringArray(forKey: Keys.menuBarBars) ?? []
         menuBarTime = MenuBarTime(rawValue: defaults.string(forKey: Keys.menuBarTime) ?? "fullest")

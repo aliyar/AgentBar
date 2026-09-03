@@ -41,6 +41,8 @@ nonisolated enum StyleFeature: Sendable {
     case resetClock
     /// Conversations open to a detail line.
     case conversationDetails
+    /// The background honours the panel opacity setting.
+    case backgroundOpacity
 }
 
 /// Everything a style needs to draw the panel: the data, the moment, and the actions.

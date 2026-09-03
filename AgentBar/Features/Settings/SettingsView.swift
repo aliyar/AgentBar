@@ -115,6 +115,22 @@ struct SettingsView: View {
         // What follows depends on the style: its own options, and only the shared
         // options it honours.
         PanelStyles.style(settings.panelStyle).settings(settings)
+        if PanelStyles.style(settings.panelStyle).features.contains(.backgroundOpacity) {
+            Section {
+                LabeledContent("Background opacity") {
+                    HStack(spacing: 10) {
+                        Slider(value: $settings.panelOpacity, in: 0...1, step: 0.05)
+                            .frame(width: 160)
+                        Text(settings.panelOpacity, format: .percent.precision(.fractionLength(0)))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                            .frame(width: 40, alignment: .trailing)
+                    }
+                }
+            } footer: {
+                Footnote("How much of what is behind the panel shows through: 0% leaves only the popover's own blur, 100% is opaque.")
+            }
+        }
         if PanelStyles.style(settings.panelStyle).features.contains(.resetClock) {
             Section {
                 Picker("Show resets as", selection: $settings.showsResetClock) {

@@ -28,6 +28,12 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     var symbolName = "circle.dashed" {
         didSet { if symbolName != oldValue { render() } }
     }
+    /// An asset-catalogue template image to draw instead of the symbol (the app's own
+    /// mark), at `imageSize`. macOS tints it for light, dark and selected menu bars.
+    var imageName: String? {
+        didSet { if imageName != oldValue { render() } }
+    }
+    static let imageSize = NSSize(width: 18, height: 18)
     /// The size a standard menu bar symbol is drawn at (the bar is 22 pt; Apple's own extras
     /// use ~16 pt template images). Without this the symbol takes the button font's size.
     static let symbolSize: CGFloat = 16
@@ -118,10 +124,17 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             button.setAccessibilityLabel(summary)
             button.attributedTitle = NSAttributedString(string: "")
             button.imagePosition = .imageOnly
-            let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: summary)?
-                .withSymbolConfiguration(.init(pointSize: Self.symbolSize, weight: .regular))
-            image?.isTemplate = true
-            button.image = image
+            if let imageName, let mark = NSImage(named: imageName) {
+                mark.size = Self.imageSize
+                mark.isTemplate = true
+                mark.accessibilityDescription = summary
+                button.image = mark
+            } else {
+                let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: summary)?
+                    .withSymbolConfiguration(.init(pointSize: Self.symbolSize, weight: .regular))
+                image?.isTemplate = true
+                button.image = image
+            }
         }
     }
 

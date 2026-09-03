@@ -9,7 +9,7 @@ enum TerminalStyle: PanelStyle {
     static let id = PanelStyleID.terminal
     static let title = "Terminal"
     static let summary = "A terminal readout: monospaced, green on black, block meters."
-    static let features: Set<StyleFeature> = [.resetClock, .conversationDetails]
+    static let features: Set<StyleFeature> = [.resetClock, .conversationDetails, .backgroundOpacity]
     /// Narrower than the glass panel: the mono grid is tighter.
     static let width: CGFloat = 330
 

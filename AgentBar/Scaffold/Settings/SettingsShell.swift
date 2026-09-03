@@ -118,7 +118,7 @@ private struct SidebarFooter: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(nsImage: NSApp.applicationIconImage)
+            Image(nsImage: appIcon)
                 .resizable()
                 .frame(width: 22, height: 22)
             Text(appName)
@@ -151,7 +151,7 @@ struct AboutPane: View {
     var body: some View {
         Section {
             HStack(spacing: 14) {
-                Image(nsImage: NSApp.applicationIconImage)
+                Image(nsImage: appIcon)
                     .resizable()
                     .frame(width: 56, height: 56)
                 VStack(alignment: .leading, spacing: 2) {
@@ -203,6 +203,12 @@ struct SupportPane: View {
                 .padding(.bottom, 4)
         }
     }
+}
+
+/// The app's icon from its own asset catalogue - never the copy macOS caches for the
+/// bundle, which lags behind a new icon until the caches are rebuilt.
+private var appIcon: NSImage {
+    NSImage(named: "AppIcon") ?? NSApp.applicationIconImage
 }
 
 /// The small grey line under a setting that says what it does.

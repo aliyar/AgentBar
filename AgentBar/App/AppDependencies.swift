@@ -39,7 +39,7 @@ final class AppDependencies {
         let model = model
         let settings = settings
         let updates = updates
-        statusItem.symbolName = "gauge.with.dots.needle.33percent"
+        statusItem.imageName = "MenuBarIcon"
         statusItem.panelRoot = {
             AnyView(PopoverView().environment(model).environment(settings).environment(updates))
         }

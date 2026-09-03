@@ -85,8 +85,9 @@ enum Palette {
         /// Dark: the system's own semantic colours, as a dark window and its grouped form
         /// use them. The design's white-on-dark washes read too light against a dark desk.
         static let dark = Glass(
-            backgroundTop: Color(nsColor: .windowBackgroundColor).opacity(0.78),
-            backgroundBottom: Color(nsColor: .windowBackgroundColor).opacity(0.84),
+            // Opaque bases; `GlassBackground` applies the user's opacity.
+            backgroundTop: Color(nsColor: .windowBackgroundColor),
+            backgroundBottom: Color(nsColor: .windowBackgroundColor),
             // Separators at their faintest: `separatorColor` reads as bright lines on a dark panel.
             border: Color(nsColor: .quinaryLabel),
             hairline: Color(nsColor: .quinaryLabel),
@@ -107,8 +108,8 @@ enum Palette {
         )
 
         static let light = Glass(
-            backgroundTop: .white.opacity(0.72),
-            backgroundBottom: Color(red: 245 / 255, green: 245 / 255, blue: 247 / 255).opacity(0.68),
+            backgroundTop: .white,
+            backgroundBottom: Color(red: 245 / 255, green: 245 / 255, blue: 247 / 255),
             border: .white.opacity(0.6),
             hairline: .black.opacity(0.08),
             groupFill: .white.opacity(0.7),
