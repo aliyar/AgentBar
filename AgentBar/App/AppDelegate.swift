@@ -28,6 +28,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
+    /// The Dock icon's right-click menu: what a click opens, and Settings.
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        let settings = AppDependencies.shared.settings
+        let menu = NSMenu()
+        let opens = NSMenu(title: "Clicking Opens")
+        for choice in AppSettings.DockClick.allCases {
+            let item = NSMenuItem(title: choice.title, action: #selector(dockSetClick(_:)), keyEquivalent: "")
+            item.representedObject = choice.rawValue
+            item.state = settings.dockClickOpens == choice ? .on : .off
+            opens.addItem(item)
+        }
+        let parent = NSMenuItem(title: "Clicking Opens", action: nil, keyEquivalent: "")
+        parent.submenu = opens
+        menu.addItem(parent)
+        menu.addItem(.separator())
+        menu.addItem(withTitle: "Settings…", action: #selector(AppActions.showSettings), keyEquivalent: "")
+        return menu
+    }
+
+    @objc private func dockSetClick(_ item: NSMenuItem) {
+        guard let raw = item.representedObject as? String, let choice = AppSettings.DockClick(rawValue: raw) else { return }
+        AppDependencies.shared.settings.dockClickOpens = choice
+    }
+
     /// Deep links from the widget: `agentbar://open` shows the panel; `agentbar://focus?pid=N`
     /// brings the app a conversation runs in forward, as clicking its row does.
     func application(_ application: NSApplication, open urls: [URL]) {

@@ -11,6 +11,12 @@ enum DockPresence {
             // Becoming regular does not activate; without this the new Dock icon sits
             // there with no window until the next click.
             AppActivation.activate()
+        } else if NSApp.isActive {
+            // Leaving the Dock only takes effect once the app has deactivated: while it
+            // stays frontmost (Settings is open, the change was made there) the Dock icon
+            // lingers and still answers clicks. Step back and forward once.
+            NSApp.deactivate()
+            DispatchQueue.main.async { AppActivation.activate() }
         }
     }
 }

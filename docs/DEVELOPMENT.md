@@ -220,8 +220,10 @@ samples, dated in the test names.
 
 ## The Dock window
 
-"Show in the Dock" (`AppSettings.dockEnabled`, off by default) flips the activation policy
-between `.accessory` and `.regular` (`DockPresence`, in the scaffold). A click on the Dock
+"Show AgentBar in" (`AppSettings.presence`: menu bar, Dock, or both - one setting with
+three values so one of the two is always on) flips the activation policy between
+`.accessory` and `.regular` (`DockPresence`, in the scaffold) and installs or removes the
+status item (`StatusItemController.remove()` keeps the popover for the Dock anchor). A click on the Dock
 icon (`applicationShouldHandleReopen`) opens the popover off that icon: the Dock is another
 process and its icon frames need the Accessibility permission, so `DockIconAnchor` (Great
 Menubar's trick) parks an invisible window over the slice of the Dock under the pointer and

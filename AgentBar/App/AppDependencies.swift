@@ -75,10 +75,22 @@ final class AppDependencies {
     /// menu bar icon opens it. A second click closes it. When the pointer says the click
     /// did not come from the Dock (Finder, Spotlight), the panel opens as `showPanel` does.
     func showPanelFromDock() {
+        // Not in the Dock, yet clicked there: the icon is one the user pinned ("Keep in
+        // Dock"). That is a launch, so the panel opens where the app lives - the menu bar.
+        guard settings.presence.inDock else {
+            statusItem.showPopover()
+            return
+        }
         guard settings.dockClickOpens == .popover else {
             dockWindow.show()
             return
         }
+        showPopoverFromDock()
+    }
+
+    /// The popover off the Dock icon whatever the click setting says; toggles when it is
+    /// already up. Falls back to `showPanel()` when the pointer is not on the Dock.
+    func showPopoverFromDock() {
         if statusItem.isPopoverShown {
             statusItem.closePopover()
             return
@@ -91,9 +103,9 @@ final class AppDependencies {
     }
 
     /// What `agentbar://open` and the Window menu open: the window when the app is in the
-    /// Dock, the popover otherwise.
+    /// Dock, the popover off the menu bar item otherwise.
     func showPanel() {
-        if settings.dockEnabled {
+        if settings.dockEnabled || !statusItem.isInstalled {
             dockWindow.show()
         } else {
             statusItem.showPopover()
@@ -139,16 +151,16 @@ final class AppDependencies {
         dockWindow.appearance = appearance.nsAppearance
     }
 
-    /// In the Dock with a window, or a menu bar item only. Turning it on opens the window;
-    /// turning it off closes it and leaves the popover.
+    /// Where the app's icon goes: the menu bar, the Dock, or both. One is always on.
     private func observeDock() {
-        let inDock = withObservationTracking {
-            settings.dockEnabled
+        let presence = withObservationTracking {
+            settings.presence
         } onChange: { [weak self] in
             Task { @MainActor in self?.observeDock() }
         }
-        DockPresence.set(inDock)
-        if !inDock, dockWindow.isVisible { dockWindow.close() }
+        DockPresence.set(presence.inDock)
+        if presence.inMenuBar { statusItem.install() } else { statusItem.remove() }
+        if !presence.inDock, dockWindow.isVisible { dockWindow.close() }
     }
 
     /// The status item shows the gauge - Claude's windows as bars and the time left on

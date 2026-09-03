@@ -18,6 +18,32 @@ struct StatusItemGauge: Equatable {
     let summary: String
 }
 
+/// A transparent view laid over the status item's button that reports the pointer
+/// entering and leaving it. Clicks pass through: it takes no events of its own.
+private final class HoverTracking: NSView {
+    private let onHover: (Bool) -> Void
+
+    init(frame: NSRect, onHover: @escaping (Bool) -> Void) {
+        self.onHover = onHover
+        super.init(frame: frame)
+        autoresizingMask = [.width, .height]
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+                                       owner: self, userInfo: nil))
+    }
+
+    override func mouseEntered(with event: NSEvent) { onHover(true) }
+    override func mouseExited(with event: NSEvent) { onHover(false) }
+}
+
 /// Owns the `NSStatusItem` and the `NSPopover` that hosts the SwiftUI panel.
 ///
 /// The item shows either the app symbol or a gauge (bars and a short text). Left click
@@ -72,6 +98,19 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
     // MARK: Lifecycle
 
+    /// Takes the item out of the menu bar (the app lives in the Dock alone). The popover
+    /// stays, to be shown from another anchor; `install()` puts the item back.
+    func remove() {
+        guard let item = statusItem else { return }
+        closePopover()
+        appearanceObservation = nil
+        NSStatusBar.system.removeStatusItem(item)
+        statusItem = nil
+        Log.statusItem.info("status item removed")
+    }
+
+    var isInstalled: Bool { statusItem != nil }
+
     func install() {
         guard statusItem == nil else { return }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -87,14 +126,23 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             appearanceObservation = button.observe(\.effectiveAppearance, options: [.new]) { [weak self] _, _ in
                 Task { @MainActor in self?.render() }
             }
+            // The menu bar's capsule behind the item under the pointer, as it is behind a
+            // pressed one; it stays while the popover is up.
+            let tracking = HoverTracking(frame: button.bounds) { [weak self] inside in
+                guard let self, let button = self.statusItem?.button else { return }
+                button.highlight(inside || self.popover.isShown)
+            }
+            button.addSubview(tracking)
         }
 
-        popover.behavior = .transient
-        popover.animates = true
-        popover.delegate = self
-        let host = NSHostingController(rootView: panelRoot?() ?? AnyView(EmptyView()))
-        host.sizingOptions = [.preferredContentSize]
-        popover.contentViewController = host
+        if popover.contentViewController == nil {
+            popover.behavior = .transient
+            popover.animates = true
+            popover.delegate = self
+            let host = NSHostingController(rootView: panelRoot?() ?? AnyView(EmptyView()))
+            host.sizingOptions = [.preferredContentSize]
+            popover.contentViewController = host
+        }
 
         render()
         Log.statusItem.info("status item installed")
@@ -169,13 +217,28 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     }
 
     /// The same popover hanging off another view - the app's Dock icon, through an anchor
-    /// parked over it - opening towards `edge`.
+    /// parked over it - opening towards `edge`. Works with no status item installed.
     func showPopover(from anchor: NSView, edge: NSRectEdge) {
         guard !popover.isShown else { return }
+        if popover.contentViewController == nil {
+            popover.behavior = .transient
+            popover.animates = true
+            popover.delegate = self
+            let host = NSHostingController(rootView: panelRoot?() ?? AnyView(EmptyView()))
+            host.sizingOptions = [.preferredContentSize]
+            popover.contentViewController = host
+        }
         AppActivation.activate()
         popover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: edge)
         popover.contentViewController?.view.window?.makeKey()
-        if anchor === statusItem?.button { statusItem?.button?.highlight(true) }
+        if anchor === statusItem?.button {
+            // The button's own mouse tracking un-highlights it when the click that opened
+            // the popover ends, a moment after this; assert the capsule after that.
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.popover.isShown else { return }
+                self.statusItem?.button?.highlight(true)
+            }
+        }
         installMonitors()
         onPanelOpened?()
         Log.statusItem.debug("popover shown; app active=\(NSApp.isActive)")

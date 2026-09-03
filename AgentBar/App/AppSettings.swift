@@ -12,6 +12,8 @@ final class AppSettings {
         static let disabledAgents = "disabledAgents"
         static let appearance = "appearance"
         static let panelStyle = "panelStyle"
+        static let presence = "presence"
+        /// The switch this replaced; read once so an earlier choice survives.
         static let dock = "dockEnabled"
         static let dockClick = "dockClickOpens"
         static let panelOpacity = panelOpacityKey
@@ -56,10 +58,30 @@ final class AppSettings {
         didSet { defaults.set(gaugeEnabled, forKey: Keys.gauge) }
     }
 
-    /// Be in the Dock too. Off by default.
-    var dockEnabled: Bool {
-        didSet { defaults.set(dockEnabled, forKey: Keys.dock) }
+    /// Where the app's own icon goes. One of the two is always on, so there is always a
+    /// way back to the app - which is why this is one setting with three values rather
+    /// than two switches that could both be off.
+    enum Presence: String, CaseIterable {
+        case menuBar, dock, both
+
+        var title: String {
+            switch self {
+            case .menuBar: "The menu bar"
+            case .dock: "The Dock"
+            case .both: "Both"
+            }
+        }
+
+        var inMenuBar: Bool { self != .dock }
+        var inDock: Bool { self != .menuBar }
     }
+
+    var presence: Presence {
+        didSet { defaults.set(presence.rawValue, forKey: Keys.presence) }
+    }
+
+    /// In the Dock (alone or with the menu bar).
+    var dockEnabled: Bool { presence.inDock }
 
     /// What a click on the Dock icon opens.
     enum DockClick: String, CaseIterable {
@@ -135,7 +157,8 @@ final class AppSettings {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         gaugeEnabled = defaults.object(forKey: Keys.gauge) as? Bool ?? false
-        dockEnabled = defaults.bool(forKey: Keys.dock)
+        presence = defaults.string(forKey: Keys.presence).flatMap(Presence.init(rawValue:))
+            ?? (defaults.bool(forKey: Keys.dock) ? .both : .menuBar)
         dockClickOpens = defaults.string(forKey: Keys.dockClick).flatMap(DockClick.init(rawValue:)) ?? .popover
         enabledAgents = Self.included(excluding: Keys.disabledAgents, in: defaults)
         // Dark by default: both styles were designed dark-first.

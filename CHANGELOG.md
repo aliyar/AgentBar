@@ -19,10 +19,11 @@ version heading and uses them as the release notes.
   disk stays the fallback.
 - **Cursor** joins Claude Code and Codex: its plan's monthly usage, and its agent chats
   among the active conversations.
-- **A Dock presence**, off by default: Settings › General › "Show in the Dock" puts AgentBar
-  in the Dock and ⌘-Tab. Clicking the Dock icon opens the panel above the Dock, as the menu
-  bar icon does, or a window if you prefer; Window › AgentBar (⌘0) and the widget open the
-  window, whose header stands in for its title bar. The menu bar item stays either way.
+- **Where the app lives is a choice**: Settings › General › "Show AgentBar in" the menu
+  bar (default), the Dock, or both. In the Dock, clicking the icon opens the panel above
+  the Dock, as the menu bar icon does, or a window if you prefer (the choice is in the Dock
+  icon's right-click menu too); Window › AgentBar (⌘0) and the widget open the window,
+  whose header stands in for its title bar.
 - **A widget** for Notification Center and the desktop, in three sizes: the fullest window
   as a ring; every window as a meter with its time left; the meters and the running
   conversations. It shows what the app last read (and says "as of" when that is old);

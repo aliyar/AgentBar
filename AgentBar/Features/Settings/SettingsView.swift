@@ -84,14 +84,16 @@ struct SettingsView: View {
             Footnote("AgentBar reads the agents' files only while it runs, and the widget shows what it last read; starting at login keeps both current.")
         }
         Section {
-            Toggle("Show in the Dock", isOn: $settings.dockEnabled)
-            if settings.dockEnabled {
+            Picker("Show AgentBar in", selection: $settings.presence) {
+                ForEach(AppSettings.Presence.allCases, id: \.self) { Text($0.title).tag($0) }
+            }
+            if settings.presence.inDock {
                 Picker("Clicking the Dock icon opens", selection: $settings.dockClickOpens) {
                     ForEach(AppSettings.DockClick.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
             }
         } footer: {
-            Footnote("An icon in the Dock and ⌘-Tab. Window › AgentBar (⌘0) always opens the window; the menu bar item stays either way.")
+            Footnote("The menu bar item, an icon in the Dock and ⌘-Tab, or both. Either opens the same panel; Window › AgentBar (⌘0) opens it in a window.")
         }
         Section {
             Toggle("Check for updates automatically", isOn: $updates.automaticallyChecksForUpdates)
