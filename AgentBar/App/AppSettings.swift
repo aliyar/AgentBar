@@ -12,6 +12,8 @@ final class AppSettings {
         static let disabledAgents = "disabledAgents"
         static let appearance = "appearance"
         static let panelStyle = "panelStyle"
+        static let dock = "dockEnabled"
+        static let dockClick = "dockClickOpens"
         static let panelOpacity = panelOpacityKey
         static let sampleData = "sampleData"
         static let menuBarBars = "menuBarBars"
@@ -52,6 +54,27 @@ final class AppSettings {
     /// still to be designed.
     var gaugeEnabled: Bool {
         didSet { defaults.set(gaugeEnabled, forKey: Keys.gauge) }
+    }
+
+    /// Be in the Dock too. Off by default.
+    var dockEnabled: Bool {
+        didSet { defaults.set(dockEnabled, forKey: Keys.dock) }
+    }
+
+    /// What a click on the Dock icon opens.
+    enum DockClick: String, CaseIterable {
+        case popover, window
+
+        var title: String {
+            switch self {
+            case .popover: "The panel, above the Dock"
+            case .window: "A window"
+            }
+        }
+    }
+
+    var dockClickOpens: DockClick {
+        didSet { defaults.set(dockClickOpens.rawValue, forKey: Keys.dockClick) }
     }
 
     /// The agents the popover and the gauge take into account.
@@ -112,6 +135,8 @@ final class AppSettings {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         gaugeEnabled = defaults.object(forKey: Keys.gauge) as? Bool ?? false
+        dockEnabled = defaults.bool(forKey: Keys.dock)
+        dockClickOpens = defaults.string(forKey: Keys.dockClick).flatMap(DockClick.init(rawValue:)) ?? .popover
         enabledAgents = Self.included(excluding: Keys.disabledAgents, in: defaults)
         // Dark by default: both styles were designed dark-first.
         appearance = defaults.string(forKey: Keys.appearance).flatMap(AppAppearance.init(rawValue:)) ?? .dark

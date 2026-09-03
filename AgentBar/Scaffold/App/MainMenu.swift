@@ -32,6 +32,8 @@ enum MainMenu {
         menu.addItem(submenu: editMenu)
 
         let windowMenu = NSMenu(title: "Window")
+        windowMenu.addItem(withTitle: appName, action: #selector(AppActions.showMain), keyEquivalent: "0")
+        windowMenu.addItem(.separator())
         windowMenu.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         windowMenu.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
         menu.addItem(submenu: windowMenu)
@@ -54,4 +56,6 @@ private extension NSMenu {
 @objc protocol AppActions {
     func showSettings()
     func showAbout()
+    /// The app's main content: its window when it is in the Dock, its popover otherwise.
+    func showMain()
 }

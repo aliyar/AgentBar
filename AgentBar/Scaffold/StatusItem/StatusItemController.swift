@@ -164,11 +164,18 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     // MARK: Popover
 
     func showPopover() {
-        guard let button = statusItem?.button, !popover.isShown else { return }
+        guard let button = statusItem?.button else { return }
+        showPopover(from: button, edge: .minY)
+    }
+
+    /// The same popover hanging off another view - the app's Dock icon, through an anchor
+    /// parked over it - opening towards `edge`.
+    func showPopover(from anchor: NSView, edge: NSRectEdge) {
+        guard !popover.isShown else { return }
         AppActivation.activate()
-        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        popover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: edge)
         popover.contentViewController?.view.window?.makeKey()
-        button.highlight(true)
+        if anchor === statusItem?.button { statusItem?.button?.highlight(true) }
         installMonitors()
         onPanelOpened?()
         Log.statusItem.debug("popover shown; app active=\(NSApp.isActive)")

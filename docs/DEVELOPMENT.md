@@ -13,6 +13,7 @@ AgentBar/
 │   │   ├── App/             main.swift, MainMenu, AppActivation, AppAppearance, Log
 │   │   ├── StatusItem/      StatusItemController (symbol or text, popover, right-click menu)
 │   │   ├── Settings/        SettingsShell, SettingsWindowController, ChangelogPane, LoginItemController
+│   │   ├── Windows/         PanelWindowController (the Dock window), DockIconAnchor (popover off the Dock icon)
 │   │   └── Updates/         UpdateController (Sparkle 2)
 │   ├── App/                 AppDelegate, AppDependencies (composition root), AppSettings, AgentsModel
 │   ├── Features/            Overview (popover; Styles/Glass, Styles/Terminal), Usage, Conversations, Settings
@@ -216,6 +217,20 @@ samples, dated in the test names.
 - **Cost is not shown.** Claude Code writes a `totalCostUSD` it computed itself; Codex writes
   none and its prices are in no public table. A figure for one and a blank for the other reads
   as a bug.
+
+## The Dock window
+
+"Show in the Dock" (`AppSettings.dockEnabled`, off by default) flips the activation policy
+between `.accessory` and `.regular` (`DockPresence`, in the scaffold). A click on the Dock
+icon (`applicationShouldHandleReopen`) opens the popover off that icon: the Dock is another
+process and its icon frames need the Accessibility permission, so `DockIconAnchor` (Great
+Menubar's trick) parks an invisible window over the slice of the Dock under the pointer and
+the popover hangs off it; a click that did not come from the Dock falls through to
+`showPanel()`. `PanelWindowController` - a normal resizable window, remembered frame, hidden
+rather than destroyed on close, sized to its content - shows `DockWindowView`, the same
+`OverviewView` in the chosen style; `showPanel()` (the Window menu's ⌘0 and `agentbar://open`)
+opens that window when the app is in the Dock and the popover otherwise. The model treats
+the panel as "on screen" while either the popover or the window shows it.
 
 ## The widget
 

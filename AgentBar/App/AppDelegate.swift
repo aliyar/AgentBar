@@ -5,10 +5,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillFinishLaunching(_ notification: Notification) {
         AppDependencies.bootstrap()
         NSApp.mainMenu = MainMenu.make()
+        // The Dock draws a running app's tile from this image, and macOS fills it from an
+        // icon cache that lags behind a changed icon by days. The asset catalogue is current.
+        if let icon = NSImage(named: "AppIcon") { NSApp.applicationIconImage = icon }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Menu bar only. The Dock presence (a later milestone) flips this to `.regular`.
+        // Menu bar only until `start()` reads the Dock setting and flips this to `.regular`.
         NSApp.setActivationPolicy(.accessory)
         AppDependencies.shared.statusItem.install()
         guard !ProcessInfo.processInfo.isRunningTests else { return }
@@ -17,6 +20,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    /// A click on the Dock icon: the popover, off that icon.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        AppDependencies.shared.showPanelFromDock()
+        return false
     }
 
     /// Deep links from the widget: `agentbar://open` shows the panel; `agentbar://focus?pid=N`
@@ -31,10 +40,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                    let app = NSRunningApplication(processIdentifier: pid_t(owner)) {
                     app.activate()
                 } else {
-                    AppDependencies.shared.statusItem.showPopover()
+                    AppDependencies.shared.showPanel()
                 }
             default:
-                AppDependencies.shared.statusItem.showPopover()
+                AppDependencies.shared.showPanel()
             }
         }
     }
@@ -43,4 +52,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 extension AppDelegate: AppActions {
     func showSettings() { AppDependencies.shared.settingsWindow.show() }
     func showAbout() { AppDependencies.shared.settingsWindow.show(pane: AgentBarSettingsPane.about) }
+    func showMain() { AppDependencies.shared.showPanel() }
 }

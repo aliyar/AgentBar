@@ -45,10 +45,21 @@ nonisolated enum StyleFeature: Sendable {
     case backgroundOpacity
 }
 
+/// Where the panel is drawn. In a window the system title bar is hidden and the panel's
+/// own header stands in for it: the traffic lights sit at its left, so the header leaves
+/// them room and centres the name.
+enum PanelPresentation {
+    case popover, window
+
+    /// The width the window's close/minimise/zoom buttons take at the header's left.
+    static let trafficLightsInset: CGFloat = 70
+}
+
 /// Everything a style needs to draw the panel: the data, the moment, and the actions.
 struct OverviewContext {
     let snapshot: Snapshot
     let agents: [Agent]
+    var presentation: PanelPresentation = .popover
     var isRefreshing = false
     var onRefresh: () -> Void = {}
     var onSettings: () -> Void = {}

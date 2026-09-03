@@ -54,13 +54,14 @@ struct TerminalOverview: View {
     // MARK: Header
 
     private func header(palette: TerminalPalette) -> some View {
-        HStack(alignment: .center, spacing: 6) {
+        let name = HStack(spacing: 6) {
             MarkView(size: 13, tint: palette.title, cursor: palette.meterLit)
             Text("agentbar")
                 .font(Self.mono(10.5))
                 .tracking(0.63)
                 .foregroundStyle(palette.title)
-            Spacer()
+        }
+        let controls = HStack(spacing: 4) {
             Command(":r", palette: palette, color: palette.ghost, help: "Read again now (:refresh)", action: context.onRefresh)
                 .opacity(context.isRefreshing ? 0.5 : 1)
             Text(context.snapshot.readAt, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute())
@@ -69,6 +70,26 @@ struct TerminalOverview: View {
                 .foregroundStyle(palette.faint)
                 .help("When the agents were last read")
                 .padding(.leading, 4)
+        }
+        return Group {
+            switch context.presentation {
+            case .popover:
+                HStack(alignment: .center, spacing: 6) {
+                    name
+                    Spacer()
+                    controls
+                }
+            case .window:
+                // The traffic lights sit at the left; the name takes the title's place.
+                ZStack {
+                    name
+                    HStack {
+                        Color.clear.frame(width: PanelPresentation.trafficLightsInset - 13, height: 1)
+                        Spacer()
+                        controls
+                    }
+                }
+            }
         }
         .padding(.vertical, 9)
         .padding(.horizontal, 13)

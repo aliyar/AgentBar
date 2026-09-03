@@ -12,7 +12,8 @@ enum GlassStyle: PanelStyle {
         AnyView(
             GlassOverview(snapshot: context.snapshot, agents: context.agents,
                           onSettings: context.onSettings, onQuit: context.onQuit,
-                          isRefreshing: context.isRefreshing, onRefresh: context.onRefresh)
+                          isRefreshing: context.isRefreshing, onRefresh: context.onRefresh,
+                          presentation: context.presentation)
                 // The popover's own material gives the blur; the gradient on top gives
                 // the glass its body, so what is behind the menu bar no longer shows through.
                 .background(GlassBackground())

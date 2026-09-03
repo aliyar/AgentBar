@@ -14,6 +14,7 @@ struct GlassOverview: View {
     /// The refresh button's state and action; the accounts are asked again.
     var isRefreshing = false
     var onRefresh: () -> Void = {}
+    var presentation: PanelPresentation = .popover
 
     @Environment(\.colorScheme) private var scheme
     /// Reset times as clock times rather than time left; remembered between opens.
@@ -56,19 +57,41 @@ struct GlassOverview: View {
 
     private func header(now: Date) -> some View {
         let glass = Palette.glass(scheme)
-        return HStack(alignment: .center, spacing: 7) {
+        let name = HStack(spacing: 7) {
             MarkView(size: 16, tint: glass.primary, cursor: Palette.color(.calm, scheme))
             Text("AgentBar")
                 .font(.system(size: 14, weight: .semibold))
                 .tracking(-0.14)
                 .foregroundStyle(glass.primary)
-            Spacer()
+        }
+        let controls = HStack(spacing: 8) {
             RefreshButton(isRefreshing: isRefreshing, action: onRefresh)
             Text(snapshot.readAt, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute())
                 .font(.system(size: 10))
                 .monospacedDigit()
                 .foregroundStyle(glass.tertiary)
                 .help("When the agents were last read")
+        }
+        return Group {
+            switch presentation {
+            case .popover:
+                HStack(alignment: .center, spacing: 8) {
+                    name
+                    Spacer()
+                    controls
+                }
+            case .window:
+                // The window's own title bar is hidden: the traffic lights sit at the
+                // left of this header, the name is centred as a title would be.
+                ZStack {
+                    name
+                    HStack {
+                        Color.clear.frame(width: PanelPresentation.trafficLightsInset - 12, height: 1)
+                        Spacer()
+                        controls
+                    }
+                }
+            }
         }
         .padding(.top, 11)
         .padding(.horizontal, 12)
