@@ -36,12 +36,12 @@ const H = 3600;
 const D = 86400;
 
 export const limits: Limit[] = [
-  { id: "claude|session", agent: "claude", title: "Session (5h)", percent: 0.4, resetsIn: 4 * H },
+  { id: "claude|session", agent: "claude", title: "5h", percent: 0.4, resetsIn: 4 * H },
   { id: "claude|weekly", agent: "claude", title: "Weekly · all models", percent: 8, resetsIn: D + H },
   { id: "claude|fable", agent: "claude", title: "Weekly · Fable", percent: 9, resetsIn: D + H },
-  { id: "codex|daily", agent: "codex", title: "Daily", percent: 46, resetsIn: 2 * H },
+  { id: "codex|session", agent: "codex", title: "5h", percent: 46, resetsIn: 2 * H },
   { id: "codex|weekly", agent: "codex", title: "Weekly", percent: 91, resetsIn: 4 * D },
-  { id: "cursor|monthly", agent: "cursor", title: "Pro · monthly", percent: 63.5, resetsIn: 9 * D + 5 * H },
+  { id: "cursor|monthly", agent: "cursor", title: "Monthly", percent: 63.5, resetsIn: 9 * D + 5 * H },
 ];
 
 export const conversations: Conversation[] = [

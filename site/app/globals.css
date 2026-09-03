@@ -585,7 +585,8 @@ p { margin: 0; }
 .sheet { background: var(--win); color: var(--fg); position: relative; }
 .band { max-width: 1040px; margin: 0 auto; padding: 88px 48px; }
 .band + .band { border-top: 0.5px solid var(--win-edge); }
-@media (max-width: 720px) { .band { padding: 56px 20px; } }
+@media (max-width: 720px) { .band { padding: 56px 20px; } .band h2 { font-size: 27px; } .band-head { margin-bottom: 32px; } }
+@media (max-width: 420px) { .band h2 { font-size: 24px; letter-spacing: -0.045em; } }
 .band-head { max-width: 640px; margin-bottom: 44px; }
 .band h2 { font-family: var(--font-display); font-size: 32px; font-weight: 700; letter-spacing: -0.05em; line-height: 1.15; text-wrap: balance; }
 .band .lede { margin-top: 12px; font-size: 21px; line-height: 1.45; color: var(--fg-2); letter-spacing: -0.01em; text-wrap: pretty; }
@@ -619,6 +620,12 @@ p { margin: 0; }
   .callout i { display: none; }
   .callout--left { right: auto; left: -11px; margin: 0; }
   .callout--right { left: auto; right: -11px; margin: 0; }
+}
+/* Narrower than the panel plus its callouts: there is no room beside the panel and none
+   inside it either - a marker over a row covers the very figure it points at. The notes
+   below keep their numbers and read in the same order, so the panel is left to be read. */
+@media (max-width: 420px) {
+  .callout { display: none; }
 }
 
 /* the three places */
@@ -659,21 +666,22 @@ p { margin: 0; }
 .laptop-bar-left { display: inline-flex; align-items: center; gap: 14px; }
 .laptop-bar-left b { font-weight: 700; margin-left: -2px; }
 .laptop-bar-right { display: inline-flex; align-items: center; gap: 10px; }
-.laptop-bar .mb-item { height: 14px; zoom: 0.72; }
+.laptop-bar .mb-item { height: 14px; transform: scale(0.72); transform-origin: center; }
 .laptop-desktop { position: absolute; inset: 18px 0 0 0; }
-.laptop-widgets { position: absolute; left: 0; right: 0; top: 0; zoom: 0.62; display: flex; justify-content: center; align-items: start; gap: 20px; padding-top: 120px; }
+.laptop-widgets { position: absolute; left: 0; right: 0; top: 0; transform: scale(0.62); transform-origin: top center; display: flex; justify-content: center; align-items: start; gap: 20px; padding-top: 120px; }
 .laptop-widgets-left { display: grid; grid-template-columns: 364px; gap: 20px; }
 .laptop-widgets-smalls { display: grid; grid-template-columns: 164px 164px; gap: 36px; }
 /* a widget pinned to one theme, as its own Edit menu can pin it */
 .widget-theme--dark { --w-ground: #1c1c1f; --w-group: rgb(255 255 255 / 0.06); --w-track: rgb(255 255 255 / 0.14); --w-fg: rgb(255 255 255 / 0.92); --w-fg-2: rgb(255 255 255 / 0.6); --w-fg-3: rgb(255 255 255 / 0.4); --calm: #3bc28a; --warm: #dda03a; --hot: #d95c52; }
 .widget-theme--light { --w-ground: #ffffff; --w-group: rgb(0 0 0 / 0.06); --w-track: rgb(0 0 0 / 0.14); --w-fg: rgb(0 0 0 / 0.9); --w-fg-2: rgb(0 0 0 / 0.6); --w-fg-3: rgb(0 0 0 / 0.42); --calm: #1f8a62; --warm: #a87a1e; --hot: #c0392f; }
-.laptop-dock { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; justify-content: center; zoom: 0.62; }
+.laptop-dock { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; justify-content: center; transform: scale(0.62); transform-origin: bottom center; }
 .laptop-dock .dock-tile:hover { transform: none; }
 .laptop-dock .tile-label { display: none; }
 .widget-shelf-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; justify-items: start; }
 .laptop-base { height: 16px; margin: 0 -28px; border-radius: 4px 4px 14px 14px; background: linear-gradient(#e6dfd3, #b8b0a3); box-shadow: 0 8px 20px rgb(0 0 0 / 0.16); position: relative; }
 .laptop-base i { position: absolute; top: 0; left: 50%; width: 120px; height: 5px; transform: translateX(-50%); border-radius: 0 0 5px 5px; background: rgb(0 0 0 / 0.16); }
 .laptop-wrap { margin: 0 -28px; }
+@media (max-width: 640px) { .laptop-wrap { margin: 0; } }
 @media (max-width: 1100px) { .laptop { zoom: 0.82; } }
 @media (max-width: 860px) { .laptop { zoom: 0.62; } }
 @media (max-width: 640px) { .laptop { zoom: 0.44; } }
@@ -710,6 +718,7 @@ p { margin: 0; }
 .faq summary::-webkit-details-marker { display: none; }
 .faq summary::before { content: ""; width: 7px; height: 7px; border-right: 1.5px solid var(--fg-3); border-bottom: 1.5px solid var(--fg-3); transform: rotate(-45deg); transition: transform 0.18s ease-out; flex: none; margin-left: 2px; }
 .faq details[open] summary::before { transform: rotate(45deg); }
+@media (max-width: 420px) { .faq summary { font-size: 15px; gap: 9px; padding: 14px 0; } }
 .faq p { padding: 0 0 18px 21px; color: var(--fg-2); font-size: 17px; line-height: 1.55; max-width: 66ch; }
 
 /* the closing call, on a slice of the desktop */

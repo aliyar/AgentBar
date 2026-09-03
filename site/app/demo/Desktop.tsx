@@ -56,6 +56,32 @@ export function Desktop() {
     if (theme) root.dataset.theme = theme;
     else delete root.dataset.theme;
   }, [theme]);
+  // A click anywhere but the panel and the thing that opened it closes it, as a menu on
+  // the Mac does; Escape closes it too. Both panels are dismissed the same way, so the
+  // Dock's cannot be left open over the page with no way back but the Dock icon.
+  useEffect(() => {
+    if (!menuOpen && !dockOpen) return;
+    const dismiss = (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      if (target?.closest(".menubar-pop, .dock-panel, #agentbar-item, .dock-tile--app")) return;
+      setMenuOpen(false);
+      setDockOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setMenuOpen(false);
+      setDockOpen(false);
+    };
+    // Pointerdown rather than click: the panel closes as the press lands, before whatever
+    // was pressed acts on it.
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", dismiss);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [menuOpen, dockOpen]);
+
   // The menu bar stays at the top of the page; a panel left open would ride along over
   // the sections, so both panels close once the desktop scrolls out of view.
   useEffect(() => {

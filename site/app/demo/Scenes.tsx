@@ -30,7 +30,7 @@ export function AnatomyScene() {
       </div>
       </div>
       <ol className="anatomy-notes">
-        <li><span><b>Every window, as a meter.</b> Session, weekly, weekly per model for Claude; daily and weekly for Codex; the plan's month for Cursor. Green, amber, then red as it fills.</span></li>
+        <li><span><b>Every window, as a meter.</b> The 5-hour and weekly windows, and a week per model, for Claude; the same two for Codex; the plan's month for Cursor. Green, amber, then red as it fills.</span></li>
         <li><span><b>The time until it starts over.</b> Click any time and every reset shows as the clock time instead.</span></li>
         <li><span><b>What is running right now.</b> Named by what was last said in it, with a breathing dot while it works. Click for the model, effort and branch; click again to bring its terminal or editor forward.</span></li>
         <li><span><b>How full its context is.</b> A real percentage when the limit is known; the tokens when it is not.</span></li>

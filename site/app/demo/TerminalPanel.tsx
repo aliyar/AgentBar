@@ -83,7 +83,7 @@ function usagePage(agent: string): string {
   }
 }
 
-/** "Session (5h)" → "session.5h", "Weekly · all models" → "weekly.all". */
+/** "Weekly · all models" → "weekly.all", "Weekly · Fable" → "weekly.fable". */
 function key(title: string): string {
   return title.toLowerCase().replace(" models", "").replace(/ · /g, ".").replace(" (", ".").replace(")", "").replace(/ /g, ".");
 }

@@ -9,7 +9,7 @@ export const agents = [
   },
   {
     name: "Codex",
-    windows: "Its daily and weekly windows, from the rollout it writes while it runs and from the ChatGPT sign-in.",
+    windows: "Its 5-hour and weekly windows, from the rollout it writes while it runs and from the ChatGPT sign-in.",
     conversations:
       "Sessions found through their running process; their context is a real percentage, since Codex writes its window size.",
   },
