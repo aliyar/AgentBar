@@ -6,6 +6,25 @@
     <description>Updates for AgentBar</description>
     <language>en</language>
     <item>
+      <title>AgentBar 1.1.1</title>
+      <pubDate>Thu, 03 Sep 2026 21:48:19 +0000</pubDate>
+      <sparkle:version>9</sparkle:version>
+      <sparkle:shortVersionString>1.1.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+<h3>Changed</h3>
+<ul>
+<li><strong>The panel&#x27;s tooltips are a heading and a line, on a solid card.</strong> A tip named its row in a sentence that ran the width of the panel; it now names what the pointer is on and says one line about it — &quot;Weekly&quot;, then &quot;2% used of 7d · starts over in 3d 10h&quot;. The card is dark in both appearances rather than translucent: a see-through card over a see-through panel is two half-legible layers, and a tooltip is a note held over the page, not part of it. It waits 620 ms rather than 320: long enough that crossing the panel raises nothing and a rest is deliberate.</li>
+<li>Settings no longer carries a Changelog pane. What changed in a release is read where the release is — the update it arrives with, and the website — and the changelog is no longer copied into the app bundle.</li>
+</ul>
+<h3>Fixed</h3>
+<ul>
+<li>A tooltip&#x27;s text could run outside its card. The card wrapped its words at 254 pt while the layer around it sized the card to one line, so anything longer spilled past the corner. A short tip was also drawn as wide as a long one: <code>frame(maxWidth:)</code> takes every point it is offered, so the card now measures what its words want and takes the smaller of that and its maximum.</li>
+</ul>
+      ]]></description>
+      <enclosure url="https://agentbar.greatpixels.com/releases/AgentBar-1.1.1.zip" length="4432618" type="application/octet-stream" sparkle:edSignature="enEXJOnz+Ht/lgAfl+mo2rEOQ0NKzcuhrI3MTGuYWM6uU3QQMIpe7FB43HML3w/1XPrT6QJyqJunQ4TST0HOAQ=="/>
+    </item>
+    <item>
       <title>AgentBar 1.1.0</title>
       <pubDate>Thu, 03 Sep 2026 21:30:17 +0000</pubDate>
       <sparkle:version>8</sparkle:version>
