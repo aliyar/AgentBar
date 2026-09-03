@@ -1,21 +1,38 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { site } from "./site";
+import { ogImage, site } from "./site";
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: { default: site.name, template: `%s · ${site.name}` },
   description: site.description,
+  applicationName: site.name,
+  authors: [{ name: site.maker, url: site.makerUrl }],
+  creator: site.maker,
+  publisher: site.maker,
+  // Crawlers that honour it: index everything, and let Google show the Open Graph image at
+  // full size rather than a thumbnail.
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+  },
   openGraph: {
     type: "website",
-    url: site.url,
+    url: "/",
     siteName: site.name,
     title: site.name,
     description: site.tagline,
-    images: ["/og.png"],
+    locale: "en_US",
+    images: [ogImage],
   },
-  twitter: { card: "summary_large_image", title: site.name, description: site.tagline, images: ["/og.png"] },
+  twitter: { card: "summary_large_image", title: site.name, description: site.tagline, images: [ogImage] },
   alternates: { canonical: "/" },
+};
+
+export const viewport: Viewport = {
+  themeColor: site.themeColor,
+  colorScheme: "light",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

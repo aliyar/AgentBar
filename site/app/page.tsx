@@ -5,11 +5,13 @@ import { AnatomyScene, HonestyScene, LaptopScene, PlacesScene, StylesScene } fro
 import { Mark } from "./demo/AppIcon";
 import { faq, honesty, install } from "./content";
 import { release } from "./release";
+import { homeSchema, jsonLd } from "./schema";
 import { site } from "./site";
 
 export default function Home() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(homeSchema)} />
       <Desktop />
       <main className="sheet" id="main">
         <section className="band" id="shows">

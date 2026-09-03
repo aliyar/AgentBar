@@ -8,6 +8,14 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+### Changed
+- The website's link preview and its search metadata: the Open Graph card now states the
+  image's size, type and alt text, so Slack, iMessage, X and LinkedIn draw the large card on
+  the first fetch; the privacy and terms pages carry their own title, description and URL
+  instead of the home page's; and the home page carries `SoftwareApplication`, `WebSite`,
+  `Organization` and `FAQPage` structured data, a theme colour and a crawler directive that
+  lets Google show the card image full size.
+
 ## [1.0.1] - 2026-09-03
 
 ### Changed

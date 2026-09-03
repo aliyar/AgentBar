@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Window } from "../ui/Window";
-import { site } from "../site";
+import { pageMetadata, site } from "../site";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Privacy",
   description: `What ${site.name} and this website do and do not collect.`,
-  alternates: { canonical: "/privacy/" },
-};
+  path: "/privacy/",
+});
 
 export default function Privacy() {
   return (

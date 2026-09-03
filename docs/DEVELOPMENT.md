@@ -353,6 +353,15 @@ time rather than keeping copies.
 `site/app/release.ts` is the one place the site states the version and the download link;
 `scripts/release.sh` rewrites it. The appcast is `site/public/appcast.xml`.
 
+`site/app/site.ts` holds the site's identity — name, URL, maker, tagline, description — the
+Open Graph card (`ogImage`: `public/og.png`, rendered by `make icon`, with its dimensions and
+alt text stated so scrapers draw the large card on the first fetch) and `pageMetadata()`,
+which every document page uses because Next replaces the layout's `openGraph` and `twitter`
+objects rather than merging into them. When the raster changes, bump the `?v=` on
+`ogImage.url`: link previews cache the image by URL. `site/app/schema.ts` is the home page's
+JSON-LD — `SoftwareApplication`, `WebSite`, `Organization` and `FAQPage`, all built from
+`content.ts`, `release.ts` and `site.ts` so nothing is asserted that the page does not say.
+
 The page is a Mac desktop with AgentBar living on it: the menu bar strip (its menus are the
 page's sections), the panel hanging from the status item, the Dock with the icon that raises
 the same panel, an authored SVG wallpaper per appearance (`public/wallpaper-*.svg`). Below it,
