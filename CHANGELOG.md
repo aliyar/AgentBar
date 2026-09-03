@@ -8,6 +8,8 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-09-03
+
 ### Changed
 - The defaults a first launch lands on: the menu bar gauge (bars and the time left) on,
   the app in the menu bar and the Dock both, and launch at login registered on the first
@@ -77,5 +79,6 @@ version heading and uses them as the release notes.
   shows "—", a figure written hours ago says how old it is, and a context whose limit is
   not written anywhere reports its tokens instead of a made-up percentage.
 
-[Unreleased]: https://github.com/aliyar/AgentBar/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/aliyar/AgentBar/compare/v1.0.1...HEAD
 [1.0.0]: https://github.com/aliyar/AgentBar/releases/tag/v1.0.0
+[1.0.1]: https://github.com/aliyar/AgentBar/releases/tag/v1.0.1

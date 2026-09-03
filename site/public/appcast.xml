@@ -6,6 +6,22 @@
     <description>Updates for AgentBar</description>
     <language>en</language>
     <item>
+      <title>AgentBar 1.0.1</title>
+      <pubDate>Thu, 03 Sep 2026 17:25:13 +0000</pubDate>
+      <sparkle:version>7</sparkle:version>
+      <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+<h3>Changed</h3>
+<ul>
+<li>The defaults a first launch lands on: the menu bar gauge (bars and the time left) on,</li>
+</ul>
+<p>the app in the menu bar and the Dock both, and launch at login registered on the first</p>
+<p>run. Each can be turned off in Settings.</p>
+      ]]></description>
+      <enclosure url="https://agentbar.greatpixels.com/releases/AgentBar-1.0.1.zip" length="4082870" type="application/octet-stream" sparkle:edSignature="9KyOWt1eP4Hd/zBpX1iFWGOAgk4Ld6ofZHDcowj70nlG5b2Czt5mdZYXY+4wN90YQt3hIugJMGqXe6DWXrF+Bw=="/>
+    </item>
+    <item>
       <title>AgentBar 1.0.0</title>
       <pubDate>Thu, 03 Sep 2026 17:06:06 +0000</pubDate>
       <sparkle:version>6</sparkle:version>
