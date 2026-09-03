@@ -12,6 +12,9 @@ struct OverviewView: View {
     let agents: [Agent]
     var onSettings: () -> Void = {}
     var onQuit: () -> Void = {}
+    /// The refresh button's state and action; the accounts are asked again.
+    var isRefreshing = false
+    var onRefresh: () -> Void = {}
 
     @Environment(\.colorScheme) private var scheme
     /// Reset times as clock times rather than time left; remembered between opens.
@@ -39,7 +42,7 @@ struct OverviewView: View {
                 }
                 ForEach(agents) { agent in
                     UsageSection(agent: agent, limits: snapshot.limits(for: agent),
-                                 written: snapshot.lastWritten[agent],
+                                 written: snapshot.lastWritten[agent], account: snapshot.accounts[agent],
                                  activeSince: snapshot.latestActivity(for: agent), now: now, showsClock: $showsClock)
                 }
                 if !conversations.isEmpty {
@@ -60,11 +63,12 @@ struct OverviewView: View {
                 .tracking(-0.14)
                 .foregroundStyle(glass.primary)
             Spacer()
+            RefreshButton(isRefreshing: isRefreshing, action: onRefresh)
             Text(snapshot.readAt, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute())
                 .font(.system(size: 10))
                 .monospacedDigit()
                 .foregroundStyle(glass.tertiary)
-                .help("When the agents' files were last read")
+                .help("When the agents were last read")
         }
         .padding(.top, 11)
         .padding(.horizontal, 12)
@@ -81,6 +85,35 @@ struct OverviewView: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 11)
+    }
+}
+
+/// Asks the agents' accounts again. Turns while a read is in flight.
+private struct RefreshButton: View {
+    let isRefreshing: Bool
+    let action: () -> Void
+
+    @Environment(\.colorScheme) private var scheme
+    @State private var turns = 0.0
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "arrow.2.circlepath")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Palette.glass(scheme).tertiary)
+                .rotationEffect(.degrees(turns))
+                .frame(width: 16, height: 16)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Read again now")
+        .onChange(of: isRefreshing) { _, refreshing in
+            guard refreshing else { return }
+            withAnimation(.linear(duration: 0.6).repeatForever(autoreverses: false)) { turns += 360 }
+        }
+        .onChange(of: isRefreshing) { _, refreshing in
+            if !refreshing { withAnimation(.easeOut(duration: 0.2)) { turns = 0 } }
+        }
     }
 }
 

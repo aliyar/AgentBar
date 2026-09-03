@@ -22,6 +22,9 @@ public enum SnapshotReader {
                 snapshot.limits += limits
                 snapshot.lastWritten[.codex] = written
                 snapshot.conversations += CodexReader.conversations(in: root)
+            case .cursor:
+                // Cursor leaves no usage on disk (that comes from the account), only its chats.
+                snapshot.conversations += CursorReader.conversations(home: HomeDirectory.url, now: now)
             }
         }
         snapshot.conversations = snapshot.conversations.sortedByActivity()

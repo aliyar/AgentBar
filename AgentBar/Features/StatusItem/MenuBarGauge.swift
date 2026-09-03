@@ -34,9 +34,17 @@ enum MenuBarGauge {
             limit.resetsAt.map { Format.short($0.timeIntervalSince(now)) } ?? Format.percent(limit.percentUsed)
         } ?? ""
         let level = Palette.level(clock?.percentUsed ?? 0)
-        let summary = clock.map {
-            "AgentBar — \($0.title) is \(Format.percent($0.percentUsed)) used, starts over in \(title)"
-        } ?? "AgentBar — \(windows.count) windows"
+        // The tooltip spells the item out: one line per bar, left to right, then whose
+        // time the number is.
+        var lines = ["AgentBar"]
+        lines += windows.map { limit in
+            let left = limit.resetsAt.map { ", starts over in \(Format.short($0.timeIntervalSince(now)))" } ?? ""
+            return "▍ \(limit.agent.title) · \(limit.title): \(Format.percent(limit.percentUsed)) used\(left)"
+        }
+        if let clock {
+            lines.append("\(title) — time left on \(clock.agent.title) · \(clock.title)\(time == .fullest ? " (the fullest window)" : "")")
+        }
+        let summary = lines.joined(separator: "\n")
         return StatusItemGauge(bars: bars, title: title,
                                titleDark: Palette.nsColor(level, dark: true),
                                titleLight: Palette.nsColor(level, dark: false),

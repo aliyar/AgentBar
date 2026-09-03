@@ -56,7 +56,8 @@ struct ModelTests {
                                          isBusy: true, pid: 7, contextPercent: nil, contextTokens: 64_200,
                                          model: "Opus 5", effort: "high", branch: "main", appPID: 3, lastActivity: now)],
             lastWritten: [.claude: now, .codex: now.addingTimeInterval(-3600)],
-            readAt: now)
+            readAt: now,
+            accounts: [.claude: AccountStatus(fetchedAt: now), .codex: AccountStatus(problem: "not signed in")])
         let data = try JSONEncoder().encode(snapshot)
         #expect(try JSONDecoder().decode(Snapshot.self, from: data) == snapshot)
         // Agents are dictionary keys: the widget's JSON must stay a plain object, not a flat array.

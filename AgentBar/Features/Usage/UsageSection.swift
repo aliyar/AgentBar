@@ -12,6 +12,8 @@ struct UsageSection: View {
     let limits: [UsageLimit]
     /// When the agent last wrote these numbers.
     let written: Date?
+    /// What the agent's account said, when it is asked.
+    let account: AccountStatus?
     /// When one of the agent's conversations last moved: a window that has rolled over
     /// is projected forward only while the agent is in use.
     let activeSince: Date?
@@ -29,6 +31,8 @@ struct UsageSection: View {
             GroupBox_ {
                 if !agent.isInstalled {
                     Note("Not installed — \(agent.folderPath) is not on this Mac")
+                } else if limits.isEmpty, let problem = account?.problem {
+                    Note(agent == .cursor ? "Cursor's usage comes from its account: \(problem)" : "Nothing on disk yet, and the account says: \(problem)")
                 } else if limits.isEmpty {
                     Note("Nothing reported yet")
                 } else {
@@ -41,10 +45,16 @@ struct UsageSection: View {
         }
     }
 
-    /// Said only when it changes the reading: how long ago these numbers were written.
-    /// Claude's arrive on their own; Codex only writes while it runs.
+    /// Said only when it changes the reading: why the account did not answer, or how old
+    /// the numbers on disk are. Fresh numbers need no note.
     private var caption: String? {
-        guard agent == .codex, !limits.isEmpty, let written else { return nil }
+        if let problem = account?.problem {
+            if let fetched = account?.fetchedAt {
+                return "\(problem) · \(Format.short(now.timeIntervalSince(fetched), coarse: true)) ago"
+            }
+            return problem
+        }
+        guard !limits.isEmpty, let written else { return nil }
         let age = now.timeIntervalSince(written)
         return age > 3600 ? "\(Format.short(age, coarse: true)) ago" : nil
     }
@@ -201,7 +211,7 @@ struct Note: View {
 }
 
 #Preview {
-    UsageSection(agent: .claude, limits: Snapshot.sample.limits(for: .claude), written: .now, activeSince: .now, now: .now, showsClock: .constant(false))
+    UsageSection(agent: .claude, limits: Snapshot.sample.limits(for: .claude), written: .now, account: nil, activeSince: .now, now: .now, showsClock: .constant(false))
         .padding(11)
         .frame(width: 340)
         .background(GlassBackground())

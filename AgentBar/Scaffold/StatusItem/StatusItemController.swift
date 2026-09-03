@@ -58,6 +58,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     private var statusItem: NSStatusItem?
     private let popover = NSPopover()
     private var appearanceObservation: NSKeyValueObservation?
+    private var renderPending = false
     private var globalMonitor: Any?
     private var resignObserver: NSObjectProtocol?
 
@@ -93,8 +94,15 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         Log.statusItem.info("status item installed")
     }
 
+    /// Replacing the button's image or tooltip while the popover is shown makes AppKit
+    /// dismiss the popover, so a change that arrives then waits until it closes.
     func render() {
         guard let button = statusItem?.button else { return }
+        if popover.isShown {
+            renderPending = true
+            return
+        }
+        renderPending = false
         let dark = button.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
         if let gauge {
             button.toolTip = gauge.summary
@@ -150,6 +158,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         button.highlight(true)
         installMonitors()
         onPanelOpened?()
+        Log.statusItem.debug("popover shown; app active=\(NSApp.isActive)")
     }
 
     func closePopover() {
@@ -162,20 +171,34 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     }
 
     func popoverDidClose(_ notification: Notification) {
+        Log.statusItem.debug("popover closed")
         statusItem?.button?.highlight(false)
         removeMonitors()
         onPanelClosed?()
+        if renderPending { render() }
     }
 
     private func installMonitors() {
         removeMonitors()
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            Task { @MainActor in self?.closePopover() }
+            // While the app is not active (activation after a status item click is
+            // asynchronous, and refused outright now and then), the click that lands on
+            // our own popover reaches this monitor too. Only a click elsewhere closes it.
+            let location = NSEvent.mouseLocation
+            Task { @MainActor in
+                guard let self else { return }
+                if let frame = self.popover.contentViewController?.view.window?.frame, frame.contains(location) { return }
+                Log.statusItem.debug("closing popover: click outside")
+                self.closePopover()
+            }
         }
         resignObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didResignActiveNotification, object: nil, queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.closePopover() }
+            Task { @MainActor in
+                Log.statusItem.debug("closing popover: app resigned active")
+                self?.closePopover()
+            }
         }
     }
 

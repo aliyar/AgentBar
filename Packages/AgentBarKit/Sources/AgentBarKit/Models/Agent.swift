@@ -3,7 +3,7 @@ import Foundation
 /// A coding agent whose usage the app can show. Adding one means a folder, a way to read
 /// its limits, and nothing else: the views draw whatever comes back.
 public enum Agent: String, CaseIterable, Identifiable, Codable, Sendable, CodingKeyRepresentable {
-    case claude, codex
+    case claude, codex, cursor
 
     public var id: String { rawValue }
 
@@ -11,6 +11,7 @@ public enum Agent: String, CaseIterable, Identifiable, Codable, Sendable, Coding
         switch self {
         case .claude: "Claude"
         case .codex: "Codex"
+        case .cursor: "Cursor"
         }
     }
 
@@ -19,14 +20,16 @@ public enum Agent: String, CaseIterable, Identifiable, Codable, Sendable, Coding
         switch self {
         case .claude: "asterisk"
         case .codex: "chevron.left.forwardslash.chevron.right"
+        case .cursor: "cursorarrow.rays"
         }
     }
 
-    /// The folder it keeps its data in, under the real home directory.
+    /// The folder it keeps its data in, relative to the real home directory.
     public var folderName: String {
         switch self {
         case .claude: ".claude"
         case .codex: ".codex"
+        case .cursor: "Library/Application Support/Cursor"
         }
     }
 

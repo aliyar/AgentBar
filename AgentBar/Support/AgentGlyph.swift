@@ -8,17 +8,24 @@ struct AgentGlyph: View {
     /// The point size the mark is drawn at.
     var size: CGFloat
 
-    private var assetName: String {
+    private var assetName: String? {
         switch agent {
         case .claude: "claude"
         case .codex: "codex"
+        case .cursor: "cursor"
         }
     }
 
     var body: some View {
-        Image(assetName)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: size, height: size)
+        if let assetName {
+            Image(assetName)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size, height: size)
+        } else {
+            Image(systemName: agent.symbol)
+                .font(.system(size: size * 0.9, weight: .medium))
+                .frame(width: size, height: size)
+        }
     }
 }

@@ -150,15 +150,23 @@ The formats are **undocumented and the agents' to change**. Every field is optio
 in; the parsers degrade to "nothing reported", never crash. Pin them with tests against real
 samples, dated in the test names.
 
-- **Claude limits**: `~/.claude/cache/usage.json` — one ~2 KB file. **Claude Code does not
-  write it**: on this Mac it is written by the user's own status line script, which fetches
-  `api.anthropic.com/api/oauth/usage` with Claude Code's OAuth token at most every 15 minutes
-  (found 2 Sep 2026). A Mac without that script has no file and no Claude limits; the live
-  figures reach only the status line's stdin and are persisted nowhere. Whether AgentBar
-  should fetch the endpoint itself is an open decision. `limits[]` carries `session`, `weekly_all` and `weekly_scoped` (whose
+- **Claude limits on disk**: `~/.claude/cache/usage.json` — one ~2 KB file. **Claude Code does
+  not write it**: on this Mac it is written by the user's own status line script, which fetches
+  `api.anthropic.com/api/oauth/usage` at most every 15 minutes (found 2 Sep 2026). A Mac
+  without that script has no file, which is why the accounts are asked (see "The accounts"
+  below); the file stays the fallback. `limits[]` carries `session`, `weekly_all` and `weekly_scoped` (whose
   `scope.model.display_name` names the per-model row); `five_hour`/`seven_day` are the
   fallback. **`percent`/`utilization` is what has been *used*** — show it as written, as a bar
   that fills. Never invert to "left".
+- **Changing the status item's image or tooltip while the popover is shown makes AppKit
+  dismiss the popover** (RepoBar found this first). `StatusItemController.render()` defers
+  the change until the popover closes; otherwise the gauge's minute tick, arriving with the
+  read the popover open triggers, closes the panel under the user's click.
+- **A click on our own popover can reach the global mouse monitor** when the app is not
+  active yet (activation after a status item click is asynchronous and sometimes refused),
+  so the "click outside closes the popover" monitor first checks that the click is not
+  inside the popover's window. Found 3 Sep 2026: the second row click after focusing an
+  editor closed the panel.
 - **A window whose `resets_at` has passed** is history only while the agent is idle. If one
   of its conversations has moved since, a new window started when the old one closed:
   `UsageLimit.currentWindowEnd(now:activeSince:)` projects the end forward by the window's
@@ -188,6 +196,41 @@ samples, dated in the test names.
 - **Cost is not shown.** Claude Code writes a `totalCostUSD` it computed itself; Codex writes
   none and its prices are in no public table. A figure for one and a blank for the other reads
   as a bug.
+
+## The accounts
+
+Quota belongs to the account, not the machine: what was spent on another Mac, or while the
+agent was not running here, never reaches the files. So `AccountUsage` asks each agent's
+account, the way the agents' own tools and the well-known menu bar apps (CodexBar, Blume)
+do — one read-only GET, with the sign-in the agent already keeps on this Mac. Decided
+3 Sep 2026, replacing the plan's "no account is contacted"; that rested on the belief that
+Claude Code writes `usage.json`, which it does not.
+
+| Agent | Sign-in read from | Endpoint | Answer |
+|---|---|---|---|
+| Claude | Keychain item `Claude Code-credentials` via `/usr/bin/security find-generic-password -w`; else `~/.claude/.credentials.json` | `api.anthropic.com/api/oauth/usage` (header `anthropic-beta: oauth-2025-04-20`) | the `usage.json` shape, `ClaudeReader.limits(from:)` |
+| Codex | `~/.codex/auth.json` → `tokens.access_token`, `account_id` (only `auth_mode: chatgpt`; expired tokens are not used, never refreshed — Codex refreshes its own file) | `chatgpt.com/backend-api/wham/usage` (header `ChatGPT-Account-Id`) | `rate_limit.primary_window/secondary_window` |
+| Cursor | `…/Cursor/User/globalStorage/state.vscdb` → `cursorAuth/accessToken`, sent as the cookie `WorkosCursorSessionToken=<user id>::<token>` | `cursor.com/api/usage-summary` | `individualUsage.plan.totalPercentUsed`, billing cycle |
+
+- **Why the `security` tool and not the Security framework**: Claude Code stores the item
+  through `security`, so macOS trusts that tool to read it back silently. A direct
+  `SecItemCopyMatching` from AgentBar would put up a Keychain prompt on every launch.
+- The token lives in the request and nowhere else: not on disk, not in the log. Errors are
+  logged as words ("not signed in", "offline"), never with the response.
+- Cadence (`AgentsModel`): every 5 minutes; on a popover open at most once a minute; on the
+  refresh button at most every 10 seconds. An answer replaces the agent's file limits unless
+  the file was written after the answer (Codex just ran). A problem keeps the file limits and
+  is shown in the group's caption. Every shown agent's account is asked; there is no
+  switch for it (Blume has none either, and the file fallback is worse for everyone).
+- **Cursor conversations**: `CursorReader` reads `composerData:<id>` rows from the editor's
+  `globalStorage/state.vscdb` (through `SQLiteCopy`, a private copy with its WAL); a chat
+  is an agent chat when `~/.cursor/projects/<slug>/agent-transcripts/<id>/` exists, which
+  also names its project (the slug is the path with dashes for slashes; the last folder is
+  recovered by matching against real folders). Active = moved in the last 30 minutes or
+  still generating; the name is the last bubble's `textPreview`; model and effort from
+  `modelConfig`. No context figure: Cursor writes none.
+- The endpoints are undocumented; the parsers are pinned to the shapes of 3 Sep 2026 and a
+  shape that is not understood reads as "unexpected answer".
 
 ## Screenshots
 

@@ -3,18 +3,27 @@ import Observation
 import OSLog
 import AgentBarKit
 
-/// Owns the snapshot the surfaces draw and the loop that keeps it current.
+/// Owns the snapshot the surfaces draw and the loops that keep it current.
 ///
-/// Cadence, from the prototype: every 60 s while the gauge is showing, every 30 s while
-/// the popover is on screen, and on every popover open. Reading is off the main actor.
+/// Two sources, merged: what the agents left on disk (read every 30 s while the popover
+/// is open, every 60 s while the gauge shows, and on every popover open), and what their
+/// accounts report (asked every 5 minutes, on a popover open at most once a minute, and
+/// on the refresh button at most every 10 s). For an agent that answered, the account's
+/// numbers replace the file's unless the file was written later - Codex just ran, say.
 @Observable
 final class AgentsModel {
+    enum Reason { case timer, popoverOpened, manual, settingsChanged }
+
     private(set) var snapshot = Snapshot()
     private(set) var isRefreshing = false
 
     /// The agents to read. Changing it reads again straight away.
     var agents: [Agent] = Agent.allCases {
-        didSet { if agents != oldValue { refresh() } }
+        didSet { if agents != oldValue { refresh(.settingsChanged) } }
+    }
+    /// The agents whose accounts are asked.
+    var liveAgents: Set<Agent> = [] {
+        didSet { if liveAgents != oldValue { refresh(.settingsChanged) } }
     }
     var isPopoverVisible = false {
         didSet { if isPopoverVisible != oldValue { reschedule() } }
@@ -24,39 +33,116 @@ final class AgentsModel {
     }
     /// Sample data instead of a read; the loop keeps running so the sample's clock ticks.
     var showsSampleData = false {
-        didSet { if showsSampleData != oldValue { refresh() } }
+        didSet { if showsSampleData != oldValue { refresh(.settingsChanged) } }
+    }
+
+    private struct AccountAnswer {
+        let limits: [UsageLimit]
+        let at: Date
     }
 
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
+    @ObservationIgnored private var pendingReason: Reason?
     @ObservationIgnored private var loopTask: Task<Void, Never>?
+    /// The last numbers each account gave, kept between reads so a file read in between
+    /// does not push them out.
+    @ObservationIgnored private var answers: [Agent: AccountAnswer] = [:]
+    @ObservationIgnored private var attempts: [Agent: Date] = [:]
+    @ObservationIgnored private var problems: [Agent: String] = [:]
 
     func start() {
-        refresh()
+        refresh(.manual)
         reschedule()
     }
 
-    /// Re-reads every enabled agent. Coalesced: a popover opening while one is in flight
-    /// does not start a second.
-    func refresh() {
-        guard refreshTask == nil else { return }
+    /// Re-reads every enabled agent, and asks the accounts that are due. Coalesced: a
+    /// popover opening while one is in flight does not start a second, but its reason is
+    /// kept so the accounts are asked right after.
+    func refresh(_ reason: Reason = .timer) {
+        guard refreshTask == nil else {
+            if reason == .manual || reason == .popoverOpened { pendingReason = reason }
+            return
+        }
         isRefreshing = true
         let agents = agents
         let sample = showsSampleData
+        let now = Date()
+        let due = sample ? [] : agents.filter { liveAgents.contains($0) && isDue($0, reason: reason, now: now) }
+        for agent in due { attempts[agent] = now }
         refreshTask = Task {
-            let read = sample ? Snapshot.sample : await Task.detached(priority: .utility) {
-                SnapshotReader.read(agents: agents)
+            async let files = Task.detached(priority: .utility) {
+                SnapshotReader.read(agents: agents, now: now)
             }.value
-            snapshot = read
+            var results: [Agent: Result<[UsageLimit], AccountUsage.Problem>] = [:]
+            await withTaskGroup(of: (Agent, Result<[UsageLimit], AccountUsage.Problem>).self) { group in
+                for agent in due {
+                    group.addTask { (agent, await AccountUsage.fetch(agent, now: now)) }
+                }
+                for await (agent, result) in group { results[agent] = result }
+            }
+            var read = await files
+            for (agent, result) in results {
+                switch result {
+                case .success(let limits):
+                    answers[agent] = AccountAnswer(limits: limits, at: now)
+                    problems[agent] = nil
+                    Log.app.debug("\(agent.rawValue, privacy: .public) account: \(limits.count) windows")
+                case .failure(let problem):
+                    problems[agent] = problem.description
+                    Log.app.notice("\(agent.rawValue, privacy: .public) account: \(problem.description, privacy: .public)")
+                }
+            }
+            snapshot = sample ? Snapshot.sample : merged(read, now: now)
             isRefreshing = false
             refreshTask = nil
-            Log.app.debug("read \(read.limits.count) limits, \(read.conversations.count) conversations")
+            Log.app.debug("read \(read.limits.count) limits, \(read.conversations.count) conversations; asked \(due.count) accounts")
+            if let next = pendingReason {
+                pendingReason = nil
+                refresh(next)
+            }
         }
+    }
+
+    private func isDue(_ agent: Agent, reason: Reason, now: Date) -> Bool {
+        let since = attempts[agent].map { now.timeIntervalSince($0) } ?? .infinity
+        // An account that said "too often" (429) is left alone for a quarter of an hour,
+        // whatever the reason; the last answer stays on screen meanwhile.
+        if problems[agent] == AccountUsage.Problem.badResponse(429).description, since < 900 { return false }
+        switch reason {
+        case .manual: return since >= 10
+        case .popoverOpened, .settingsChanged: return since >= 60
+        case .timer: return since >= 300
+        }
+    }
+
+    /// The file read with each account's answer laid over it.
+    private func merged(_ read: Snapshot, now: Date) -> Snapshot {
+        var snapshot = read
+        for agent in agents {
+            var status = AccountStatus(fetchedAt: answers[agent]?.at, problem: problems[agent])
+            if liveAgents.contains(agent), let answer = answers[agent] {
+                let fileIsNewer = (read.lastWritten[agent] ?? .distantPast) > answer.at
+                if !fileIsNewer {
+                    snapshot.limits.removeAll { $0.agent == agent }
+                    snapshot.limits += answer.limits
+                    snapshot.lastWritten[agent] = answer.at
+                }
+            } else if !liveAgents.contains(agent) {
+                status = AccountStatus()
+            }
+            snapshot.accounts[agent] = status
+        }
+        // Agents first, in their order; the file read may have put them in another.
+        snapshot.limits.sort { Agent.allCases.firstIndex(of: $0.agent)! < Agent.allCases.firstIndex(of: $1.agent)! }
+        return snapshot
     }
 
     private var interval: Duration? {
         if isPopoverVisible { return .seconds(30) }
         if gaugeEnabled { return .seconds(60) }
-        return nil
+        // Nothing on screen: still ask the accounts every 5 minutes, for the gauge's return
+        // and the widget's snapshot.
+        return .seconds(300)
     }
 
     private func reschedule() {
@@ -67,7 +153,7 @@ final class AgentsModel {
             while !Task.isCancelled {
                 try? await Task.sleep(for: interval)
                 guard !Task.isCancelled else { break }
-                refresh()
+                refresh(.timer)
             }
         }
     }

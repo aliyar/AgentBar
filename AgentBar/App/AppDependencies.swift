@@ -47,7 +47,7 @@ final class AppDependencies {
         statusItem.onQuit = { NSApp.terminate(nil) }
         statusItem.onPanelOpened = {
             model.isPopoverVisible = true
-            model.refresh()
+            model.refresh(.popoverOpened)
         }
         statusItem.onPanelClosed = { model.isPopoverVisible = false }
     }
@@ -72,6 +72,8 @@ final class AppDependencies {
         model.agents = agents
         model.gaugeEnabled = gauge
         model.showsSampleData = sample
+        // Every shown agent's account is asked; the files are the fallback.
+        model.liveAgents = Set(agents)
     }
 
     /// The user's appearance choice goes to the popover and the Settings window, never through

@@ -10,6 +10,13 @@ version heading and uses them as the release notes.
 
 ### Added
 - The app: a menu bar item, a popover, and a Settings window with the update controls.
+- **The limits come from the agents' accounts**, so what was spent on another Mac or while
+  the agent was not running counts too: Claude through Claude Code's sign-in, Codex through
+  its ChatGPT sign-in, Cursor through the editor's. One read-only request every five
+  minutes, and on the panel's refresh button; nothing is stored. What the agents write on
+  disk stays the fallback.
+- **Cursor** joins Claude Code and Codex: its plan's monthly usage, and its agent chats
+  among the active conversations.
 - **The panel shows what the coding agents on this Mac are doing.** For Claude Code and
   Codex: every rate-limit window as a meter that fills as you spend, the percentage, and
   how long until it starts over; and the conversations running right now, named by what

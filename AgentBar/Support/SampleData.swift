@@ -13,6 +13,7 @@ extension Snapshot {
                 UsageLimit(agent: .claude, title: "Weekly · Fable", percentUsed: 9, resetsAt: now.addingTimeInterval(86400 + 3600)),
                 UsageLimit(agent: .codex, title: "Daily", percentUsed: 46, resetsAt: now.addingTimeInterval(2 * 3600)),
                 UsageLimit(agent: .codex, title: "Weekly", percentUsed: 91, resetsAt: now.addingTimeInterval(4 * 86400)),
+                UsageLimit(agent: .cursor, title: "Pro · monthly", percentUsed: 63.5, resetsAt: now.addingTimeInterval(9 * 86400 + 5 * 3600), windowLength: 30 * 86400),
             ],
             conversations: [
                 Conversation(agent: .claude, id: "1", name: "Port the reader into the package and pin the file shapes",
@@ -28,7 +29,8 @@ extension Snapshot {
                              project: "repobar", isBusy: false, pid: 4, contextPercent: 64, contextTokens: 640_000,
                              model: "GPT-5", effort: "high", branch: "release", lastActivity: now.addingTimeInterval(-1200)),
             ],
-            lastWritten: [.claude: now, .codex: now.addingTimeInterval(-120)],
-            readAt: now)
+            lastWritten: [.claude: now, .codex: now.addingTimeInterval(-120), .cursor: now],
+            readAt: now,
+            accounts: [.claude: AccountStatus(fetchedAt: now), .codex: AccountStatus(fetchedAt: now), .cursor: AccountStatus(fetchedAt: now)])
     }
 }

@@ -44,6 +44,8 @@ enum Palette {
         case (.claude, _): Color(red: 0.690, green: 0.333, blue: 0.173)       // #B0552C
         case (.codex, .dark): Color(red: 0.533, green: 0.580, blue: 0.910)    // #8894E8
         case (.codex, _): Color(red: 0.290, green: 0.349, blue: 0.722)        // #4A59B8
+        case (.cursor, .dark): Color(red: 0.80, green: 0.80, blue: 0.84)
+        case (.cursor, _): Color(red: 0.25, green: 0.25, blue: 0.30)
         }
     }
 
@@ -52,6 +54,7 @@ enum Palette {
         switch agent {
         case .claude: Color(red: 0.831, green: 0.412, blue: 0.239).opacity(scheme == .dark ? 0.16 : 0.14)
         case .codex: Color(red: 0.349, green: 0.420, blue: 0.859).opacity(scheme == .dark ? 0.16 : 0.13)
+        case .cursor: Color.primary.opacity(scheme == .dark ? 0.14 : 0.10)
         }
     }
 

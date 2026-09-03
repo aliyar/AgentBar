@@ -186,8 +186,6 @@ struct SettingsView: View {
                 }
                 .disabled(!agent.isInstalled)
             }
-        } footer: {
-            Footnote("AgentBar reads each agent's own files under its folder in your home directory (~/.claude, ~/.codex). No account is contacted and nothing is sent anywhere.")
         }
         Section {
             Toggle("Preview with sample data", isOn: $settings.showsSampleData)

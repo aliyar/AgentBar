@@ -8,7 +8,8 @@ import AgentBarKit
 final class AppSettings {
     private enum Keys {
         static let gauge = "gaugeEnabled"
-        static let agents = "enabledAgents"
+        /// Stored as exclusions, so an agent added by an update is on until turned off.
+        static let disabledAgents = "disabledAgents"
         static let appearance = "appearance"
         static let sampleData = "sampleData"
         static let menuBarBars = "menuBarBars"
@@ -53,7 +54,16 @@ final class AppSettings {
 
     /// The agents the popover and the gauge take into account.
     var enabledAgents: Set<Agent> {
-        didSet { defaults.set(enabledAgents.map(\.rawValue).sorted(), forKey: Keys.agents) }
+        didSet { defaults.set(Self.excluded(from: enabledAgents), forKey: Keys.disabledAgents) }
+    }
+
+    private static func excluded(from included: Set<Agent>) -> [String] {
+        Agent.allCases.filter { !included.contains($0) }.map(\.rawValue)
+    }
+
+    private static func included(excluding key: String, in defaults: UserDefaults) -> Set<Agent> {
+        let off = Set(defaults.stringArray(forKey: key) ?? [])
+        return Set(Agent.allCases.filter { !off.contains($0.rawValue) })
     }
 
     /// The popover's and the Settings window's appearance; the status item follows the menu bar.
@@ -85,8 +95,7 @@ final class AppSettings {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         gaugeEnabled = defaults.object(forKey: Keys.gauge) as? Bool ?? false
-        let stored = defaults.stringArray(forKey: Keys.agents)
-        enabledAgents = Set((stored ?? Agent.allCases.map(\.rawValue)).compactMap(Agent.init(rawValue:)))
+        enabledAgents = Self.included(excluding: Keys.disabledAgents, in: defaults)
         appearance = defaults.string(forKey: Keys.appearance).flatMap(AppAppearance.init(rawValue:)) ?? .system
         showsSampleData = defaults.bool(forKey: Keys.sampleData)
         menuBarBars = defaults.stringArray(forKey: Keys.menuBarBars) ?? []
@@ -102,4 +111,5 @@ final class AppSettings {
     func setEnabled(_ agent: Agent, _ enabled: Bool) {
         if enabled { enabledAgents.insert(agent) } else { enabledAgents.remove(agent) }
     }
+
 }

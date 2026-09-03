@@ -9,7 +9,9 @@ struct PopoverView: View {
     var body: some View {
         OverviewView(snapshot: model.snapshot, agents: settings.agents,
                      onSettings: { AppDependencies.shared.settingsWindow.show() },
-                     onQuit: { NSApp.terminate(nil) })
+                     onQuit: { NSApp.terminate(nil) },
+                     isRefreshing: model.isRefreshing,
+                     onRefresh: { model.refresh(.manual) })
             .frame(width: 340)
             // The popover's own material gives the blur; the gradient on top gives the
             // glass its body, so what is behind the menu bar no longer shows through.
