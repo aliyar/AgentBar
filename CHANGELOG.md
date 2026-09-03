@@ -17,7 +17,7 @@ version heading and uses them as the release notes.
   Codex writes its balance into every session it runs, so it is read without asking the
   account at all.
 - Codex's model-specific limits (`additional_rate_limits`) are shown among the plan's own
-  windows, named for what tells them apart: GPT-5.3-Codex-Spark reads "Session · Spark" and
+  windows, named for what tells them apart: GPT-5.3-Codex-Spark reads "5h · Spark" and
   "Weekly · Spark". Resting on the row gives the model's whole name.
 - **The account beside the agent's name**: the plan as a small badge — "Max 20x", "Pro
   Lite", "Free" — and, on resting there, who is signed in. Quiet enough to be read second;
@@ -45,6 +45,12 @@ version heading and uses them as the release notes.
 - The agent's name in the panel is the link to its usage page. The small arrow that
   appeared beside it on hover is gone: it was a second thing to find for what the name was
   already pointing at.
+ and its search metadata: the Open Graph card now states the
+  image's size, type and alt text, so Slack, iMessage, X and LinkedIn draw the large card on
+  the first fetch; the privacy and terms pages carry their own title, description and URL
+  instead of the home page's; and the home page carries `SoftwareApplication`, `WebSite`,
+  `Organization` and `FAQPage` structured data, a theme colour and a crawler directive that
+  lets Google show the card image full size.
 
 ### Fixed
 - **The website on a phone.** The page could be scrolled sideways: the callouts beside the
@@ -71,14 +77,6 @@ version heading and uses them as the release notes.
   no reset at all.
 - Codex's windows are ordered shortest first, as Claude's are. Its `primary` window is not
   always the shorter one — on some plans it is the week.
-
-### Changed
-- The website's link preview and its search metadata: the Open Graph card now states the
-  image's size, type and alt text, so Slack, iMessage, X and LinkedIn draw the large card on
-  the first fetch; the privacy and terms pages carry their own title, description and URL
-  instead of the home page's; and the home page carries `SoftwareApplication`, `WebSite`,
-  `Organization` and `FAQPage` structured data, a theme colour and a crawler directive that
-  lets Google show the card image full size.
 
 ## [1.0.1] - 2026-09-03
 

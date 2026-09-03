@@ -283,20 +283,45 @@ appcast, app, version, build, min_macos, url, size, sig, feed_url, notes_path = 
 notes_md = open(notes_path, encoding="utf-8").read()
 
 # Minimal Markdown → HTML for the release notes (headings, bullets, inline code, bold).
-out, in_list = [], False
+# A bullet wrapped over several lines is one bullet: the continuation lines are folded
+# into it rather than each becoming a paragraph of its own, which broke every entry in
+# the changelog that ran past one line.
 def inline(t):
     t = html.escape(t)
     t = re.sub(r"`([^`]+)`", r"<code>\1</code>", t)
     return re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", t)
+
+blocks, bullet, paragraph = [], None, None
+def close_bullet():
+    global bullet
+    if bullet is not None: blocks.append(("li", " ".join(bullet))); bullet = None
+def close_paragraph():
+    global paragraph
+    if paragraph is not None: blocks.append(("p", " ".join(paragraph))); paragraph = None
+
 for line in notes_md.splitlines():
     s = line.strip()
+    if not s:
+        close_bullet(); close_paragraph(); continue
     if s.startswith(("- ", "* ")):
+        close_bullet(); close_paragraph(); bullet = [s[2:]]; continue
+    if s.startswith(("### ", "## ")):
+        close_bullet(); close_paragraph()
+        level, text = ("h3", s[4:]) if s.startswith("### ") else ("h2", s[3:])
+        blocks.append((level, text)); continue
+    # A line under a bullet continues it; anywhere else it is prose.
+    if bullet is not None: bullet.append(s)
+    elif paragraph is not None: paragraph.append(s)
+    else: paragraph = [s]
+close_bullet(); close_paragraph()
+
+out, in_list = [], False
+for kind, text in blocks:
+    if kind == "li":
         if not in_list: out.append("<ul>"); in_list = True
-        out.append(f"<li>{inline(s[2:])}</li>"); continue
+        out.append(f"<li>{inline(text)}</li>"); continue
     if in_list: out.append("</ul>"); in_list = False
-    if s.startswith("### "): out.append(f"<h3>{inline(s[4:])}</h3>")
-    elif s.startswith("## "): out.append(f"<h2>{inline(s[3:])}</h2>")
-    elif s: out.append(f"<p>{inline(s)}</p>")
+    out.append(f"<{kind}>{inline(text)}</{kind}>")
 if in_list: out.append("</ul>")
 description = "\n".join(out)
 
