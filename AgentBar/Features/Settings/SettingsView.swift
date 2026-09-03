@@ -4,7 +4,7 @@ import AgentBarKit
 /// AgentBar's panes. v1 settings: agents shown, gauge on/off, Dock on/off, launch at login,
 /// updates. Dock and launch at login arrive with their features.
 nonisolated enum AgentBarSettingsPane: String, SettingsPane {
-    case general, appearance, agents, changelog, support, about
+    case general, appearance, agents, support, about
 
     var id: String { rawValue }
 
@@ -13,7 +13,6 @@ nonisolated enum AgentBarSettingsPane: String, SettingsPane {
         case .general: "General"
         case .appearance: "Appearance"
         case .agents: "Agents"
-        case .changelog: "Changelog"
         case .support: "Support"
         case .about: "About"
         }
@@ -24,7 +23,6 @@ nonisolated enum AgentBarSettingsPane: String, SettingsPane {
         case .general: "gearshape"
         case .appearance: "paintbrush"
         case .agents: "cpu"
-        case .changelog: "list.bullet.rectangle"
         case .support: "questionmark.bubble"
         case .about: "info.circle"
         }
@@ -51,7 +49,6 @@ struct SettingsView: View {
             case .general: general
             case .appearance: appearance
             case .agents: agents
-            case .changelog: ChangelogPane()
             case .support: SupportPane(intro: "Get in touch for any feedback, questions or feature requests.", rows: Self.supportRows)
             case .about: AboutPane(website: Self.website, extra: AnyView(checkForUpdates))
             }

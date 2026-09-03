@@ -8,6 +8,27 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+## [Unreleased]
+
+### Changed
+- **The panel's tooltips are a heading and a line, on a solid card.** A tip named its row
+  in a sentence that ran the width of the panel; it now names what the pointer is on and
+  says one line about it — "Weekly", then "2% used of 7d · starts over in 3d 10h". The card
+  is dark in both appearances rather than translucent: a see-through card over a
+  see-through panel is two half-legible layers, and a tooltip is a note held over the page,
+  not part of it. It waits 620 ms rather than 320: long enough that crossing the panel
+  raises nothing and a rest is deliberate.
+- Settings no longer carries a Changelog pane. What changed in a release is read where the
+  release is — the update it arrives with, and the website — and the changelog is no longer
+  copied into the app bundle.
+
+### Fixed
+- A tooltip's text could run outside its card. The card wrapped its words at 254 pt while
+  the layer around it sized the card to one line, so anything longer spilled past the
+  corner. A short tip was also drawn as wide as a long one: `frame(maxWidth:)` takes every
+  point it is offered, so the card now measures what its words want and takes the smaller
+  of that and its maximum.
+
 ## [1.1.0] - 2026-09-03
 
 ### Added

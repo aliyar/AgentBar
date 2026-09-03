@@ -34,7 +34,7 @@ struct UsageSection: View {
     var body: some View {
         let glass = Palette.glass(scheme)
         VStack(alignment: .leading, spacing: 5) {
-            GroupCaption(title: agent.title, badge: identity?.plan, badgeHelp: identity?.description(for: agent),
+            GroupCaption(title: agent.title, badge: identity?.plan, badgeTip: identity?.tip(for: agent),
                          trailing: caption, link: agent.usagePage,
                          linkHelp: "Open \(agent.title)'s usage page")
             GroupBox_ {
@@ -145,22 +145,27 @@ private struct UsageRow: View {
         }
         .padding(.vertical, 7)
         .padding(.horizontal, 10)
-        .tip(helpText)
+        .tip(tipTitle, tipDetail)
     }
 
-    private var helpText: String {
+    /// The window, named in full: the row shortens what it must to fit its column.
+    private var tipTitle: String {
+        limit.fullName.map { "\(limit.title) \u{00B7} \($0)" } ?? limit.title
+    }
+
+    /// One line about it: what has been used of what, and when it starts over.
+    private var tipDetail: String {
         if rolledOver, let remaining, windowEnd != nil {
-            return "\(limit.title): a new window started when the last one closed; the used figure arrives with the next read. It starts over \(showsClock ? "at" : "in") \(remaining)."
+            return "A new window started when the last one closed; the used figure arrives with the next read. Starts over \(showsClock ? "at" : "in") \(remaining)."
         }
         if rolledOver {
-            let whole = limit.windowLength.map { " The next one runs \(Format.short($0)) from first use." } ?? ""
-            return "\(limit.title): this window has started over since the figure was written; nothing has been used in the new one yet.\(whole)"
+            let whole = limit.windowLength.map { " The next runs \(Format.short($0)) from first use." } ?? ""
+            return "Started over since this figure was written; nothing used in the new window yet.\(whole)"
         }
-        let named = limit.fullName.map { "\(limit.title) (\($0))" } ?? limit.title
-        let window = limit.windowLength.map { " over \(Format.short($0))" } ?? ""
-        let used = "\(named): \(Format.percent(limit.percentUsed)) used\(window)"
+        let over = limit.windowLength.map { " of \(Format.short($0, coarse: true))" } ?? ""
+        let used = "\(Format.percent(limit.percentUsed)) used\(over)"
         guard let remaining else { return used }
-        return showsClock ? "\(used), starts over at \(remaining)" : "\(used), starts over in \(remaining)"
+        return showsClock ? "\(used) \u{00B7} starts over at \(remaining)" : "\(used) \u{00B7} starts over in \(remaining)"
     }
 }
 
@@ -173,7 +178,7 @@ struct GroupCaption: View {
     /// that asks "which account is this?".
     var badge: String?
     /// What resting on the badge says: the account behind the figures.
-    var badgeHelp: String?
+    var badgeTip: (title: String?, detail: String?)?
     var trailing: String?
     /// A page to open in the browser, offered by a small arrow that shows on hover.
     var link: URL?
@@ -208,7 +213,7 @@ struct GroupCaption: View {
                     .background(glass.groupFill, in: RoundedRectangle(cornerRadius: 3, style: .continuous))
                     .lineLimit(1)
                     .fixedSize()
-                    .tip(badgeHelp ?? "")
+                    .tip(badgeTip?.title, badgeTip?.detail)
             }
             Spacer()
             if let trailing {

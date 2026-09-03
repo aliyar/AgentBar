@@ -23,13 +23,16 @@ public struct Identity: Equatable, Codable, Sendable {
 
     public var isEmpty: Bool { plan == nil && email == nil && name == nil }
 
-    /// What resting on the badge says: who, then what they are on.
-    public func description(for agent: Agent) -> String? {
-        let who = [name, email].compactMap { $0 }.joined(separator: " · ")
-        let signedIn = who.isEmpty ? nil : "\(agent.title) is signed in as \(who)"
-        let onPlan = plan.map { who.isEmpty ? "\(agent.title) is on the \($0) plan" : "on the \($0) plan" }
-        let parts = [signedIn, onPlan].compactMap { $0 }
-        return parts.isEmpty ? nil : parts.joined(separator: ", ") + "."
+    /// What resting on the badge says, in two parts: who is signed in, then the account
+    /// they are signed in to. A name is the heading when there is one, since that is what
+    /// a person recognises first; otherwise the address stands in for it.
+    public func tip(for agent: Agent) -> (title: String?, detail: String?) {
+        let plan = self.plan.map { "\($0) plan" }
+        if let name, !name.isEmpty {
+            return (name, [email, plan].compactMap { $0 }.joined(separator: " \u{00B7} "))
+        }
+        if let email, !email.isEmpty { return (email, plan) }
+        return (plan.map { "\(agent.title) \u{00B7} \($0)" }, nil)
     }
 
     /// Whichever half each source knew: the files name the person, the account names the plan.

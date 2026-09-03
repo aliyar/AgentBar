@@ -253,7 +253,7 @@ private struct AgentHeader: View {
                     .foregroundStyle(palette.ghost)
                     .lineLimit(1)
                     .fixedSize()
-                    .tip(identity?.description(for: agent) ?? "")
+                    .tip(identity?.tip(for: agent).title, identity?.tip(for: agent).detail)
             }
             Command(":usage", palette: palette, color: palette.ghost, help: "Open \(agent.title)'s usage page") {
                 NSWorkspace.shared.open(agent.usagePage)
