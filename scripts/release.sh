@@ -260,6 +260,9 @@ else
   mkdir -p "$FALLBACK_RELEASES_DIR"
   for old in "$FALLBACK_RELEASES_DIR"/$APP_NAME-*.zip; do [ -e "$old" ] && git rm -q --cached "$old" 2>/dev/null; rm -f "$old"; done
   cp "$ZIP_PATH" "$FALLBACK_RELEASES_DIR/$ZIP_NAME"
+  # The repository ignores *.zip; the release zips are the one exception (.gitignore), and
+  # -f makes sure of it either way.
+  git add -f "$FALLBACK_RELEASES_DIR/$ZIP_NAME"
   DOWNLOAD_URL="${APPCAST_URL%/appcast.xml}/releases/$ZIP_NAME"
   ok "Zip staged at $DOWNLOAD_URL"
 fi

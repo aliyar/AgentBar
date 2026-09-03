@@ -13,6 +13,8 @@ dist/
 *.xcarchive
 *.dmg
 *.zip
+# except the release zips the site serves when no download bucket is set (scripts/release.sh)
+!site/public/releases/*.zip
 
 # xcode / spm user state
 xcuserdata/
