@@ -8,6 +8,8 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-03
+
 ### Added
 - **What is left once a plan runs out.** Claude's extra usage and its prepaid credits
   become a row of their own, and Codex's balance is said beside the agent's name — both
@@ -149,6 +151,7 @@ version heading and uses them as the release notes.
   shows "—", a figure written hours ago says how old it is, and a context whose limit is
   not written anywhere reports its tokens instead of a made-up percentage.
 
-[Unreleased]: https://github.com/aliyar/AgentBar/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/aliyar/AgentBar/compare/v1.1.0...HEAD
 [1.0.0]: https://github.com/aliyar/AgentBar/releases/tag/v1.0.0
 [1.0.1]: https://github.com/aliyar/AgentBar/releases/tag/v1.0.1
+[1.1.0]: https://github.com/aliyar/AgentBar/releases/tag/v1.1.0
