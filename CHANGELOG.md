@@ -8,6 +8,16 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+## [Unreleased]
+
+### Fixed
+- **The laptop and the widgets drawn inside it, in Safari.** They were scaled with `zoom`,
+  which Safari lays out differently from Chrome: the widgets landed on top of each other
+  on iPhone and in a narrow Safari window alike, while Chrome drew them correctly. The
+  laptop now scales with a single transform, so its proportions hold at every width, and
+  the wrapper states the box the transform leaves behind. The panel preview in "Where it
+  lives" was scaled the same way and is fixed with it. No `zoom` is left in the stylesheet.
+
 ## [1.1.1] - 2026-09-03
 
 ## [Unreleased]

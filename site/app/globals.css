@@ -644,7 +644,9 @@ p { margin: 0; }
 .mini-tile { position: relative; display: grid; place-items: center; padding: 8px 12px; border-radius: 14px; background: rgb(127 127 127 / 0.18); }
 .mini-tile i { position: absolute; bottom: 2px; left: 50%; width: 4px; height: 4px; border-radius: 50%; background: var(--wall-fg); transform: translateX(-50%); }
 .mini-pop { width: 170px; height: 104px; overflow: hidden; border-radius: 7px; position: relative; }
-.mini-pop .panel { zoom: 0.5; position: absolute; left: 0; top: 0; box-shadow: 0 8px 24px rgb(0 0 0 / 0.5), 0 0 0 0.5px rgb(255 255 255 / 0.08); }
+/* Transform, not zoom, for the reason the laptop uses one: Safari lays out a zoomed
+   subtree its own way. The panel is absolutely positioned, so scaling it costs no layout. */
+.mini-pop .panel { transform: scale(0.5); transform-origin: top left; position: absolute; left: 0; top: 0; box-shadow: 0 8px 24px rgb(0 0 0 / 0.5), 0 0 0 0.5px rgb(255 255 255 / 0.08); }
 .mini-pop .panel .panel-arrow { display: none; }
 .mini-pop::after { content: ""; position: absolute; inset: auto 0 0 0; height: 28px; background: linear-gradient(transparent, var(--plate)); }
 .place-figure .widget--small { box-shadow: 0 8px 24px rgb(0 0 0 / 0.5); }
@@ -659,7 +661,13 @@ p { margin: 0; }
 .styles-scene .tpanel { width: min(330px, 100%); }
 
 /* the laptop: the widgets on a Mac's desktop, drawn */
-.laptop { margin: 0; width: 960px; max-width: none; margin-inline: auto; }
+/* The laptop is one drawing and scales as a whole, its proportions kept. `zoom` did that
+   too, but Safari lays out a zoomed subtree differently from Chrome and the widgets inside
+   it landed on top of each other, on the phone and in a narrow window alike. A transform
+   is the same scale everywhere — it just leaves the old box behind, so the wrapper states
+   the scaled one: the laptop is 960 × 627 at rest. */
+.laptop { margin: 0; width: 960px; max-width: none; flex: none;
+          transform: scale(var(--laptop-scale, 1)); transform-origin: top center; }
 .laptop-lid { background: #14120f; border-radius: 18px 18px 6px 6px; padding: 12px 12px 14px; box-shadow: 0 12px 30px rgb(0 0 0 / 0.18), inset 0 0 0 0.5px rgb(255 255 255 / 0.12); }
 .laptop-screen { position: relative; aspect-ratio: 16 / 10; border-radius: 8px; overflow: hidden; background: var(--wall-base) var(--wallpaper) center / cover no-repeat; font-family: var(--font-system); }
 .laptop-bar { height: 18px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; font-size: 9px; font-weight: 500; color: var(--bar-fg); background: var(--bar-bg); }
@@ -680,12 +688,20 @@ p { margin: 0; }
 .widget-shelf-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; justify-items: start; }
 .laptop-base { height: 16px; margin: 0 -28px; border-radius: 4px 4px 14px 14px; background: linear-gradient(#e6dfd3, #b8b0a3); box-shadow: 0 8px 20px rgb(0 0 0 / 0.16); position: relative; }
 .laptop-base i { position: absolute; top: 0; left: 50%; width: 120px; height: 5px; transform: translateX(-50%); border-radius: 0 0 5px 5px; background: rgb(0 0 0 / 0.16); }
-.laptop-wrap { margin: 0 -28px; }
-@media (max-width: 640px) { .laptop-wrap { margin: 0; } }
-@media (max-width: 1100px) { .laptop { zoom: 0.82; } }
-@media (max-width: 860px) { .laptop { zoom: 0.62; } }
-@media (max-width: 640px) { .laptop { zoom: 0.44; } }
-@media (max-width: 460px) { .laptop { zoom: 0.35; } }
+.laptop-wrap {
+  --laptop-scale: 1;
+  display: flex;
+  justify-content: center;
+  /* Its natural height, not the wrapper's: a flex item stretches by default, and a laptop
+     squashed to the scaled box before being scaled again loses its proportions. */
+  align-items: flex-start;
+  overflow: hidden;
+  height: calc(627px * var(--laptop-scale));
+}
+@media (max-width: 1100px) { .laptop-wrap { --laptop-scale: 0.82; } }
+@media (max-width: 860px) { .laptop-wrap { --laptop-scale: 0.62; } }
+@media (max-width: 640px) { .laptop-wrap { --laptop-scale: 0.44; } }
+@media (max-width: 460px) { .laptop-wrap { --laptop-scale: 0.35; } }
 
 /* the evidence */
 .honesty-scene { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
