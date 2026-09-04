@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Mark } from "./AppIcon";
 import type { PanelState } from "./state";
-import { agentTitle, agents, clock, conversations, level, limitsFor, percent, short, type Conversation, type Limit } from "./sample";
+import { agentTitle, agents, clock, conversations, level, limitsFor, percent, short, type Conversation, type Limit, captionNotes, plans, status, statusLevel, statusTitle } from "./sample";
 
 /**
  * The Terminal panel, as the app draws it (Features/Overview/Styles/Terminal): mono, green
@@ -42,10 +42,14 @@ export function TerminalPanel({ state, arrow = "up", arrowRight }: { state: Pane
           <div key={agent} className="t-section">
             <div className="t-section-head">
               <span className="t-h">
+                <i className={`sdot sdot--${statusLevel(status[agent].level)} ${status[agent].level === "operational" ? "is-quiet" : ""}`}
+                   title={`${agentTitle[agent]} · ${statusTitle[status[agent].level]}`} aria-hidden="true" />
                 [ {agentTitle[agent]} ]
-                <a className="t-cmd" href={usagePage(agent)} target="_blank" rel="noopener" title={`Open ${agentTitle[agent]}'s usage page`}>
-                  :usage
-                </a>
+                <span className="t-plan">{plans[agent].toLowerCase()}</span>
+              </span>
+              <span className="t-tail">
+                {captionNotes[agent] && <span className="t-note">{captionNotes[agent]}</span>}
+                <span className="t-more" aria-hidden="true">⋯</span>
               </span>
             </div>
             {limitsFor(agent).map((limit) => (
@@ -75,13 +79,6 @@ export function TerminalPanel({ state, arrow = "up", arrowRight }: { state: Pane
   );
 }
 
-function usagePage(agent: string): string {
-  switch (agent) {
-    case "claude": return "https://claude.ai/settings/usage";
-    case "codex": return "https://chatgpt.com/codex/settings/usage";
-    default: return "https://cursor.com/dashboard?tab=usage";
-  }
-}
 
 /** "Weekly · all models" → "weekly.all", "Weekly · Fable" → "weekly.fable". */
 function key(title: string): string {

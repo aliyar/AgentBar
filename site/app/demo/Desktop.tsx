@@ -7,6 +7,7 @@ import { MenuBar } from "./MenuBar";
 import { Panel } from "./Panel";
 import { TerminalPanel } from "./TerminalPanel";
 import { usePanelState } from "./state";
+import { useTheme } from "./useTheme";
 import { release } from "../release";
 import { site } from "../site";
 
@@ -24,7 +25,7 @@ export function Desktop() {
   }, []);
   const [dockOpen, setDockOpen] = useState(false);
   const [style, setStyle] = useState<"glass" | "terminal">("glass");
-  const [theme, setTheme] = useState<"light" | "dark" | null>(null);
+  const { theme, flip: flipTheme } = useTheme();
   const state = usePanelState();
   const stageRef = useRef<HTMLDivElement>(null);
   /** Where the panel's arrow goes: under the centre of the status item, measured. */
@@ -50,12 +51,6 @@ export function Desktop() {
     };
   }, [menuOpen, style]);
 
-  // The sun/moon pins an appearance; until it is touched the page follows the system.
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme) root.dataset.theme = theme;
-    else delete root.dataset.theme;
-  }, [theme]);
   // A click anywhere but the panel and the thing that opened it closes it, as a menu on
   // the Mac does; Escape closes it too. Both panels are dismissed the same way, so the
   // Dock's cannot be left open over the page with no way back but the Dock icon.
@@ -64,11 +59,13 @@ export function Desktop() {
     const dismiss = (event: MouseEvent) => {
       const target = event.target as Element | null;
       if (target?.closest(".menubar-pop, .dock-panel, #agentbar-item, .dock-tile--app")) return;
+      restoreOnReturn.current = false;
       setMenuOpen(false);
       setDockOpen(false);
     };
     const escape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
+      restoreOnReturn.current = false;
       setMenuOpen(false);
       setDockOpen(false);
     };
@@ -83,14 +80,28 @@ export function Desktop() {
   }, [menuOpen, dockOpen]);
 
   // The menu bar stays at the top of the page; a panel left open would ride along over
-  // the sections, so both panels close once the desktop scrolls out of view.
+  // the sections, so both panels close once the desktop scrolls out of view - and the menu
+  // bar's comes back when the desktop does, or the hero it belongs to is left empty.
+  //
+  // Only the one that was put away by scrolling comes back. A panel the reader closed
+  // themselves stays closed, and the Dock's keeps the menu bar's place while it is open.
+  const restoreOnReturn = useRef(false);
+  const menuOpenRef = useRef(menuOpen);
+  const dockOpenRef = useRef(dockOpen);
+  menuOpenRef.current = menuOpen;
+  dockOpenRef.current = dockOpen;
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage || !("IntersectionObserver" in window)) return;
+    const wideEnough = () => window.matchMedia("(min-width: 900px)").matches;
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) {
+        restoreOnReturn.current = menuOpenRef.current;
         setMenuOpen(false);
         setDockOpen(false);
+      } else if (restoreOnReturn.current && !dockOpenRef.current && wideEnough()) {
+        restoreOnReturn.current = false;
+        setMenuOpen(true);
       }
     }, { threshold: 0 });
     observer.observe(stage);
@@ -109,9 +120,12 @@ export function Desktop() {
     }
   };
 
-  const flipTheme = () => {
-    const dark = theme ? theme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
-    setTheme(dark ? "light" : "dark");
+  // The invitation opens the panel it is inviting you to try, when it is not already up.
+  // The Dock's takes the menu bar's place, so it gives way.
+  const openPanel = () => {
+    if (menuOpen) return;
+    setDockOpen(false);
+    setMenuOpen(true);
   };
 
   const panel = (arrow: "up" | "down") =>
@@ -121,7 +135,7 @@ export function Desktop() {
 
   return (
     <div className="desktop">
-      <MenuBar open={menuOpen} onToggle={() => { setMenuOpen((v) => !v); setDockOpen(false); }} theme={theme} onTheme={flipTheme} />
+      <MenuBar open={menuOpen} onToggle={() => { restoreOnReturn.current = false; setMenuOpen((v) => !v); setDockOpen(false); }} theme={theme} onTheme={flipTheme} />
       <div className="menubar-pop" aria-live="polite">
         {menuOpen && panel("up")}
         {menuOpen && (
@@ -157,7 +171,10 @@ export function Desktop() {
 
         <div className="hero-tries stage-tries">
             <div className="hero-row">
-              <span><b>Try it here.</b> The item in the menu bar, the icon in the Dock, a time in the panel, the refresh arrow, the Glass / Terminal switch under the panel.</span>
+              <span>
+                <button type="button" className="try-link" onClick={openPanel}>Try it here.</button>{" "}
+                The item in the menu bar, the icon in the Dock, a time in the panel, the refresh arrow, the Glass / Terminal switch under the panel.
+              </span>
             </div>
         </div>
 

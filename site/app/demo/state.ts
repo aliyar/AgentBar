@@ -17,18 +17,23 @@ export interface PanelState {
   toggleRow: (id: string) => void;
   /** The clock's reference, set after mount. */
   now: Date | null;
+  /** Which screen the panel shows: the overview, or one agent's status pushed over it. */
+  route: string | null;
+  openStatus: (agent: string) => void;
+  back: () => void;
 }
 
 function hhmm(date: Date): string {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
-export function usePanelState(): PanelState {
+export function usePanelState(initialRoute: string | null = null): PanelState {
   const [showsClock, setShowsClock] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [readAt, setReadAt] = useState("");
   const [now, setNow] = useState<Date | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [route, setRoute] = useState<string | null>(initialRoute);
   const timer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -60,5 +65,8 @@ export function usePanelState(): PanelState {
     expanded,
     toggleRow: (id) => setExpanded((open) => (open === id ? null : id)),
     now,
+    route,
+    openStatus: (agent) => setRoute(agent),
+    back: () => setRoute(null),
   };
 }

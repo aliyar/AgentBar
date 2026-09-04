@@ -42,7 +42,6 @@ export function AnatomyScene() {
 function Callout({ n, top, side }: { n: number; top: number; side: "left" | "right" }) {
   return (
     <span className={`callout callout--${side}`} style={{ top }} aria-hidden="true">
-      <i />
       <b>{n}</b>
     </span>
   );
@@ -61,6 +60,26 @@ export function StylesScene() {
       <figure>
         <TerminalPanel state={terminal} arrow="up" arrowRight={null} />
         <figcaption>Terminal</figcaption>
+      </figure>
+    </div>
+  );
+}
+
+/** The panel as it stands, and the same panel with one agent's status pushed over it -
+ *  the screen the dot before the agent's name opens. */
+export function StatusScene() {
+  const overview = usePanelState();
+  // Pushed from the start, so the page is drawn the same before and after it is alive.
+  const pushed = usePanelState("codex");
+  return (
+    <div className="styles-scene">
+      <figure>
+        <Panel state={overview} arrow="up" arrowRight={null} />
+        <figcaption>A dot before each agent&rsquo;s name. Click it.</figcaption>
+      </figure>
+      <figure>
+        <Panel state={pushed} arrow="up" arrowRight={null} />
+        <figcaption>Everything that page lists, and which parts are yours.</figcaption>
       </figure>
     </div>
   );

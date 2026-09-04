@@ -12,7 +12,7 @@ export const site = {
 } as const;
 
 /**
- * The card every link preview draws — Slack, iMessage, X, LinkedIn, Discord.
+ * The card every link preview draws: Slack, iMessage, X, LinkedIn, Discord.
  * Rendered by `make icon` into `public/og.png`; the dimensions are stated here because
  * scrapers that are handed them draw the large card on the first fetch instead of waiting
  * to measure the file. Bump `?v=` when the raster changes: the previews cache by URL.
@@ -22,7 +22,7 @@ export const ogImage = {
   width: 1200,
   height: 630,
   type: "image/png",
-  alt: "The AgentBar icon — a terminal squircle with a green block cursor — beside the name and the line: what the coding agents on this Mac are doing, and how much of their quota is left.",
+  alt: "The AgentBar icon, a terminal squircle with a green block cursor, beside the name and the line: what the coding agents on this Mac are doing, and how much of their quota is left.",
 } as const;
 
 /**

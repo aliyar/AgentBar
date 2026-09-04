@@ -15,7 +15,7 @@ export const agents = [
   },
   {
     name: "Cursor",
-    windows: "The plan's monthly usage, from the editor's own sign-in — Cursor writes no usage on disk.",
+    windows: "The plan's monthly usage, from the editor's own sign-in; Cursor writes no usage on disk.",
     conversations: "Agent chats, from the editor's transcripts.",
   },
 ] as const;
@@ -35,6 +35,22 @@ export const places = [
   },
 ] as const;
 
+/** The two messages the status feature exists to send, drawn as macOS shows them. */
+export const alerts = [
+  {
+    title: "Codex is down",
+    body: "Codex API: partial outage.",
+    when: "16:04",
+    tone: "down" as const,
+  },
+  {
+    title: "Codex is back",
+    body: "You can carry on.",
+    when: "16:31",
+    tone: "back" as const,
+  },
+] as const;
+
 export const honesty = [
   {
     lead: "Read from the agents’ own files.",
@@ -42,11 +58,30 @@ export const honesty = [
   },
   {
     lead: "Live limits from the agents’ own sign-in.",
-    text: "For the figures that only the account knows — what was spent on another Mac, or while the agent was not running — it asks each agent’s account with the sign-in that agent already keeps on this Mac. One read-only request every five minutes, and on the panel’s refresh. Nothing is stored or logged.",
+    text: "For the figures that only the account knows (what was spent on another Mac, or while the agent was not running), it asks each agent’s account with the sign-in that agent already keeps on this Mac. One read-only request every five minutes, and on the panel’s refresh. Nothing is stored or logged.",
+  },
+  {
+    lead: "Each service's own status page.",
+    text: "AgentBar reads the page each agent publishes (status.claude.com, status.openai.com, status.cursor.com) every five minutes, and every minute while something is wrong. These pages are public: no account is involved and nothing about you is sent.",
   },
   {
     lead: "Nothing invented.",
     text: "A window that has already started over shows “—”. A figure written hours ago says how old it is. A context whose limit is not written anywhere shows its tokens rather than a made-up percentage.",
+  },
+] as const;
+
+export const status = [
+  {
+    lead: "It watches the parts you actually run on.",
+    text: "A status page covers a whole company. Claude's covers claude.ai, the Console, Cowork and Claude Code as separate parts; AgentBar reads Claude Code and the API, and nothing else. claude.ai going down while Claude Code keeps working is not your outage, and you are not woken for it.",
+  },
+  {
+    lead: "It tells you when it is back.",
+    text: "A status page tells you a service is down. Then nothing tells you it is working again, so you go back and try until it does. That is the message this is for, and it comes whether or not you asked to hear about the outage.",
+  },
+  {
+    lead: "It does not cry wolf.",
+    text: "A change is announced only once two readings agree, so a moment's flap says nothing. A page that cannot be reached is never reported as an outage: dropped Wi-Fi looks exactly like a dead service. And an outage already under way when you open your Mac is not announced at all; you are already living through it.",
   },
 ] as const;
 
@@ -59,7 +94,7 @@ export const install = [
 export const faq = [
   {
     q: "Why does it ask my accounts, and what does it send?",
-    a: "Claude Code, Codex and Cursor each keep a sign-in on this Mac. AgentBar uses it, read-only, to ask the account how much of each window is used — the same page you would open in the browser. One request every five minutes, one when you open the panel (at most once a minute), one when you press refresh. Nothing is stored, nothing is logged, and no token is ever shown or sent anywhere else.",
+    a: "Claude Code, Codex and Cursor each keep a sign-in on this Mac. AgentBar uses it, read-only, to ask the account how much of each window is used, which is the same page you would open in the browser. One request every five minutes, one when you open the panel (at most once a minute), one when you press refresh. Nothing is stored, nothing is logged, and no token is ever shown or sent anywhere else.",
   },
   {
     q: "Does it read my conversations?",
@@ -75,7 +110,7 @@ export const faq = [
   },
   {
     q: "Cursor shows only the monthly plan. Codex shows nothing.",
-    a: "Cursor writes no usage on disk, so its figures come from the account only. Codex writes its windows while it runs on this Mac; before its first session here, or on a Mac where it never ran, there is nothing on disk — and the account is asked for the rest.",
+    a: "Cursor writes no usage on disk, so its figures come from the account only. Codex writes its windows while it runs on this Mac; before its first session here, or on a Mac where it never ran, there is nothing on disk, and the account is asked for the rest.",
   },
   {
     q: "Launch at login asked me to approve something.",
@@ -88,6 +123,14 @@ export const faq = [
   {
     q: "How do updates work?",
     a: "The app checks this site once a day and installs updates itself; you can turn that off in Settings › General. Builds are signed with a Developer ID, notarized by Apple, and the update feed is signed with a key only this app accepts.",
+  },
+  {
+    q: "How does it know a service is down?",
+    a: "It reads the status page each agent publishes, every five minutes and every minute while something is wrong, which is the same page you would open in the browser. It reads the parts you run on rather than the page's overall state: Claude Code and the Claude API, Codex API, Cursor's CLI and IDE. Which part each agent is read from is written down, and the whole page is one click away in the panel.",
+  },
+  {
+    q: "Will it wake me for nothing?",
+    a: "A change is announced only after two readings agree, so a moment's flap says nothing. A page it could not reach is never reported as an outage: your Wi-Fi dropping looks exactly like a dead service, and one of those is not news. An outage already under way when AgentBar starts is not announced either. Both messages can be turned off in Settings › Status.",
   },
   {
     q: "Which agents next?",

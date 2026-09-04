@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Window } from "../ui/Window";
+import { SiteEnd } from "../ui/SiteEnd";
+import { PageHeader } from "../ui/PageHeader";
 import { pageMetadata, site } from "../site";
 
 export const metadata: Metadata = pageMetadata({
@@ -11,9 +12,12 @@ export const metadata: Metadata = pageMetadata({
 
 export default function Privacy() {
   return (
-    <main className="desktop desktop--page">
-      <Window title="Privacy" className="window--doc">
-        <p className="doc-date">Last updated 3 September 2026</p>
+    <>
+      <PageHeader />
+      <main className="sheet" id="main">
+        <article className="doc">
+          <h1>Privacy</h1>
+        <p className="doc-date">Last updated 4 September 2026</p>
         <p className="doc-lead">
           The short version: {site.name} has no backend, no account of its own and no telemetry. Nothing about
           you, your agents or your usage is collected by us, transmitted to us, or stored anywhere but on your
@@ -22,9 +26,9 @@ export default function Privacy() {
 
         <h3>What the app reads, and where it stays</h3>
         <p>
-          {site.name} reads the files the coding agents keep under your home folder — Claude Code’s and Codex’s
+          {site.name} reads the files the coding agents keep under your home folder: Claude Code’s and Codex’s
           rate-limit figures and session files, the tail of a running conversation’s transcript for its name and
-          context figure, Cursor’s local state — and shows what it finds. It writes one file of its own: the
+          context figure and Cursor’s local state. It shows what it finds. It writes one file of its own: the
           latest snapshot, into its App Group container, so the widget can draw it. Settings live in macOS user
           defaults. Delete those and {site.name} starts empty. Nothing is sent to us; there is nowhere to send it.
         </p>
@@ -39,6 +43,13 @@ export default function Privacy() {
             refresh. The request goes to that service, as it would from the agent itself. The credential is read
             when needed and never stored, logged, displayed or sent anywhere else. Each agent’s account can be left
             out in Settings › Agents.
+          </li>
+          <li>
+            <strong>The agents&rsquo; public status pages.</strong> To show whether each service is working,
+            {" "}{site.name} reads the page that service publishes (status.claude.com, status.openai.com,
+            status.cursor.com) every five minutes, and every minute while one of them reports a problem.
+            These pages are public: no account is involved, no credential is sent, and the request carries nothing
+            but the app&rsquo;s name. It can be turned off in Settings &rsaquo; Status.
           </li>
           <li>
             <strong>An update check.</strong> Once a day {site.name} fetches a small file from this site listing the
@@ -71,10 +82,9 @@ export default function Privacy() {
         <h3>Changes</h3>
         <p>If this policy changes, the date at the top changes with it.</p>
 
-        <p className="doc-back">
-          <Link href="/">← {site.name}</Link>
-        </p>
-      </Window>
-    </main>
+        </article>
+      </main>
+      <SiteEnd />
+    </>
   );
 }

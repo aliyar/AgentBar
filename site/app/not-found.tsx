@@ -1,16 +1,22 @@
 import Link from "next/link";
-import { Window } from "./ui/Window";
+import { SiteEnd } from "./ui/SiteEnd";
+import { PageHeader } from "./ui/PageHeader";
 import { site } from "./site";
 
 export default function NotFound() {
   return (
-    <main className="desktop desktop--page">
-      <Window title="Not found" className="window--doc">
-        <p className="doc-lead">There is nothing at this address.</p>
-        <p className="doc-back">
-          <Link href="/">← {site.name}</Link>
-        </p>
-      </Window>
-    </main>
+    <>
+      <PageHeader />
+      <main className="sheet" id="main">
+        <article className="doc">
+          <h1>Not found</h1>
+          <p className="doc-lead">There is nothing at this address.</p>
+          <p>
+            <Link href="/">Back to {site.name}</Link>
+          </p>
+        </article>
+      </main>
+      <SiteEnd />
+    </>
   );
 }

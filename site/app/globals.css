@@ -74,6 +74,7 @@
   --g-bg-bottom: rgb(28 28 30 / 0.98);
   --g-border: rgb(255 255 255 / 0.06);
   --g-hairline: rgb(255 255 255 / 0.06);
+  --g-menu: rgb(44 44 48 / 0.98);
   --g-group: rgb(255 255 255 / 0.06);
   --g-selected: rgb(255 255 255 / 0.09);
   --g-hover: rgb(255 255 255 / 0.055);
@@ -114,6 +115,7 @@
     --g-bg-bottom: rgb(245 245 247 / 0.96);
     --g-border: rgb(255 255 255 / 0.6);
     --g-hairline: rgb(0 0 0 / 0.08);
+    --g-menu: rgb(252 252 253 / 0.99);
     --g-group: rgb(255 255 255 / 0.7);
     --g-selected: rgb(255 255 255 / 0.8);
     --g-hover: rgb(0 0 0 / 0.05);
@@ -156,6 +158,7 @@
   --g-bg-bottom: rgb(245 245 247 / 0.96);
   --g-border: rgb(255 255 255 / 0.6);
   --g-hairline: rgb(0 0 0 / 0.08);
+  --g-menu: rgb(252 252 253 / 0.99);
   --g-group: rgb(255 255 255 / 0.7);
   --g-selected: rgb(255 255 255 / 0.8);
   --g-hover: rgb(0 0 0 / 0.05);
@@ -235,7 +238,7 @@ p { margin: 0; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px 0 14px;
+  padding: 0 12px 0 8px;
   font-size: 13px;
   font-weight: 500;
   color: var(--bar-fg);
@@ -248,7 +251,14 @@ p { margin: 0; }
   color: inherit; text-decoration: none; padding: 3px 9px; border-radius: 5px; white-space: nowrap;
 }
 .menubar-menus a:hover { background: var(--bar-capsule); }
-.menubar-apple { display: inline-flex; padding: 3px 8px; }
+/* The mark and the name are one lockup, so the padding is on the pair rather than on each
+   of them: 8 px either side and 9 px of the other's own put 17 px between a mark and the
+   word it belongs to. */
+.menubar-home { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 5px;
+  text-decoration: none; color: inherit; }
+.menubar-home:hover { background: var(--bar-capsule); }
+.menubar-apple { display: inline-flex; }
+.menubar-home .menubar-app { padding: 0; }
 .menubar-app { font-weight: 700; }
 .menubar-status { display: flex; align-items: center; gap: 2px; }
 .menubar-status .sys { padding: 3px 6px; display: inline-flex; color: inherit; }
@@ -263,9 +273,21 @@ p { margin: 0; }
 .mb-bar i { position: absolute; left: 0; right: 0; bottom: 0; height: var(--lit); background: var(--tint); border-radius: 1px; }
 .mb-time { font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .mb-theme svg { width: 14px; height: 14px; }
+/* Off on a Mac-width screen: the menus are in the bar where they belong. */
+.menubar-burger { display: none; padding: 3px 6px; color: inherit; background: none; border: 0; cursor: pointer; }
+.menubar-burger svg { width: 15px; height: 15px; display: block; }
+.menubar-sheet { position: absolute; top: 28px; right: 8px; z-index: 40; min-width: 190px; padding: 5px;
+  border-radius: 10px; background: var(--g-menu); box-shadow: 0 12px 30px rgb(0 0 0 / 0.28), 0 0 0 0.5px var(--g-hairline);
+  display: grid; gap: 1px; }
+.menubar-sheet a { padding: 7px 10px; border-radius: 6px; font-size: 14px; color: var(--g-body); text-decoration: none; }
+.menubar-sheet a:hover { background: var(--g-hover); }
+
 @media (max-width: 720px) {
-  .menubar-menus a:not(.menubar-cta) { display: none; }
+  /* The menus fold into the button at the end of the bar; the name stays where a Mac
+     keeps it, at the left. */
+  .menubar-menus a:not(.menubar-home) { display: none; }
   .menubar-clock { display: none; }
+  .menubar-burger { display: inline-flex; }
 }
 
 /* ── Windows ──────────────────────────────────────────────────────────────────────── */
@@ -292,15 +314,17 @@ p { margin: 0; }
 @media (max-width: 720px) { .window-body { padding: 22px 20px 24px; } }
 
 /* documents (privacy, terms) */
-.window--doc { max-width: 720px; margin: 0 auto; }
-.window--doc .window-body { font-size: 17px; line-height: 1.6; }
-.window--doc h3 { font-family: var(--font-display); letter-spacing: -0.02em; font-size: 16px; font-weight: 600; margin: 28px 0 8px; }
-.window--doc p + p { margin-top: 12px; }
-.window--doc ul { padding-left: 20px; margin: 8px 0; }
-.window--doc li + li { margin-top: 10px; }
+/* The legal pages are pages, not windows: the same head, ground, type and foot as the rest. */
+.doc { max-width: 720px; margin: 0 auto; padding: 72px 48px 96px; color: var(--fg); font-size: 17px; line-height: 1.6; }
+.doc h1 { font-family: var(--font-display); letter-spacing: -0.03em; font-size: 34px; font-weight: 600; margin-bottom: 14px; }
+.doc h3 { font-family: var(--font-display); letter-spacing: -0.02em; font-size: 16px; font-weight: 600; margin: 28px 0 8px; }
+.doc p + p { margin-top: 12px; }
+.doc ul { padding-left: 20px; margin: 8px 0; }
+.doc li + li { margin-top: 10px; }
+.doc a { color: inherit; text-underline-offset: 3px; }
+@media (max-width: 780px) { .doc { padding: 24px 22px 72px; } }
 .doc-date { color: var(--fg-3); font-size: 13px; margin-bottom: 18px; }
 .doc-lead { font-size: 18px; line-height: 1.5; }
-.doc-back { margin-top: 36px; font-size: 14px; }
 
 /* ── The first viewport ───────────────────────────────────────────────────────────── */
 .stage {
@@ -347,6 +371,12 @@ p { margin: 0; }
 .hero-meta { color: var(--wall-fg-3); font-size: 14px; line-height: 1.5; }
 .hero-tries { margin-top: 30px; padding-top: 20px; border-top: 0.5px solid var(--wall-rule); font-size: 15px; color: var(--wall-fg-2); display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; max-width: 460px; }
 .hero-tries b { color: var(--wall-fg); font-weight: 600; }
+/* The invitation is the thing it invites: a link that opens the panel. */
+.try-link { font: inherit; font-family: var(--font-display); font-weight: 600; letter-spacing: -0.02em;
+  color: var(--wall-fg); background: none; border: 0; padding: 0; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--wall-fg) 35%, transparent); }
+.try-link:hover { text-decoration-color: var(--wall-fg); }
 .hero-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .segment { display: inline-flex; padding: 2px; border-radius: 7px; background: var(--seg-bg); }
 .segment button { border: 0; background: transparent; padding: 3px 10px; border-radius: 5px; font-size: 12px; font-weight: 500; color: var(--seg-fg); cursor: pointer; }
@@ -388,9 +418,57 @@ p { margin: 0; }
 .panel-body { padding: 11px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .group-caption { display: flex; align-items: baseline; justify-content: space-between; padding: 0 1px; margin-bottom: 5px; font-size: 10.5px; font-weight: 600; color: var(--g-primary); }
 .group-caption .note { font-size: 9px; color: var(--g-tertiary); font-weight: 400; }
-.group-caption .usage-link { opacity: 0; margin-left: 4px; color: var(--g-secondary); display: inline-flex; vertical-align: -1px; }
-.group-caption:hover .usage-link, .usage-link:focus-visible { opacity: 1; }
-.group-caption .usage-link svg { width: 10px; height: 10px; }
+.caption-name { display: inline-flex; align-items: center; gap: 6px; }
+.caption-tail { display: inline-flex; align-items: center; gap: 5px; }
+/* The plan, next to the name: quiet enough to be read second. */
+.badge { font-size: 9px; font-weight: 500; color: var(--g-tertiary); background: var(--g-group);
+  padding: 1px 4px; border-radius: 3px; white-space: nowrap; }
+
+/* The service, as one mark before the agent's name. Quiet until something is wrong: a lit
+   dot on every agent, every time the panel opens, says what you already assumed. */
+.sdot { width: 6px; height: 6px; border-radius: 50%; background: var(--tint, var(--calm)); display: inline-block; flex: none; }
+.sdot--calm { --tint: var(--calm); }
+.sdot--warm { --tint: var(--warm); }
+.sdot--hot { --tint: var(--hot); }
+.sdot.is-quiet { opacity: 0.45; }
+.sdot-btn { border: 0; background: none; padding: 0; margin: 0; display: inline-flex; align-items: center; justify-content: center; width: 10px; height: 14px; cursor: pointer; }
+
+/* Every page about the agent, behind one mark at the end of the line. */
+.more { position: relative; }
+.more > summary { list-style: none; cursor: pointer; color: var(--g-tertiary); opacity: 0.35; font-size: 12px; line-height: 1; padding: 0 2px; }
+.more > summary::-webkit-details-marker { display: none; }
+.group-caption:hover .more > summary, .more[open] > summary { opacity: 1; }
+.more-menu { position: absolute; right: 0; top: 16px; z-index: 5; min-width: 150px; padding: 4px; border-radius: 8px;
+  background: var(--g-menu); border: 0.5px solid var(--g-hairline); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+.more-group + .more-group { border-top: 0.5px solid var(--g-hairline); margin-top: 4px; padding-top: 4px; }
+.more-menu a { display: block; padding: 4px 8px; border-radius: 5px; font-size: 11px; font-weight: 400; color: var(--g-body); text-decoration: none; }
+.more-menu a:hover { background: var(--g-hover); }
+
+/* The status screen the dot pushes over the panel. */
+.panel-back { border: 0; background: none; padding: 0; cursor: pointer; gap: 5px; }
+.panel-back svg { width: 12px; height: 12px; }
+.status-screen { display: flex; flex-direction: column; gap: 16px; padding-top: 6px; }
+.status-checked { font-size: 9px; color: var(--g-tertiary); padding: 0 1px; }
+.status-summary { display: flex; align-items: center; gap: 8px; padding: 8px 10px; font-size: 11px; font-weight: 500; color: var(--g-primary); }
+.status-row { display: flex; align-items: center; gap: 8px; padding: 4px 10px; font-size: 10.5px; color: var(--g-tertiary); }
+.status-row.is-watched { color: var(--g-secondary); }
+.status-row .sdot { opacity: 0.45; }
+.status-row.is-watched .sdot { opacity: 1; }
+.status-name { display: inline-flex; align-items: center; gap: 4px; }
+.watched-eye { width: 10px; height: 10px; color: var(--g-tertiary); flex: none; }
+.status-level { margin-left: auto; font-size: 9px; color: var(--g-tertiary); white-space: nowrap; }
+.status-level.is-alert { color: var(--hot); }
+.status-source { display: block; text-align: right; padding: 5px 10px 7px; font-size: 9px; color: var(--g-tertiary); text-decoration: none; }
+.status-source:hover { text-decoration: underline; }
+.t-h .sdot { margin-right: 6px; vertical-align: 1px; }
+.t-plan { margin-left: 6px; letter-spacing: 0; text-transform: none; color: rgb(var(--t-ink) / 0.38); }
+.t-tail { display: inline-flex; align-items: baseline; gap: 6px; }
+.t-note { font-size: 9.5px; color: rgb(var(--t-ink) / 0.38); white-space: nowrap; }
+.t-more { color: var(--t-ghost); opacity: 0.4; font-size: 11px; }
+.t-section-head:hover .t-more { opacity: 1; }
+
+.status-incident { display: flex; gap: 8px; padding: 7px 10px; font-size: 10px; color: var(--g-secondary); }
+.status-ago { margin-left: auto; font-size: 9px; color: var(--g-tertiary); white-space: nowrap; }
 .group { background: var(--g-group); border-radius: 9px; overflow: hidden; }
 .row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; min-width: 0; }
 .row + .row { border-top: 0.5px solid var(--g-hairline); }
@@ -461,6 +539,23 @@ p { margin: 0; }
 .t-body { padding: 11px 13px 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .t-body .t-hairline { background: rgb(var(--t-green) / 0.14); }
 .t-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+/* The two messages, drawn as macOS shows them. */
+.alerts { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin-top: 28px; }
+.alert { display: flex; align-items: center; gap: 11px; width: 340px; padding: 12px 14px; border-radius: 16px;
+  background: var(--g-menu); border: 0.5px solid var(--g-hairline); box-shadow: 0 10px 30px rgb(0 0 0 / 0.22); }
+.alert-mark { display: flex; width: 34px; height: 34px; align-items: center; justify-content: center; border-radius: 9px;
+  background: var(--g-group); color: var(--g-primary); flex: none; }
+.alert--down .alert-mark { color: var(--hot); }
+.alert--back .alert-mark { color: var(--calm); }
+.alert-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.alert-text b { font-size: 13px; font-weight: 600; color: var(--g-primary); }
+.alert-text span { font-size: 12px; color: var(--g-secondary); }
+.alert-when { margin-left: auto; font-size: 11px; color: var(--g-tertiary); align-self: flex-start; }
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 22px; margin-top: 34px; }
+.note b { display: block; font-size: 14px; font-weight: 600; color: var(--fg); margin-bottom: 6px; }
+.note p { font-size: 13.5px; line-height: 1.55; color: var(--fg-2); margin: 0; }
+
 .t-section-head { display: flex; justify-content: space-between; align-items: baseline; }
 .t-h { font-size: 9.5px; letter-spacing: 0.14em; color: rgb(var(--t-ink) / 0.5); text-transform: uppercase; }
 .t-h .t-cmd { opacity: 0; margin-left: 6px; letter-spacing: 0; text-transform: none; }
@@ -609,15 +704,15 @@ p { margin: 0; }
 .anatomy-notes li::before { counter-increment: note; content: counter(note); width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--accent); color: #fff; }
 .anatomy-notes b { color: var(--fg); font-weight: 600; display: block; font-family: var(--font-display); letter-spacing: -0.02em; }
 .callout { position: absolute; display: flex; align-items: center; gap: 0; }
-.callout--left { right: 100%; margin-right: -6px; flex-direction: row; }
-.callout--right { left: 100%; margin-left: -6px; flex-direction: row-reverse; }
+/* The number alone: a dashed line to a panel it is already beside was drawing a
+   connection nobody was going to miss. */
+.callout--left { right: 100%; margin-right: 10px; }
+.callout--right { left: 100%; margin-left: 10px; }
 .callout b { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; background: var(--accent); color: #fff; box-shadow: 0 0 0 3px var(--win); }
-.callout i { display: block; width: 34px; height: 0; border-top: 1.5px dashed var(--accent); opacity: 0.8; }
 @media (max-width: 900px) {
   .anatomy { grid-template-columns: minmax(0, 1fr); }
   .anatomy-figure { padding: 20px 24px; }
   .anatomy-panel { margin: 0; max-width: 100%; }
-  .callout i { display: none; }
   .callout--left { right: auto; left: -11px; margin: 0; }
   .callout--right { left: auto; right: -11px; margin: 0; }
 }
@@ -646,7 +741,11 @@ p { margin: 0; }
 .mini-pop { width: 170px; height: 104px; overflow: hidden; border-radius: 7px; position: relative; }
 /* Transform, not zoom, for the reason the laptop uses one: Safari lays out a zoomed
    subtree its own way. The panel is absolutely positioned, so scaling it costs no layout. */
-.mini-pop .panel { transform: scale(0.5); transform-origin: top left; position: absolute; left: 0; top: 0; box-shadow: 0 8px 24px rgb(0 0 0 / 0.5), 0 0 0 0.5px rgb(255 255 255 / 0.08); }
+/* The panel is drawn at its true width and then halved, so it fills the 170 pt window
+   exactly and its rows keep their meters. Without `max-width: none` the panel's own
+   `max-width: 100%` clamps it to the window first, and the halving leaves it 85 pt wide in
+   the left half of the box, with no room for a meter. */
+.mini-pop .panel { width: 340px; max-width: none; transform: scale(0.5); transform-origin: top left; position: absolute; left: 0; top: 0; box-shadow: 0 8px 24px rgb(0 0 0 / 0.5), 0 0 0 0.5px rgb(255 255 255 / 0.08); }
 .mini-pop .panel .panel-arrow { display: none; }
 .mini-pop::after { content: ""; position: absolute; inset: auto 0 0 0; height: 28px; background: linear-gradient(transparent, var(--plate)); }
 .place-figure .widget--small { box-shadow: 0 8px 24px rgb(0 0 0 / 0.5); }
@@ -753,7 +852,9 @@ p { margin: 0; }
 /* the footer */
 .footer { padding: 48px 48px 132px; color: var(--wall-fg-2); font-size: 15px; border-top: 0.5px solid var(--wall-rule); }
 .footer-inner { max-width: 1040px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: 32px; }
-.footer-brand .lockup { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: -0.03em; color: var(--wall-fg); }
+/* The lockup is a way home, not a link to read: it is the name, and a name is not
+   underlined. */
+.footer-brand .lockup { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: -0.03em; color: var(--wall-fg); text-decoration: none; }
 .footer-brand .mark { color: var(--wall-fg); }
 .footer-brand p { margin-top: 10px; max-width: 34ch; line-height: 1.5; }
 .footer-fine { color: var(--wall-fg-3); font-size: 13px; }

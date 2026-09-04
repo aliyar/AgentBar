@@ -54,7 +54,7 @@ export const conversations: Conversation[] = [
     busy: true, contextPercent: 22, contextTokens: 220_000, model: "GPT-5", effort: "medium", branch: "site", idleFor: 60,
   },
   {
-    id: "3", agent: "claude", name: "Done — the landing page builds as a static export.", project: "repobar",
+    id: "3", agent: "claude", name: "Done: the landing page builds as a static export.", project: "repobar",
     busy: false, contextPercent: 31, contextTokens: 310_000, model: "Opus 5", effort: "medium", branch: "site", idleFor: 600,
   },
   {
@@ -64,6 +64,108 @@ export const conversations: Conversation[] = [
 ];
 
 export const agents: AgentId[] = ["claude", "codex", "cursor"];
+
+/** Whose figures these are, as `Snapshot.sample` names them: the plan, as a small badge. */
+export const plans: Record<AgentId, string> = { claude: "Max 20x", codex: "Pro Lite", cursor: "Pro" };
+
+/** What an agent holds against its windows filling. Said beside the name, not metered. */
+export const captionNotes: Partial<Record<AgentId, string>> = { codex: "$12.40 credits" };
+
+/** A service level, as the app maps every status page onto one (StatusLevel). */
+export type StatusLevel = "operational" | "degraded" | "partial" | "outage";
+
+export interface StatusComponent {
+  name: string;
+  level: StatusLevel;
+  /** One of the parts this agent actually runs on. Only these decide its level. */
+  watched: boolean;
+}
+
+export interface ServiceStatus {
+  level: StatusLevel;
+  /** The page's own sentence about itself. */
+  description: string;
+  host: string;
+  components: StatusComponent[];
+  incident?: { name: string; startedIn: number };
+}
+
+/** Mirrors `ServiceStatus.sample(for:)`: one agent unwell, so every state can be seen. */
+export const status: Record<AgentId, ServiceStatus> = {
+  claude: {
+    level: "operational",
+    description: "All Systems Operational",
+    host: "status.claude.com",
+    components: [
+      { name: "claude.ai", level: "operational", watched: false },
+      { name: "Claude Console (platform.claude.com)", level: "operational", watched: false },
+      { name: "Claude API (api.anthropic.com)", level: "operational", watched: true },
+      { name: "Claude Code", level: "operational", watched: true },
+      { name: "Claude Cowork", level: "operational", watched: false },
+      { name: "Claude for Government", level: "operational", watched: false },
+    ],
+  },
+  codex: {
+    level: "partial",
+    description: "Partial System Outage",
+    host: "status.openai.com",
+    components: [
+      { name: "Responses", level: "degraded", watched: false },
+      { name: "Codex Web", level: "operational", watched: false },
+      { name: "Codex API", level: "partial", watched: true },
+      { name: "Chat Completions", level: "operational", watched: false },
+    ],
+    incident: { name: "Elevated errors for multiple models", startedIn: 22 * 60 },
+  },
+  cursor: {
+    level: "operational",
+    description: "All Systems Operational",
+    host: "status.cursor.com",
+    components: [
+      { name: "CLI", level: "operational", watched: true },
+      { name: "IDE", level: "operational", watched: true },
+      { name: "Cloud Agents", level: "operational", watched: false },
+      { name: "cursor.com", level: "operational", watched: false },
+    ],
+  },
+};
+
+export const statusTitle: Record<StatusLevel, string> = {
+  operational: "Operational",
+  degraded: "Degraded performance",
+  partial: "Partial outage",
+  outage: "Major outage",
+};
+
+/** The meters' own three colours, so a dot and a full bar never disagree about red. */
+export function statusLevel(level: StatusLevel): Level {
+  switch (level) {
+    case "operational": return "calm";
+    case "degraded": return "warm";
+    default: return "hot";
+  }
+}
+
+/** Every page about an agent, as the app's `⋯` menu lists them. */
+export const links: Record<AgentId, { title: string; url: string }[][]> = {
+  claude: [
+    [{ title: "Usage", url: "https://claude.ai/settings/usage" }, { title: "Status", url: "https://status.claude.com" }],
+    [{ title: "Claude", url: "https://claude.ai" },
+     { title: "Billing", url: "https://claude.ai/new#settings/billing" },
+     { title: "Claude Code docs", url: "https://docs.claude.com/en/docs/claude-code/overview" }],
+  ],
+  codex: [
+    [{ title: "Usage", url: "https://chatgpt.com/codex/settings/usage" }, { title: "Status", url: "https://status.openai.com" }],
+    [{ title: "Codex", url: "https://chatgpt.com/codex" },
+     { title: "Codex docs", url: "https://developers.openai.com/codex/" }],
+  ],
+  cursor: [
+    [{ title: "Usage", url: "https://cursor.com/dashboard/usage" }, { title: "Status", url: "https://status.cursor.com" }],
+    [{ title: "Cursor", url: "https://cursor.com" },
+     { title: "Billing", url: "https://cursor.com/dashboard/billing" },
+     { title: "Cursor docs", url: "https://docs.cursor.com" }],
+  ],
+};
 
 export function limitsFor(agent: AgentId): Limit[] {
   return limits.filter((l) => l.agent === agent);

@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { Desktop } from "./demo/Desktop";
+import { SiteEnd } from "./ui/SiteEnd";
 import { AppIcon } from "./demo/AppIcon";
-import { AnatomyScene, HonestyScene, LaptopScene, PlacesScene, StylesScene } from "./demo/Scenes";
+import { AnatomyScene, HonestyScene, LaptopScene, PlacesScene, StatusScene, StylesScene } from "./demo/Scenes";
 import { Mark } from "./demo/AppIcon";
-import { faq, honesty, install } from "./content";
+import { alerts, faq, honesty, install, status } from "./content";
 import { release } from "./release";
 import { homeSchema, jsonLd } from "./schema";
 import { site } from "./site";
@@ -36,6 +36,34 @@ export default function Home() {
             <p className="lede">Glass, or a terminal readout. Each in light and dark, with a slider for how sheer the panel is.</p>
           </div>
           <StylesScene />
+        </section>
+
+        <section className="band" id="status">
+          <div className="band-head">
+            <h2>When it goes down</h2>
+            <p className="lede">Every agent&rsquo;s own status page, beside its quota, and a word when a service stops working and when it starts again.</p>
+          </div>
+          <StatusScene />
+          <div className="alerts" aria-hidden="true">
+            {alerts.map((a) => (
+              <div key={a.title} className={`alert alert--${a.tone}`}>
+                <span className="alert-mark"><Mark size={18} /></span>
+                <div className="alert-text">
+                  <b>{a.title}</b>
+                  <span>{a.body}</span>
+                </div>
+                <span className="alert-when">{a.when}</span>
+              </div>
+            ))}
+          </div>
+          <div className="notes">
+            {status.map((n) => (
+              <div key={n.lead} className="note">
+                <b>{n.lead}</b>
+                <p>{n.text}</p>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="band" id="widget">
@@ -100,53 +128,7 @@ export default function Home() {
           </div>
         </section>
 
-        <div className="desktop-end">
-        <section className="cta" id="download">
-          <div className="cta-inner">
-            <Mark size={40} />
-            <h2>Know where you stand before the window closes.</h2>
-            <p>Every agent's quota and every running conversation, one glance away, on the Mac you are already using.</p>
-            <a className="button button--big" href={release.url}>
-              <span className="button-prompt" aria-hidden="true">›</span>
-              Download {site.name}
-              <span className="button-cursor" aria-hidden="true" />
-            </a>
-            <p className="cta-meta">
-              Version {release.version} · {release.size.startsWith("0.0") ? "" : `${release.size} · `}{release.date} · macOS {release.minMacOS} or later · Free · Signed and notarized · Updates itself
-            </p>
-          </div>
-        </section>
-
-        <footer className="footer">
-          <div className="footer-inner">
-            <div className="footer-brand">
-              <span className="lockup"><Mark size={18} />{site.name}</span>
-              <p>{site.tagline}</p>
-              <p className="footer-fine">© 2026 {site.maker}. Made for the Mac.</p>
-            </div>
-            <nav className="footer-col" aria-label="The app">
-              <b>The app</b>
-              <a href="#shows">What it shows</a>
-              <a href="#lives">Where it lives</a>
-              <a href="#styles">Two styles</a>
-              <a href="#widget">The widget</a>
-              <a href="#knows">How it knows</a>
-            </nav>
-            <nav className="footer-col" aria-label="Get it">
-              <b>Get it</b>
-              <a href="#download">Download</a>
-              <a href="#install">Install</a>
-              <a href="#faq">Questions</a>
-            </nav>
-            <nav className="footer-col" aria-label="GreatPixels">
-              <b>{site.maker}</b>
-              <a href={`mailto:${site.support}`}>Support</a>
-              <Link href="/privacy/">Privacy</Link>
-              <Link href="/terms/">Terms</Link>
-            </nav>
-          </div>
-        </footer>
-        </div>
+        <SiteEnd />
       </main>
     </>
   );

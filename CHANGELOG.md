@@ -10,7 +10,7 @@ version heading and uses them as the release notes.
 
 ### Added
 - **Whether the service is working, beside how much of it is left.** Each agent's own status
-  page is read every five minutes — and every minute while something is wrong — and its
+  page is read every five minutes, and every minute while something is wrong, and its
   state is one mark before the agent's name, drawn quietly until something is actually
   wrong. Not a row among the meters, which are a list of one kind of thing this is not; and
   not a word either, since the word would say "working" almost every time you looked.
@@ -28,8 +28,8 @@ version heading and uses them as the release notes.
   agree, so a moment's flap says nothing; a page that cannot be reached is never reported as
   an outage, because dropped Wi-Fi looks exactly like a dead service; and an outage that was
   already under way when the app started is not announced at all. Two switches in Settings ›
-  Agents turn the two directions on and off, for every agent you show — which agents is not
-  a second question, having been answered by the list above them. macOS is asked for
+  Agents turn the two directions on and off, for every agent you show. Which agents is not
+  a second question: the list above them has already answered it. macOS is asked for
   permission when a switch is turned on or when there is a first message to show, never at
   launch.
 - A small mark on the menu bar item while a watched service is unwell. Monochrome: the bars
@@ -37,14 +37,21 @@ version heading and uses them as the release notes.
   the other.
 
 - **What the panel draws, and the order it draws it in, is yours.** Settings › Agents lists
-  every block the panel stacks — each agent's group and the conversations running now — with
+  every block the panel stacks, each agent's group and the conversations running now, with
   a switch and a handle apiece. Drag one to move it; the menu bar's bars and the widget
   follow the agents' order too. The list is stored as names, so a block added by a later
   update joins the end instead of appearing somewhere arbitrary.
 - **A `⋯` menu at the end of each agent's line**, in two halves: the usage and status pages
-  this panel's own figures are read from, then the agent itself — its site, where its plan
+  this panel's own figures are read from, then the agent itself: its site, where its plan
   is paid for, and its documentation. It replaces the link that used to sit on the agent's
   name, which could only ever lead to one of them and gave no sign which.
+
+- **The website says what the app now does.** A "When it goes down" section with the panel
+  as it stands and the same panel with an agent's status pushed over it, the two messages
+  drawn as macOS shows them, and what the feature will not do. The panel the site draws
+  follows the app again: the mark before each agent's name, the plan badge, the menu of the
+  agent's pages. Terms and privacy are ordinary pages now, with the same head, ground and
+  foot as the rest of the site rather than a window of their own.
 
 ### Changed
 - **Settings has a Menu Bar pane and a Status pane.** Appearance had grown to cover both how
@@ -60,7 +67,19 @@ version heading and uses them as the release notes.
   stopped being true on 3 September, when the agents' accounts began to be asked, and the
   status pages are a third kind of request. It now names all three and what turns each off.
 
+- No em dash is written anywhere in this project any more: not in the app's own words, its
+  code comments, these notes, or the site. A colon, a semicolon, brackets or two sentences
+  say the same thing without it.
+
 ### Fixed
+- **The panel on the website's desktop came back.** It closed when the desktop scrolled out
+  of view and never returned, so scrolling back left the hero with a hole in it. It now
+  remembers whether it was put away by the scroll or by the reader, and only the first
+  comes back.
+- **The Dock figure on the website drew a panel with no meters.** The panel is halved to fit
+  its window, but its own `max-width` clamped it to that window first, so the halving left
+  it at a quarter width in the left half of the box with no room for a bar. It is drawn at
+  its true width and then halved.
 - **The laptop and the widgets drawn inside it, in Safari.** They were scaled with `zoom`,
   which Safari lays out differently from Chrome: the widgets landed on top of each other
   on iPhone and in a narrow Safari window alike, while Chrome drew them correctly. The

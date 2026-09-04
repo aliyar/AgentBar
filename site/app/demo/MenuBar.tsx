@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Mark } from "./AppIcon";
 import { level, limitsFor, short } from "./sample";
@@ -9,6 +10,16 @@ import { level, limitsFor, short } from "./sample";
  * the status item on the right is AgentBar's own, with the gauge on: Claude's three
  * windows as bars and the fullest one's time left, as the app shows by default.
  */
+/** The page's sections, as the bar's menus and as the narrow screen's list. Absolute, so
+ *  they reach the sections from the legal pages too. */
+const sections = [
+  { href: "/#shows", title: "What it shows" },
+  { href: "/#lives", title: "Where it lives" },
+  { href: "/#status", title: "When it goes down" },
+  { href: "/#knows", title: "How it knows" },
+  { href: "/#faq", title: "FAQ" },
+];
+
 export function MenuBar({
   open,
   onToggle,
@@ -21,6 +32,18 @@ export function MenuBar({
   onTheme: () => void;
 }) {
   const [clock, setClock] = useState("");
+  // A narrow screen has no room for the menus; they go behind one button at the end of the
+  // bar, which is where a Mac keeps its own.
+  const [sectionsOpen, setSectionsOpen] = useState(false);
+  useEffect(() => {
+    if (!sectionsOpen) return;
+    const dismiss = (event: MouseEvent) => {
+      if ((event.target as Element | null)?.closest(".menubar-burger, .menubar-sheet")) return;
+      setSectionsOpen(false);
+    };
+    document.addEventListener("pointerdown", dismiss);
+    return () => document.removeEventListener("pointerdown", dismiss);
+  }, [sectionsOpen]);
   useEffect(() => {
     const tick = () => {
       const d = new Date();
@@ -34,17 +57,19 @@ export function MenuBar({
   return (
     <header className="menubar">
       <nav className="menubar-menus" aria-label="Sections">
-        <span className="menubar-apple" aria-hidden="true">
-          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-            <path d="M11.2 8.5c0-1.4.8-2.2 1.7-2.8-.6-.9-1.6-1.5-2.7-1.5-1.1-.1-2.1.7-2.6.7-.6 0-1.4-.6-2.3-.6C3.9 4.4 2.5 5.7 2.5 8c0 1 .2 2 .6 3 .5 1.3 1.6 3.2 2.7 3.2.8 0 1.2-.6 2.3-.6s1.4.6 2.3.6c1.1 0 2.1-1.8 2.6-3.1-1.2-.6-1.8-1.5-1.8-2.6ZM9.6 3.3c.5-.6.8-1.4.7-2.2-.7.1-1.5.5-2 1.1-.5.5-.8 1.3-.7 2.1.8 0 1.5-.4 2-1Z" />
-          </svg>
-        </span>
-        <span className="menubar-app">AgentBar</span>
-        <a href="#shows">What it shows</a>
-        <a href="#lives">Where it lives</a>
-        <a href="#knows">How it knows</a>
-        <a href="#faq">FAQ</a>
-        <a href="#download" className="menubar-cta">Download</a>
+        {/* The app's own mark, not Apple's: this is AgentBar's menu bar, and the logo of
+            a company that has nothing to do with it does not belong in it. The mark and
+            the name are one link home, as an app's name in a menu bar is one thing. */}
+        <Link className="menubar-home" href="/">
+          <span className="menubar-apple" aria-hidden="true">
+            <Mark size={14} />
+          </span>
+          <span className="menubar-app">AgentBar</span>
+        </Link>
+        {sections.map((section) => (
+          <a key={section.href} href={section.href}>{section.title}</a>
+        ))}
+        <a href="/#download" className="menubar-cta">Download</a>
       </nav>
       <div className="menubar-status">
         <StatusItem gauge open={open} onToggle={onToggle} id="agentbar-item" />
@@ -67,7 +92,21 @@ export function MenuBar({
           <svg viewBox="0 0 26 13" width="26" height="13" fill="none" stroke="currentColor"><rect x="1" y="1" width="21" height="11" rx="3" strokeOpacity="0.5" /><rect x="3" y="3" width="15" height="7" rx="1.5" fill="currentColor" stroke="none" /><path d="M24 4.5v4" strokeOpacity="0.5" strokeLinecap="round" /></svg>
         </span>
         <span className="menubar-clock">{clock || " "}</span>
+        <button type="button" className="menubar-burger" aria-expanded={sectionsOpen} aria-label="Sections"
+                onClick={() => setSectionsOpen((v) => !v)}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+            <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" />
+          </svg>
+        </button>
       </div>
+      {sectionsOpen && (
+        <nav className="menubar-sheet" aria-label="Sections">
+          {sections.map((section) => (
+            <a key={section.href} href={section.href} onClick={() => setSectionsOpen(false)}>{section.title}</a>
+          ))}
+          <a href="/#download" onClick={() => setSectionsOpen(false)}>Download</a>
+        </nav>
+      )}
     </header>
   );
 }

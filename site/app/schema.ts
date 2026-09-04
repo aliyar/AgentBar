@@ -4,7 +4,7 @@
  * than guessing from the drawn desktop, which carries no screenshot to read.
  *
  * Everything here restates something the page already says. Nothing is asserted that the
- * page does not — no ratings, no counts, no claims we cannot stand behind.
+ * page does not: no ratings, no counts, no claims we cannot stand behind.
  */
 import { faq } from "./content";
 import { release } from "./release";

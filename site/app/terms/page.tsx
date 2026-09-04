@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Window } from "../ui/Window";
+import { SiteEnd } from "../ui/SiteEnd";
+import { PageHeader } from "../ui/PageHeader";
 import { pageMetadata, site } from "../site";
 
 export const metadata: Metadata = pageMetadata({
@@ -11,8 +12,11 @@ export const metadata: Metadata = pageMetadata({
 
 export default function Terms() {
   return (
-    <main className="desktop desktop--page">
-      <Window title="Terms" className="window--doc">
+    <>
+      <PageHeader />
+      <main className="sheet" id="main">
+        <article className="doc">
+          <h1>Terms</h1>
         <p className="doc-date">Last updated 3 September 2026</p>
         <p className="doc-lead">
           {site.name} is free software from {site.maker}, offered as it is. These are the few terms that come with
@@ -55,10 +59,9 @@ export default function Terms() {
         <h3>Changes</h3>
         <p>If these terms change, the date at the top changes with them.</p>
 
-        <p className="doc-back">
-          <Link href="/">← {site.name}</Link>
-        </p>
-      </Window>
-    </main>
+        </article>
+      </main>
+      <SiteEnd />
+    </>
   );
 }
