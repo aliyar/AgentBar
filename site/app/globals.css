@@ -290,29 +290,6 @@ p { margin: 0; }
   .menubar-burger { display: inline-flex; }
 }
 
-/* ── Windows ──────────────────────────────────────────────────────────────────────── */
-.window {
-  background: var(--win);
-  border-radius: 12px;
-  box-shadow: var(--win-shadow), 0 0 0 0.5px var(--win-edge);
-  overflow: hidden;
-  color: var(--fg);
-}
-.window-bar {
-  position: relative; height: 38px; display: flex; align-items: center; justify-content: center;
-  background: var(--win-bar); border-bottom: 0.5px solid var(--win-edge);
-}
-.lights { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); display: flex; gap: 8px; }
-.light { width: 12px; height: 12px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.16); }
-.light--close { background: #ff5f57; }
-.light--min { background: #febc2e; }
-.light--zoom { background: #28c840; }
-.window-title { font-size: 13px; font-weight: 600; color: var(--win-title); letter-spacing: -0.01em; }
-.window-body { padding: 28px 32px 32px; }
-.window-body--flush { padding: 0; }
-.window--dark { --win: #211f1c; --win-bar: #2c2925; --win-edge: rgb(250 246 240 / 0.12); --win-title: rgb(250 246 240 / 0.74); --fg: rgb(250 246 240 / 0.92); --fg-2: rgb(250 246 240 / 0.64); --fg-3: rgb(250 246 240 / 0.46); color-scheme: dark; }
-@media (max-width: 720px) { .window-body { padding: 22px 20px 24px; } }
-
 /* documents (privacy, terms) */
 /* The legal pages are pages, not windows: the same head, ground, type and foot as the rest. */
 .doc { max-width: 720px; margin: 0 auto; padding: 72px 48px 96px; color: var(--fg); font-size: 17px; line-height: 1.6; }
@@ -763,7 +740,7 @@ p { margin: 0; }
 /* The laptop is one drawing and scales as a whole, its proportions kept. `zoom` did that
    too, but Safari lays out a zoomed subtree differently from Chrome and the widgets inside
    it landed on top of each other, on the phone and in a narrow window alike. A transform
-   is the same scale everywhere — it just leaves the old box behind, so the wrapper states
+   is the same scale everywhere: it just leaves the old box behind, so the wrapper states
    the scaled one: the laptop is 960 × 627 at rest. */
 .laptop { margin: 0; width: 960px; max-width: none; flex: none;
           transform: scale(var(--laptop-scale, 1)); transform-origin: top center; }

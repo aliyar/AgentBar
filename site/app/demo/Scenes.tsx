@@ -181,10 +181,10 @@ export function HonestyScene() {
             <span className="row-label">Weekly · all</span>
             <span className="ticks" aria-hidden="true">{Array.from({ length: 44 }, (_, i) => <i key={i} />)}</span>
             <span className="row-pct">0%</span>
-            <span className="row-time" style={{ cursor: "default" }}>—</span>
+            <span className="row-time" style={{ cursor: "default" }}>-</span>
           </div>
         </div>
-        <figcaption><b>“—”</b> A window that has already started over, before the agent writes a fresh figure. Not a guess.</figcaption>
+        <figcaption><b>A dash</b> for a window that has already started over, before the agent writes a fresh figure. Not a guess.</figcaption>
       </figure>
       <figure>
         <div className="evidence">

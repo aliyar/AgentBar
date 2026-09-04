@@ -139,7 +139,7 @@ private struct UsageRow: View {
                 .monospacedDigit()
                 .foregroundStyle(!rolledOver && level == .hot ? tint : glass.tertiary)
                 .frame(width: 24, alignment: .trailing)
-            Text(remaining ?? (rolledOver ? "—" : ""))
+            Text(remaining ?? (rolledOver ? "-" : ""))
                 .font(.system(size: 12.5, weight: .regular))
                 .monospacedDigit()
                 .foregroundStyle(dimmed ? glass.tertiary : glass.primary)

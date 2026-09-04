@@ -8,6 +8,13 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+## [Unreleased]
+
+### Changed
+- A window that has already started over is drawn with a plain dash rather than an em dash,
+  and so are a reset with no date anyone writes and a version that cannot be read. The mark
+  means the same thing; the character is the one the rest of the project now uses.
+
 ## [1.2.0] - 2026-09-04
 
 ### Added

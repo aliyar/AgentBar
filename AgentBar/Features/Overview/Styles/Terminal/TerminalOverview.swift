@@ -244,8 +244,8 @@ struct TerminalOverview: View {
         // nothing to say here. The dash means "this window has rolled over" and would be
         // read as a reading; blank is the honest column.
         guard limit.resetsAt != nil else { return "" }
-        if clock { return "—" }
-        return limit.windowLength.map { compact($0) } ?? "—"
+        if clock { return "-" }
+        return limit.windowLength.map { compact($0) } ?? "-"
     }
 
     // MARK: Active

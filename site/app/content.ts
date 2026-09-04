@@ -66,7 +66,7 @@ export const honesty = [
   },
   {
     lead: "Nothing invented.",
-    text: "A window that has already started over shows “—”. A figure written hours ago says how old it is. A context whose limit is not written anywhere shows its tokens rather than a made-up percentage.",
+    text: "A window that has already started over shows a dash. A figure written hours ago says how old it is. A context whose limit is not written anywhere shows its tokens rather than a made-up percentage.",
   },
 ] as const;
 
@@ -101,8 +101,8 @@ export const faq = [
     a: "It reads the tail of each running conversation’s transcript, on this Mac, to name it by what was last said and to read its context figure. That is all it looks for, and it stays on the Mac.",
   },
   {
-    q: "Why does a window show “—”, or say “as of 14:05”?",
-    a: "“—” means the window has already started over and the agent has not written a fresh figure yet; AgentBar will not guess. “as of” means the figure it shows is old enough that you should know how old.",
+    q: "Why does a window show a dash, or say “as of 14:05”?",
+    a: "A dash means the window has already started over and the agent has not written a fresh figure yet; AgentBar will not guess. “as of” means the figure it shows is old enough that you should know how old.",
   },
   {
     q: "Why does a conversation show tokens instead of a percentage?",
