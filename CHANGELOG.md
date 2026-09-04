@@ -8,7 +8,57 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
-## [Unreleased]
+### Added
+- **Whether the service is working, beside how much of it is left.** Each agent's own status
+  page is read every five minutes — and every minute while something is wrong — and its
+  state is one mark before the agent's name, drawn quietly until something is actually
+  wrong. Not a row among the meters, which are a list of one kind of thing this is not; and
+  not a word either, since the word would say "working" almost every time you looked.
+  Resting on the mark says what the colour cannot. Clicking it opens
+  that agent's status as a screen of its own, with the panel's header as the way back
+  (Escape too): the page's own sentence, every component it lists, any open incident, and a
+  link to the page. AgentBar reads the parts you actually run on rather than the page's
+  overall indicator: claude.ai going down while Claude Code keeps working is not your
+  outage, and an alarm for it is the one thing this must not do. Which component each agent
+  is read from is written down in `docs/DEVELOPMENT.md`, so what the app watches can be
+  checked against the page.
+- **A notification when a service stops working, and when it starts again.** The second is
+  the one this is for: a status page tells you a service is down, and then nothing tells you
+  it is back, so you go and try until it is. A change is announced only once two readings
+  agree, so a moment's flap says nothing; a page that cannot be reached is never reported as
+  an outage, because dropped Wi-Fi looks exactly like a dead service; and an outage that was
+  already under way when the app started is not announced at all. Two switches in Settings ›
+  Agents turn the two directions on and off, for every agent you show — which agents is not
+  a second question, having been answered by the list above them. macOS is asked for
+  permission when a switch is turned on or when there is a first message to show, never at
+  launch.
+- A small mark on the menu bar item while a watched service is unwell. Monochrome: the bars
+  beside it are already coloured by how full a window is, and one signal must not be read as
+  the other.
+
+- **What the panel draws, and the order it draws it in, is yours.** Settings › Agents lists
+  every block the panel stacks — each agent's group and the conversations running now — with
+  a switch and a handle apiece. Drag one to move it; the menu bar's bars and the widget
+  follow the agents' order too. The list is stored as names, so a block added by a later
+  update joins the end instead of appearing somewhere arbitrary.
+- **A `⋯` menu at the end of each agent's line**, in two halves: the usage and status pages
+  this panel's own figures are read from, then the agent itself — its site, where its plan
+  is paid for, and its documentation. It replaces the link that used to sit on the agent's
+  name, which could only ever lead to one of them and gave no sign which.
+
+### Changed
+- **Settings has a Menu Bar pane and a Status pane.** Appearance had grown to cover both how
+  the panel is painted and what the menu bar item shows, and Agents to cover both which
+  blocks the panel draws and whether the services behind them are up. Each pane now asks one
+  question.
+- The Settings sidebar shows the menu bar mark rather than the Dock icon. At 18 points the
+  full icon is a smudge of what the mark says plainly, and the mark is how the app is met.
+- Cursor's usage page is opened at `cursor.com/dashboard/usage`. Cursor moved its dashboard
+  tabs from a query to a path; the address we shipped still redirects, but a redirect is a
+  round trip that will one day stop being made.
+- The README no longer says no account is contacted and nothing leaves the machine. That
+  stopped being true on 3 September, when the agents' accounts began to be asked, and the
+  status pages are a third kind of request. It now names all three and what turns each off.
 
 ### Fixed
 - **The laptop and the widgets drawn inside it, in Safari.** They were scaled with `zoom`,
@@ -19,8 +69,6 @@ version heading and uses them as the release notes.
   lives" was scaled the same way and is fixed with it. No `zoom` is left in the stylesheet.
 
 ## [1.1.1] - 2026-09-03
-
-## [Unreleased]
 
 ### Changed
 - **The panel's tooltips are a heading and a line, on a solid card.** A tip named its row

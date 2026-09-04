@@ -41,7 +41,9 @@ public enum Agent: String, CaseIterable, Identifiable, Codable, Sendable, Coding
         switch self {
         case .claude: URL(string: "https://claude.ai/settings/usage")!
         case .codex: URL(string: "https://chatgpt.com/codex/settings/usage")!
-        case .cursor: URL(string: "https://cursor.com/dashboard?tab=usage")!
+        // Cursor moved its dashboard tabs from a query to a path in 2026; the old address
+        // still redirects, but a redirect is a round trip and one day it will stop.
+        case .cursor: URL(string: "https://cursor.com/dashboard/usage")!
         }
     }
 

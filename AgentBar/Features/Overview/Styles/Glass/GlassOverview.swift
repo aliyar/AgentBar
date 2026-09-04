@@ -9,12 +9,21 @@ import AgentBarKit
 struct GlassOverview: View {
     let snapshot: Snapshot
     let agents: [Agent]
+    /// The blocks to draw, in order.
+    var sections: [PanelSection] = []
+    /// What each agent's status page says, and why one could not be read.
+    var statuses: [Agent: ServiceStatus] = [:]
+    var statusProblems: [Agent: String] = [:]
+    var showsStatus = false
     var onSettings: () -> Void = {}
     var onQuit: () -> Void = {}
     /// The refresh button's state and action; the accounts are asked again.
     var isRefreshing = false
     var onRefresh: () -> Void = {}
     var presentation: PanelPresentation = .popover
+    /// Which screen is showing, and how to get to another.
+    var route: PanelRoute = .overview
+    var onNavigate: (PanelRoute) -> Void = { _ in }
 
     @Environment(\.colorScheme) private var scheme
     /// Reset times as clock times rather than time left; remembered between opens.
@@ -22,6 +31,12 @@ struct GlassOverview: View {
 
     private var conversations: [Conversation] {
         snapshot.conversations.filter { agents.contains($0.agent) }
+    }
+
+    /// The blocks to draw, or the default arrangement when none was given (previews and
+    /// the screenshot harness).
+    private var drawn: [PanelSection] {
+        sections.isEmpty ? agents.map(PanelSection.agent) + [.conversations] : sections
     }
 
     var body: some View {
@@ -36,34 +51,85 @@ struct GlassOverview: View {
         VStack(spacing: 0) {
             header(now: now)
             Rectangle().fill(glass.hairline).frame(height: 0.5)
-            VStack(alignment: .leading, spacing: 16) {
-                if agents.isEmpty {
-                    Note("No coding agent to show. AgentBar reads Claude Code and Codex from their own folders in your home directory; pick the agents in Settings.")
-                }
-                ForEach(agents) { agent in
-                    UsageSection(agent: agent, limits: snapshot.limits(for: agent),
-                                 written: snapshot.lastWritten[agent], account: snapshot.accounts[agent],
-                                 credits: snapshot.credits[agent], identity: snapshot.identities[agent],
-                                 activeSince: snapshot.latestActivity(for: agent), now: now, showsClock: $showsClock)
-                }
-                if !agents.isEmpty {
-                    ConversationsSection(conversations: conversations)
+            Group {
+                switch route {
+                case .overview:
+                    overview(now: now)
+                        .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .leading))
+                            .combined(with: .opacity))
+                case .status(let agent):
+                    StatusScreen(agent: agent, status: statuses[agent],
+                                 problem: statusProblems[agent], now: now)
+                        .padding(11)
+                        // A pushed screen starts below its title bar, not against it.
+                        .padding(.top, 6)
+                        .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing))
+                            .combined(with: .opacity))
                 }
             }
-            .padding(11)
+            // The screens slide over one another, but the panel must not be clipped while
+            // one is half off the edge.
+            .clipped()
             Rectangle().fill(glass.hairline).frame(height: 0.5)
             footer
         }
     }
 
+    @ViewBuilder
+    private func overview(now: Date) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if agents.isEmpty {
+                Note("No coding agent to show. AgentBar reads Claude Code and Codex from their own folders in your home directory; pick the agents in Settings.")
+            }
+            ForEach(drawn) { section in
+                switch section {
+                case .agent(let agent):
+                    UsageSection(agent: agent, limits: snapshot.limits(for: agent),
+                                 written: snapshot.lastWritten[agent], account: snapshot.accounts[agent],
+                                 credits: snapshot.credits[agent], identity: snapshot.identities[agent],
+                                 activeSince: snapshot.latestActivity(for: agent), now: now, showsClock: $showsClock,
+                                 status: statuses[agent], statusProblem: statusProblems[agent],
+                                 showsStatus: showsStatus,
+                                 openStatus: { navigate(to: .status(agent)) })
+                case .conversations:
+                    ConversationsSection(conversations: conversations)
+                }
+            }
+        }
+        .padding(11)
+    }
+
+    /// The panel's own title bar. On a pushed screen the mark gives way to a back button
+    /// and the agent's name, the way a screen that was pushed says where it is and how to
+    /// leave — the controls at the right stay where they are throughout.
     private func header(now: Date) -> some View {
         let glass = Palette.glass(scheme)
-        let name = HStack(spacing: 7) {
-            MarkView(size: 16, tint: glass.primary, cursor: Palette.color(.calm, scheme))
-            Text("AgentBar")
-                .font(.system(size: 14, weight: .semibold))
-                .tracking(-0.14)
-                .foregroundStyle(glass.primary)
+        let name = Group {
+            switch route {
+            case .overview:
+                HStack(spacing: 7) {
+                    MarkView(size: 16, tint: glass.primary, cursor: Palette.color(.calm, scheme))
+                    Text("AgentBar")
+                        .font(.system(size: 14, weight: .semibold))
+                        .tracking(-0.14)
+                        .foregroundStyle(glass.primary)
+                }
+            case .status(let agent):
+                Button { navigate(to: .overview) } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text("\(agent.title) status")
+                            .font(.system(size: 14, weight: .semibold))
+                            .tracking(-0.14)
+                    }
+                    .foregroundStyle(glass.primary)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .tip("Back", "Back to the meters")
+                .keyboardShortcut(.escape, modifiers: [])
+            }
         }
         let controls = HStack(spacing: 8) {
             RefreshButton(isRefreshing: isRefreshing, action: onRefresh)
@@ -106,6 +172,11 @@ struct GlassOverview: View {
         .padding(.top, 11)
         .padding(.horizontal, 12)
         .padding(.bottom, 10)
+    }
+
+    /// One place decides how a screen change looks, so the header and the rows agree.
+    private func navigate(to route: PanelRoute) {
+        withAnimation(.easeOut(duration: 0.22)) { onNavigate(route) }
     }
 
     private var footer: some View {
@@ -201,14 +272,14 @@ struct GlassBackground: View {
 }
 
 #Preview("Dark") {
-    GlassOverview(snapshot: .sample, agents: Agent.allCases)
+    GlassOverview(snapshot: .sample, agents: Agent.allCases, statuses: ServiceStatus.sampleAll(), showsStatus: true)
         .frame(width: 340)
         .background(GlassBackground())
         .preferredColorScheme(.dark)
 }
 
 #Preview("Light") {
-    GlassOverview(snapshot: .sample, agents: Agent.allCases)
+    GlassOverview(snapshot: .sample, agents: Agent.allCases, statuses: ServiceStatus.sampleAll(), showsStatus: true)
         .frame(width: 340)
         .background(GlassBackground())
         .preferredColorScheme(.light)

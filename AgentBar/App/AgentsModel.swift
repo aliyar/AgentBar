@@ -172,8 +172,11 @@ final class AgentsModel {
             }
             snapshot.accounts[agent] = status
         }
-        // Agents first, in their order; the file read may have put them in another.
-        snapshot.limits.sort { Agent.allCases.firstIndex(of: $0.agent)! < Agent.allCases.firstIndex(of: $1.agent)! }
+        // Agents first, in the order the user put them; the file read may have produced
+        // another. The menu bar's bars and the widget draw this list, so sorting it here
+        // is what makes one order serve all three surfaces.
+        let position = Dictionary(uniqueKeysWithValues: agents.enumerated().map { ($1, $0) })
+        snapshot.limits.sort { (position[$0.agent] ?? .max) < (position[$1.agent] ?? .max) }
         return snapshot
     }
 

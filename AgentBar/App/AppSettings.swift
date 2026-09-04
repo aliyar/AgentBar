@@ -10,6 +10,8 @@ final class AppSettings {
         static let gauge = "gaugeEnabled"
         /// Stored as exclusions, so an agent added by an update is on until turned off.
         static let disabledAgents = "disabledAgents"
+        static let sectionOrder = "sectionOrder"
+        static let conversations = "showsConversations"
         static let appearance = "appearance"
         static let panelStyle = "panelStyle"
         static let presence = "presence"
@@ -25,6 +27,9 @@ final class AppSettings {
         static let menuBarTime = "menuBarTime"
         /// Shared with `OverviewView`'s `@AppStorage`: clicking a time in the panel flips it too.
         static let resetClock = "showsResetClock"
+        static let statusChecks = "statusChecks"
+        static let notifiesDown = "notifiesDown"
+        static let notifiesBack = "notifiesBack"
     }
 
     /// Whose time left the menu bar shows next to the bars.
@@ -114,6 +119,56 @@ final class AppSettings {
         return Set(Agent.allCases.filter { !off.contains($0.rawValue) })
     }
 
+    /// The order the panel's blocks come in - each agent's group and the conversations
+    /// running right now. The panel draws them in this order; the menu bar's bars and the
+    /// widget follow the agents' part of it, because both draw a snapshot sorted by it.
+    ///
+    /// Stored as names rather than positions, so a block added by an update joins the end
+    /// of the list instead of being lost or landing somewhere arbitrary.
+    var sectionOrder: [PanelSection] {
+        didSet { defaults.set(sectionOrder.map(\.rawValue), forKey: Keys.sectionOrder) }
+    }
+
+    /// The conversations block. An agent is hidden through `enabledAgents`; this one has
+    /// no agent, so it has a switch of its own.
+    var showsConversations: Bool {
+        didSet { defaults.set(showsConversations, forKey: Keys.conversations) }
+    }
+
+    private static func order(in defaults: UserDefaults) -> [PanelSection] {
+        let stored = (defaults.stringArray(forKey: Keys.sectionOrder) ?? []).compactMap(PanelSection.init(rawValue:))
+        // Anything the stored list does not name - a new block, or a name that no longer
+        // exists having been dropped by `compactMap` - keeps its canonical place at the end.
+        return stored + PanelSection.all.filter { !stored.contains($0) }
+    }
+
+    /// Puts `section` where `other` sits now. Dropping a row onto another takes that row's
+    /// place; everything between shuffles up or down to make room.
+    func move(_ section: PanelSection, onto other: PanelSection) {
+        guard section != other, let to = sectionOrder.firstIndex(of: other) else { return }
+        var order = sectionOrder
+        order.removeAll { $0 == section }
+        order.insert(section, at: min(to, order.count))
+        sectionOrder = order
+    }
+
+    func isShown(_ section: PanelSection) -> Bool {
+        switch section {
+        case .agent(let agent): isEnabled(agent)
+        case .conversations: showsConversations
+        }
+    }
+
+    func setShown(_ section: PanelSection, _ shown: Bool) {
+        switch section {
+        case .agent(let agent): setEnabled(agent, shown)
+        case .conversations: showsConversations = shown
+        }
+    }
+
+    /// The blocks to draw, in the order the user put them.
+    var sections: [PanelSection] { sectionOrder.filter { isShown($0) } }
+
     /// The popover's and the Settings window's appearance; the status item follows the menu bar.
     var appearance: AppAppearance {
         didSet { defaults.set(appearance.rawValue, forKey: Keys.appearance) }
@@ -156,6 +211,28 @@ final class AppSettings {
         didSet { defaults.set(showsResetClock, forKey: Keys.resetClock) }
     }
 
+    /// Read each agent's status page. Off means the panel shows no status at all and no
+    /// page is asked - the one switch that turns the whole feature off.
+    var checksStatus: Bool {
+        didSet { defaults.set(checksStatus, forKey: Keys.statusChecks) }
+    }
+
+    /// Say so when a service stops working.
+    var notifiesDown: Bool {
+        didSet { defaults.set(notifiesDown, forKey: Keys.notifiesDown) }
+    }
+
+    /// Say so when it works again. The one this feature is for.
+    var notifiesBack: Bool {
+        didSet { defaults.set(notifiesBack, forKey: Keys.notifiesBack) }
+    }
+
+    /// Whether anything at all is announced. Which agents is not a question of its own:
+    /// it is the agents shown, the same list everything else in the app works from.
+    var announcesAnything: Bool {
+        checksStatus && (notifiesDown || notifiesBack)
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         // The defaults a first launch lands on: the gauge in the menu bar, the app in the
@@ -166,6 +243,8 @@ final class AppSettings {
             ?? (defaults.object(forKey: Keys.dock) == nil || defaults.bool(forKey: Keys.dock) ? .both : .menuBar)
         dockClickOpens = defaults.string(forKey: Keys.dockClick).flatMap(DockClick.init(rawValue:)) ?? .popover
         enabledAgents = Self.included(excluding: Keys.disabledAgents, in: defaults)
+        sectionOrder = Self.order(in: defaults)
+        showsConversations = defaults.object(forKey: Keys.conversations) as? Bool ?? true
         // Dark by default: both styles were designed dark-first.
         appearance = defaults.string(forKey: Keys.appearance).flatMap(AppAppearance.init(rawValue:)) ?? .dark
         panelStyle = defaults.string(forKey: Keys.panelStyle).flatMap(PanelStyleID.init(rawValue:)) ?? .glass
@@ -178,6 +257,11 @@ final class AppSettings {
         menuBarBars = defaults.stringArray(forKey: Keys.menuBarBars) ?? []
         menuBarTime = MenuBarTime(rawValue: defaults.string(forKey: Keys.menuBarTime) ?? "fullest")
         showsResetClock = defaults.bool(forKey: Keys.resetClock)
+        // The status of a service you depend on is not an opt-in curiosity, and the pages
+        // are public: on by default, both directions.
+        checksStatus = defaults.object(forKey: Keys.statusChecks) as? Bool ?? true
+        notifiesDown = defaults.object(forKey: Keys.notifiesDown) as? Bool ?? true
+        notifiesBack = defaults.object(forKey: Keys.notifiesBack) as? Bool ?? true
     }
 
     /// True once per install: the first launch registers the login item and remembers it did.
@@ -187,8 +271,8 @@ final class AppSettings {
         return true
     }
 
-    /// Enabled agents in their canonical order.
-    var agents: [Agent] { Agent.allCases.filter { enabledAgents.contains($0) } }
+    /// The agents to show, in the order the user put them.
+    var agents: [Agent] { sectionOrder.compactMap(\.agent).filter { enabledAgents.contains($0) } }
 
     func isEnabled(_ agent: Agent) -> Bool { enabledAgents.contains(agent) }
 

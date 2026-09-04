@@ -36,6 +36,24 @@ enum Palette {
         }
     }
 
+    /// A status level in the same three colours the meters use. A dot and a full meter
+    /// must never disagree about what red means, so this maps onto `Level` rather than
+    /// bringing colours of its own: working is calm, degraded is warm, anything worse is
+    /// hot, and a level nobody can read is grey.
+    static func level(_ status: StatusLevel) -> Level? {
+        switch status {
+        case .operational: .calm
+        case .degraded, .maintenance: .warm
+        case .partial, .outage: .hot
+        case .unknown: nil
+        }
+    }
+
+    static func color(_ status: StatusLevel, _ scheme: ColorScheme) -> Color {
+        guard let level = level(status) else { return glass(scheme).tertiary }
+        return color(level, scheme)
+    }
+
     // MARK: Agent colours
 
     static func agent(_ agent: Agent, _ scheme: ColorScheme) -> Color {

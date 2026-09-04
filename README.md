@@ -15,15 +15,21 @@
   <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="MIT license">
 </p>
 
-AgentBar reads what Claude Code and Codex leave on this Mac — the rate-limit windows, the
+AgentBar reads what Claude Code, Codex and Cursor leave on this Mac — the rate-limit windows, the
 sessions that are running right now — and shows it where you glance anyway: a percentage in the
 menu bar, a popover with a meter per window and a row per conversation, an optional Dock window,
-and a widget for Notification Center and the desktop. No account is contacted, no credential is
-ever seen, and nothing leaves the machine.
+and a widget for Notification Center and the desktop. It also watches each agent's own status
+page, and tells you when a service stops working and when it starts again.
+
+Three kinds of request leave the Mac, and nothing else does: each agent's account is asked how
+much of its quota is left, using the sign-in that agent already keeps here; each agent's public
+status page is read; and Sparkle checks for an update. Update checks and the status pages each
+have a switch of their own, and an agent you turn off is neither read nor asked about. No
+credential is stored or logged, and what the agents write on disk never leaves it.
 
 Website: [agentbar.greatpixels.com](https://agentbar.greatpixels.com)
 
-## Status
+## Project status
 
 Early. The skeleton builds and shows a menu bar item; the readers, the popover, the widget and
 the Dock window follow, in that order. See [CHANGELOG.md](CHANGELOG.md).

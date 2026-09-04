@@ -26,22 +26,22 @@ struct TerminalOverview: View {
                 header(palette: palette)
                     .background(palette.band)
                 Rectangle().fill(palette.hairline).frame(height: 0.5)
-                VStack(alignment: .leading, spacing: 12) {
-                    if context.agents.isEmpty {
-                        Text("no agents. pick them in :settings")
-                            .font(Self.mono(10.5)).foregroundStyle(palette.faint)
-                    }
-                    ForEach(context.agents) { agent in
-                        usage(agent, now: tick.date, palette: palette)
-                    }
-                    if !context.agents.isEmpty {
-                        Rectangle().fill(palette.bodyHairline).frame(height: 0.5)
-                        active(palette: palette)
+                Group {
+                    switch context.route {
+                    case .overview:
+                        overview(now: tick.date, palette: palette)
+                            .transition(.move(edge: .leading).combined(with: .opacity))
+                    case .status(let agent):
+                        TerminalStatusScreen(agent: agent, status: context.statuses[agent],
+                                             problem: context.statusProblems[agent],
+                                             now: tick.date, palette: palette)
+                            .padding(.top, 11)
+                            .padding(.horizontal, 13)
+                            .padding(.bottom, 12)
+                            .transition(.move(edge: .trailing).combined(with: .opacity))
                     }
                 }
-                .padding(.top, 11)
-                .padding(.horizontal, 13)
-                .padding(.bottom, 12)
+                .clipped()
                 Rectangle().fill(palette.hairline).frame(height: 0.5)
                 footer(palette: palette)
                     .background(palette.band)
@@ -51,15 +51,66 @@ struct TerminalOverview: View {
         .background(palette.panel.opacity(opacity))
     }
 
+    @ViewBuilder
+    private func overview(now: Date, palette: TerminalPalette) -> some View {
+        let drawn = context.drawnSections
+        return VStack(alignment: .leading, spacing: 12) {
+            if drawn.isEmpty {
+                Text("nothing to show. pick the blocks in :settings")
+                    .font(Self.mono(10.5)).foregroundStyle(palette.faint)
+            }
+            ForEach(Array(drawn.enumerated()), id: \.element) { index, section in
+                switch section {
+                case .agent(let agent):
+                    usage(agent, now: now, palette: palette)
+                case .conversations:
+                    // The readout rules off before its last block, as the handoff draws it.
+                    if index > 0 { Rectangle().fill(palette.bodyHairline).frame(height: 0.5) }
+                    active(palette: palette)
+                }
+            }
+        }
+        .padding(.top, 11)
+        .padding(.horizontal, 13)
+        .padding(.bottom, 12)
+    }
+
+    /// One place decides how a screen change looks.
+    private func navigate(to route: PanelRoute) {
+        withAnimation(.easeOut(duration: 0.22)) { context.onNavigate(route) }
+    }
+
     // MARK: Header
 
     private func header(palette: TerminalPalette) -> some View {
-        let name = HStack(spacing: 6) {
-            MarkView(size: 13, tint: palette.title, cursor: palette.meterLit)
-            Text("agentbar")
-                .font(Self.mono(10.5))
-                .tracking(0.63)
-                .foregroundStyle(palette.title)
+        let name = Group {
+            switch context.route {
+            case .overview:
+                HStack(spacing: 6) {
+                    MarkView(size: 13, tint: palette.title, cursor: palette.meterLit)
+                    Text("agentbar")
+                        .font(Self.mono(10.5))
+                        .tracking(0.63)
+                        .foregroundStyle(palette.title)
+                }
+            case .status(let agent):
+                // `‹ agentbar/claude.status`: where you are, and the way back, in a path.
+                Button { navigate(to: .overview) } label: {
+                    HStack(spacing: 6) {
+                        Text("‹")
+                            .font(Self.mono(11))
+                            .foregroundStyle(palette.prompt)
+                        Text("agentbar/\(agent.rawValue).status")
+                            .font(Self.mono(10.5))
+                            .tracking(0.63)
+                            .foregroundStyle(palette.title)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .tip("Back", "Back to the meters")
+                .keyboardShortcut(.escape, modifiers: [])
+            }
         }
         let controls = HStack(spacing: 4) {
             Command(":r", palette: palette, color: palette.ghost, help: "Read again now (:refresh)", flashes: true, action: context.onRefresh)
@@ -112,7 +163,10 @@ struct TerminalOverview: View {
         let activeSince = context.snapshot.latestActivity(for: agent)
         VStack(alignment: .leading, spacing: 6) {
             AgentHeader(agent: agent, identity: context.snapshot.identities[agent],
-                        note: note(for: agent, limits: limits, now: now), palette: palette)
+                        note: note(for: agent, limits: limits, now: now), palette: palette,
+                        status: context.showsStatus ? context.statuses[agent] : nil,
+                        statusProblem: context.showsStatus ? (context.statusProblems[agent] ?? "") : nil,
+                        now: now, openStatus: { navigate(to: .status(agent)) })
             if !agent.isInstalled {
                 Text("not installed").font(Self.mono(10.5)).foregroundStyle(palette.faint)
             } else if limits.isEmpty {
@@ -234,6 +288,112 @@ struct TerminalOverview: View {
 
 // MARK: - Pieces
 
+/// One agent's status as a screen of its own: the page's sentence, every component it
+/// lists, whatever incidents are open, and the way to the page. The glass panel's screen
+/// said as a readout.
+private struct TerminalStatusScreen: View {
+    let agent: Agent
+    let status: ServiceStatus?
+    let problem: String?
+    let now: Date
+    let palette: TerminalPalette
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 5) {
+                if let checked {
+                    Text(checked)
+                        .font(TerminalOverview.mono(9.5))
+                        .monospacedDigit()
+                        .foregroundStyle(palette.ghost)
+                        .padding(.bottom, 2)
+                }
+                if let status {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(status.level.isIssue ? "●" : "○")
+                            .font(TerminalOverview.mono(9))
+                            .foregroundStyle(palette.status(status.level))
+                        Text((status.description ?? status.level.title).lowercased())
+                            .font(TerminalOverview.mono(11))
+                            .foregroundStyle(status.level.isIssue ? palette.alertValue : palette.value)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                    }
+                    ForEach(status.components) { component in
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            // The readout says it with a mark in the margin rather than an
+                            // icon: `›` on the rows this agent runs on.
+                            Text(component.isWatched ? "›" : " ")
+                                .font(TerminalOverview.mono(10.5))
+                                .foregroundStyle(palette.prompt)
+                            Text(component.name.lowercased())
+                                .font(TerminalOverview.mono(10.5))
+                                .foregroundStyle(component.isWatched ? palette.key : palette.faint)
+                                .lineLimit(1)
+                            Spacer(minLength: 6)
+                            // Colour only for the components this agent runs on; the rest
+                            // are on the page but are not this agent's trouble.
+                            Text(component.level.title.lowercased())
+                                .font(TerminalOverview.mono(9.5))
+                                .foregroundStyle(component.isWatched && component.level.isIssue
+                                                 ? palette.alertValue : palette.ghost)
+                                .fixedSize()
+                        }
+                        .padding(.leading, 12)
+                        .tip(component.name, component.isWatched
+                             ? "Watched: \(agent.title) runs on this, and a change here is what raises the alarm. \(component.level.title)."
+                             : "On the same page, but not what \(agent.title) runs on, so it raises nothing. \(component.level.title).")
+                    }
+                    // The page all of this was read from, at the foot of what it produced.
+                    HStack(spacing: 6) {
+                        Spacer(minLength: 6)
+                        Text(agent.statusPage.host() ?? "status page")
+                            .font(TerminalOverview.mono(9.5))
+                            .foregroundStyle(palette.ghost)
+                            .lineLimit(1)
+                        Command(":open", palette: palette, color: palette.ghost,
+                                help: "Open \(agent.title)'s status page") {
+                            NSWorkspace.shared.open(agent.statusPage)
+                        }
+                    }
+                    .padding(.top, 2)
+                } else {
+                    Text(problem.map { "could not read the page: \($0)" } ?? "the page has not answered yet")
+                        .font(TerminalOverview.mono(10.5)).foregroundStyle(palette.faint)
+                }
+            }
+            if let status, !status.incidents.isEmpty {
+                VStack(alignment: .leading, spacing: 5) {
+                    SectionHeader(text: status.incidents.count == 1 ? "INCIDENT" : "INCIDENTS", palette: palette)
+                    ForEach(status.incidents) { incident in
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(incident.name.lowercased())
+                                .font(TerminalOverview.mono(10.5))
+                                .foregroundStyle(palette.value)
+                                .lineLimit(3)
+                                .multilineTextAlignment(.leading)
+                            Spacer(minLength: 4)
+                            if let started = incident.startedAt {
+                                Text(TerminalOverview.compact(now.timeIntervalSince(started)))
+                                    .font(TerminalOverview.mono(9.5))
+                                    .monospacedDigit()
+                                    .foregroundStyle(palette.faint)
+                                    .fixedSize()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var checked: String? {
+        guard let status else { return problem }
+        let ago = "checked \(TerminalOverview.compact(now.timeIntervalSince(status.checkedAt))) ago"
+        return problem.map { "\($0) · \(ago)" } ?? ago
+    }
+}
+
 /// `[ CLAUDE ]`, and on hover `:usage`, which opens the agent's own usage page.
 private struct AgentHeader: View {
     let agent: Agent
@@ -242,11 +402,35 @@ private struct AgentHeader: View {
     let identity: Identity?
     let note: String?
     let palette: TerminalPalette
+    /// The agent's service, at the line's right edge. Nil while the check is off.
+    var status: ServiceStatus?
+    /// Empty rather than nil means "checking, nothing wrong with the read".
+    var statusProblem: String?
+    var now: Date = .now
+    var openStatus: () -> Void = {}
     @State private var hovering = false
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
+            // The service, as one mark before the block's name - the same filled dot the
+            // glass panel draws, so the two styles say one thing. Quiet until something is
+            // wrong; a hollow ring would read as "off" rather than "fine".
+            if statusProblem != nil {
+                Button(action: openStatus) {
+                    Text("\u{25CF}")
+                        .font(TerminalOverview.mono(9))
+                        .foregroundStyle(palette.status(status?.level))
+                        .opacity(status?.level.isIssue == true ? 1 : 0.45)
+                        .frame(width: 10)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .tip("\(agent.title) \u{00B7} \(status?.level.title ?? "not read")", statusTip)
+            }
+            // The block's name never wraps: it is the shortest thing on the line and the
+            // one that says which block this is.
             SectionHeader(text: agent.title, palette: palette)
+                .fixedSize()
             if let plan = identity?.plan {
                 Text(plan.lowercased())
                     .font(TerminalOverview.mono(9.5))
@@ -255,17 +439,52 @@ private struct AgentHeader: View {
                     .fixedSize()
                     .tip(identity?.tip(for: agent).title, identity?.tip(for: agent).detail)
             }
-            Command(":usage", palette: palette, color: palette.ghost, help: "Open \(agent.title)'s usage page") {
-                NSWorkspace.shared.open(agent.usagePage)
-            }
-            .opacity(hovering ? 1 : 0)
-            Spacer()
+            Spacer(minLength: 4)
+            // The account's note gives way first: the balance is also on the row below.
             if let note {
-                Text(note).font(TerminalOverview.mono(9.5)).foregroundStyle(palette.ghost)
+                Text(note)
+                    .font(TerminalOverview.mono(9.5))
+                    .foregroundStyle(palette.ghost)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .layoutPriority(-1)
             }
+            // Every page about the agent, behind one mark at the end of the line.
+            Menu {
+                ForEach(Array(agent.linkGroups.enumerated()), id: \.offset) { index, group in
+                    if index > 0 { Divider() }
+                    ForEach(group) { link in
+                        Button { NSWorkspace.shared.open(link.url) } label: {
+                            Label(link.title, systemImage: link.symbol)
+                        }
+                    }
+                }
+            } label: {
+                Text("\u{22EF}")
+                    .font(TerminalOverview.mono(11))
+                    .contentShape(Rectangle())
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            // Outside the menu: a `Menu` paints its own label in the control colour and
+            // discards a tint applied inside it.
+            .foregroundStyle(palette.ghost)
+            .opacity(hovering ? 1 : 0.35)
+            .tip("\(agent.title) on the web", "The two pages this panel reads, and the agent's own.")
         }
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
+    }
+
+    private var statusTip: String {
+        let problem = statusProblem ?? ""
+        guard let status else {
+            return problem.isEmpty ? "The status page has not answered yet." : problem
+        }
+        let checked = "checked \(TerminalOverview.compact(now.timeIntervalSince(status.checkedAt))) ago"
+        let unread = problem.isEmpty ? "" : " The last read said: \(problem)."
+        return "\(status.description ?? status.level.title), \(checked).\(unread) Click for everything the page lists."
     }
 }
 

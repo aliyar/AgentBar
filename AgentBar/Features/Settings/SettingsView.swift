@@ -4,7 +4,7 @@ import AgentBarKit
 /// AgentBar's panes. v1 settings: agents shown, gauge on/off, Dock on/off, launch at login,
 /// updates. Dock and launch at login arrive with their features.
 nonisolated enum AgentBarSettingsPane: String, SettingsPane {
-    case general, appearance, agents, support, about
+    case general, appearance, menuBar, agents, status, support, about
 
     var id: String { rawValue }
 
@@ -12,7 +12,9 @@ nonisolated enum AgentBarSettingsPane: String, SettingsPane {
         switch self {
         case .general: "General"
         case .appearance: "Appearance"
+        case .menuBar: "Menu Bar"
         case .agents: "Agents"
+        case .status: "Status"
         case .support: "Support"
         case .about: "About"
         }
@@ -22,7 +24,9 @@ nonisolated enum AgentBarSettingsPane: String, SettingsPane {
         switch self {
         case .general: "gearshape"
         case .appearance: "paintbrush"
+        case .menuBar: "menubar.rectangle"
         case .agents: "cpu"
+        case .status: "waveform.path.ecg"
         case .support: "questionmark.bubble"
         case .about: "info.circle"
         }
@@ -35,6 +39,10 @@ struct SettingsView: View {
     @Environment(UpdateController.self) private var updates
     @Environment(LoginItemController.self) private var loginItem
     @Environment(AgentsModel.self) private var model
+    /// Whether macOS will show a message at all, so a switch that cannot do anything says so.
+    @State private var notificationsAllowed = true
+    /// The row the pointer is over while something is being dragged.
+    @State private var dropTarget: PanelSection?
 
     static let website = URL(string: "https://agentbar.greatpixels.com")!
     static let supportRows = [
@@ -48,12 +56,17 @@ struct SettingsView: View {
             switch pane {
             case .general: general
             case .appearance: appearance
+            case .menuBar: menuBar
             case .agents: agents
+            case .status: serviceStatus
             case .support: SupportPane(intro: "Get in touch for any feedback, questions or feature requests.", rows: Self.supportRows)
             case .about: AboutPane(website: Self.website, extra: AnyView(checkForUpdates))
             }
         }
-        .onAppear { loginItem.refresh() }
+        .onAppear {
+            loginItem.refresh()
+            Task { notificationsAllowed = await AppDependencies.shared.notifier.isAllowed() }
+        }
     }
 
     // MARK: Panes
@@ -153,11 +166,11 @@ struct SettingsView: View {
                 Footnote("\"4h 52m\" or \"14:05\". Clicking a time in the panel flips this too.")
             }
         }
-        menuBar
     }
 
     /// What the menu bar item shows besides the symbol: which windows as bars, whose time
-    /// left beside them.
+    /// left beside them. Its own pane: it is a surface of the app, not a matter of how the
+    /// panel is painted, and the two together made one pane about two subjects.
     @ViewBuilder
     private var menuBar: some View {
         @Bindable var settings = settings
@@ -212,17 +225,11 @@ struct SettingsView: View {
     private var agents: some View {
         @Bindable var settings = settings
         Section {
-            ForEach(Agent.allCases) { agent in
-                Toggle(isOn: Binding(get: { settings.isEnabled(agent) }, set: { settings.setEnabled(agent, $0) })) {
-                    LabeledContent(agent.title) {
-                        if !agent.isInstalled {
-                            Text("not installed")
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                }
-                .disabled(!agent.isInstalled)
+            ForEach(settings.sectionOrder) { section in
+                sectionRow(section)
             }
+        } footer: {
+            Footnote("What the panel draws, and the order it draws it in. Drag a row by its handle to move it. The menu bar's bars and the widget follow the agents' order too.")
         }
         #if DEBUG
         // A development aid, kept out of what users see.
@@ -232,6 +239,88 @@ struct SettingsView: View {
             Footnote("Shows made-up windows and conversations in the panel and the menu bar, so every row can be seen without waiting for the agents. Nothing is read while it is on.")
         }
         #endif
+    }
+
+    /// One block of the panel: its place in the order, whether it is shown, and - for an
+    /// agent - whether it is on this Mac at all. The handle is drawn rather than left to
+    /// be discovered: a row that can be dragged and does not say so is a row nobody drags.
+    @ViewBuilder
+    private func sectionRow(_ section: PanelSection) -> some View {
+        let installed = section.agent.map(\.isInstalled) ?? true
+        Toggle(isOn: Binding(get: { settings.isShown(section) }, set: { settings.setShown(section, $0) })) {
+            LabeledContent {
+                if !installed {
+                    Text("not installed").foregroundStyle(.tertiary)
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "line.3.horizontal")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.tertiary)
+                    Text(section.title)
+                }
+            }
+        }
+        .disabled(!installed)
+        // The row under the pointer lights up: it says where the one being carried will
+        // land before it lands there.
+        .padding(.vertical, 1)
+        .background(dropTarget == section ? Color.accentColor.opacity(0.16) : .clear,
+                    in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+        .draggable(section.rawValue) {
+            Text(section.title).padding(.horizontal, 8).padding(.vertical, 4)
+        }
+        .dropDestination(for: String.self) { items, _ in
+            dropTarget = nil
+            guard let moved = items.first.flatMap(PanelSection.init(rawValue:)) else { return false }
+            withAnimation(.easeOut(duration: 0.18)) { settings.move(moved, onto: section) }
+            return true
+        } isTargeted: { targeted in
+            if targeted {
+                dropTarget = section
+            } else if dropTarget == section {
+                dropTarget = nil
+            }
+        }
+    }
+
+    /// Whether the agents' status pages are read, and who gets told when one changes.
+    /// Its own pane: it is about the services behind the agents, not about which agents
+    /// the panel draws, and the two together made one pane about two subjects.
+    @ViewBuilder
+    private var serviceStatus: some View {
+        @Bindable var settings = settings
+        Section {
+            Toggle("Check service status", isOn: $settings.checksStatus)
+        } footer: {
+            Footnote("Each agent's own status page, read every five minutes and every minute while something is wrong. AgentBar reads the parts you run on — \(Self.watched) — so an outage elsewhere on the page does not raise an alarm. These pages are public: no account is involved and nothing about you is sent.")
+        }
+        if settings.checksStatus {
+            Section {
+                Toggle("A service stops working", isOn: $settings.notifiesDown)
+                Toggle("It works again", isOn: $settings.notifiesBack)
+                if !notificationsAllowed, settings.announcesAnything {
+                    LabeledContent {
+                        Button("Open Notification Settings") { AppDependencies.shared.notifier.openSystemSettings() }
+                            .controlSize(.small)
+                    } label: {
+                        Text("macOS is not showing AgentBar's notifications")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                Text("Tell Me When")
+            } footer: {
+                Footnote("For every agent shown above. A change is announced once two readings agree, so a moment's flap says nothing; a page that cannot be reached is never reported as an outage; and an outage already under way when AgentBar starts is not announced at all.")
+            }
+        }
+    }
+
+    /// The components each agent is read from, said once in the footer above. What the app
+    /// watches should be checkable against the page by reading it.
+    private static var watched: String {
+        Agent.allCases.map { "\($0.title): \($0.statusComponents.joined(separator: ", "))" }
+            .joined(separator: "; ")
     }
 
     private var checkForUpdates: some View {

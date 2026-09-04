@@ -72,6 +72,12 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     var summary = StatusItemController.appName {
         didSet { if summary != oldValue { render() } }
     }
+    /// Something needs attention. Draws a small mark beside whatever the item is showing,
+    /// gauge or symbol. Monochrome on purpose: the menu bar tints what it likes, and a
+    /// colour here would argue with the gauge's own colours, which already mean something.
+    var alert = false {
+        didSet { if alert != oldValue { render() } }
+    }
     /// Builds the SwiftUI root of the popover. Set before `install()`.
     var panelRoot: (() -> AnyView)?
     /// nil follows the system. Applied to the popover only, so the status item glyph keeps
@@ -161,7 +167,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         if let gauge {
             button.toolTip = gauge.summary
             button.setAccessibilityLabel(gauge.summary)
-            button.image = Self.barsImage(gauge.bars, dark: dark, trailing: gauge.title.isEmpty ? 0 : 4)
+            button.image = Self.barsImage(gauge.bars, dark: dark, trailing: gauge.title.isEmpty ? 0 : 4, alert: alert)
             button.imagePosition = gauge.title.isEmpty ? .imageOnly : .imageLeading
             button.attributedTitle = NSAttributedString(string: gauge.title, attributes: [
                 .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium),
@@ -172,26 +178,34 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             button.setAccessibilityLabel(summary)
             button.attributedTitle = NSAttributedString(string: "")
             button.imagePosition = .imageOnly
+            let glyph: NSImage?
             if let imageName, let mark = NSImage(named: imageName) {
                 mark.size = Self.imageSize
                 mark.isTemplate = true
                 mark.accessibilityDescription = summary
-                button.image = mark
+                glyph = mark
             } else {
                 let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: summary)?
                     .withSymbolConfiguration(.init(pointSize: Self.symbolSize, weight: .regular))
                 image?.isTemplate = true
-                button.image = image
+                glyph = image
             }
+            button.image = alert ? glyph.map(Self.marked) : glyph
         }
     }
 
     /// Vertical bars 3 pt wide, 13 pt tall, 2.5 pt apart, each filled from the bottom; a
     /// 4 pt clear margin on the right keeps the title off them. Not a template image: the
     /// colours mean something.
-    private static func barsImage(_ bars: [StatusItemGauge.Bar], dark: Bool, trailing: CGFloat) -> NSImage {
+    ///
+    /// With `alert`, the exclamation mark below is drawn after the bars, in the menu bar's
+    /// own ink rather than in one of the meters' colours: the bars say how full a window
+    /// is, and this says something else entirely.
+    private static func barsImage(_ bars: [StatusItemGauge.Bar], dark: Bool, trailing: CGFloat,
+                                  alert: Bool = false) -> NSImage {
         let barWidth: CGFloat = 3, height: CGFloat = 13, gap: CGFloat = 2.5
-        let width = CGFloat(bars.count) * barWidth + CGFloat(max(0, bars.count - 1)) * gap + trailing
+        let markRoom: CGFloat = alert ? alertWidth + gap : 0
+        let width = CGFloat(bars.count) * barWidth + CGFloat(max(0, bars.count - 1)) * gap + markRoom + trailing
         let image = NSImage(size: NSSize(width: width, height: height), flipped: false) { _ in
             let track = dark ? NSColor.white.withAlphaComponent(0.26) : NSColor.black.withAlphaComponent(0.22)
             for (index, bar) in bars.enumerated() {
@@ -203,9 +217,43 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
                 (dark ? bar.dark : bar.light).setFill()
                 NSBezierPath(roundedRect: lit, xRadius: 1.5, yRadius: 1.5).fill()
             }
+            if alert {
+                let x = CGFloat(bars.count) * (barWidth + gap)
+                drawAlert(at: NSPoint(x: x, y: 0), height: height, ink: dark ? .white : .black)
+            }
             return true
         }
         image.isTemplate = false
+        return image
+    }
+
+    /// An exclamation mark 2 pt wide: a stroke with a dot under it, sized to sit beside a
+    /// 13 pt bar or a 16 pt symbol without becoming one of them.
+    private static let alertWidth: CGFloat = 2
+
+    private static func drawAlert(at origin: NSPoint, height: CGFloat, ink: NSColor) {
+        let dot = alertWidth, gap: CGFloat = 1.5
+        let stroke = (height * 0.46).rounded()
+        // The whole mark, centred on the glyph beside it: dot at the bottom, stroke above.
+        let bottom = origin.y + ((height - (stroke + gap + dot)) / 2).rounded()
+        ink.setFill()
+        NSBezierPath(ovalIn: NSRect(x: origin.x, y: bottom, width: dot, height: dot)).fill()
+        NSBezierPath(roundedRect: NSRect(x: origin.x, y: bottom + dot + gap, width: alertWidth, height: stroke),
+                     xRadius: alertWidth / 2, yRadius: alertWidth / 2).fill()
+    }
+
+    /// The same mark beside a template glyph, in one template image so the menu bar tints
+    /// both together.
+    private static func marked(_ glyph: NSImage) -> NSImage {
+        let gap: CGFloat = 3
+        let size = NSSize(width: glyph.size.width + gap + alertWidth, height: glyph.size.height)
+        let image = NSImage(size: size, flipped: false) { _ in
+            glyph.draw(in: NSRect(origin: .zero, size: glyph.size))
+            drawAlert(at: NSPoint(x: glyph.size.width + gap, y: 0), height: glyph.size.height, ink: .black)
+            return true
+        }
+        image.isTemplate = true
+        image.accessibilityDescription = glyph.accessibilityDescription
         return image
     }
 

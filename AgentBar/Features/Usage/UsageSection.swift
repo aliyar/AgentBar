@@ -28,6 +28,12 @@ struct UsageSection: View {
     /// Show each window's reset as a clock time instead of the time left. Clicking a
     /// time flips it, for every window at once.
     @Binding var showsClock: Bool
+    /// What the agent's status page says, when the check is on. Nil draws no status row.
+    var status: ServiceStatus?
+    var statusProblem: String?
+    var showsStatus = false
+    /// Opens this agent's status screen over the panel.
+    var openStatus: () -> Void = {}
 
     @Environment(\.colorScheme) private var scheme
 
@@ -35,8 +41,11 @@ struct UsageSection: View {
         let glass = Palette.glass(scheme)
         VStack(alignment: .leading, spacing: 5) {
             GroupCaption(title: agent.title, badge: identity?.plan, badgeTip: identity?.tip(for: agent),
-                         trailing: caption, link: agent.usagePage,
-                         linkHelp: "Open \(agent.title)'s usage page")
+                         trailing: caption,
+                         leading: showsStatus ? AnyView(AgentStatusDot(
+                            agent: agent, status: status, problem: statusProblem,
+                            now: now, open: openStatus)) : nil,
+                         accessory: AnyView(AgentLinksMenu(agent: agent)))
             GroupBox_ {
                 if !agent.isInstalled {
                     Note("Not installed — \(agent.folderPath) is not on this Mac")
@@ -180,30 +189,24 @@ struct GroupCaption: View {
     /// What resting on the badge says: the account behind the figures.
     var badgeTip: (title: String?, detail: String?)?
     var trailing: String?
-    /// A page to open in the browser, offered by a small arrow that shows on hover.
-    var link: URL?
-    var linkHelp: String = "Open in the browser"
+    /// Something small before the name: the agent's service, as one mark.
+    var leading: AnyView?
+    /// Something small at the line's right edge: the menu of pages about the agent.
+    var accessory: AnyView?
 
     @Environment(\.colorScheme) private var scheme
-    @State private var hovering = false
 
     var body: some View {
         let glass = Palette.glass(scheme)
         HStack(alignment: .firstTextBaseline, spacing: 4) {
-            let name = Text(title)
+            if let leading {
+                // The mark sits on the text's line rather than its baseline: a dot aligned
+                // to a baseline hangs below the letters it belongs to.
+                leading.alignmentGuide(.firstTextBaseline) { $0.height * 0.72 }
+            }
+            Text(title)
                 .font(.system(size: 10.5, weight: .semibold))
                 .foregroundStyle(glass.primary)
-            if let link {
-                Button { NSWorkspace.shared.open(link) } label: {
-                    name.underline(hovering, pattern: .solid)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .tip(linkHelp)
-                .onHover { hovering = $0 }
-            } else {
-                name
-            }
             if let badge {
                 Text(badge)
                     .font(.system(size: 9, weight: .medium))
@@ -221,6 +224,13 @@ struct GroupCaption: View {
                     .font(.system(size: 9))
                     .monospacedDigit()
                     .foregroundStyle(glass.tertiary)
+                    .lineLimit(1)
+            }
+            if let accessory {
+                // A touch of air between the account's note and the menu.
+                accessory
+                    .padding(.leading, 3)
+                    .alignmentGuide(.firstTextBaseline) { $0.height * 0.78 }
             }
         }
         .padding(.horizontal, 1)
@@ -261,7 +271,8 @@ struct Note: View {
 #Preview {
     UsageSection(agent: .claude, limits: Snapshot.sample.limits(for: .claude), written: .now, account: nil,
                  credits: Snapshot.sample.credits[.claude], identity: Snapshot.sample.identities[.claude],
-                 activeSince: .now, now: .now, showsClock: .constant(false))
+                 activeSince: .now, now: .now, showsClock: .constant(false),
+                 status: .sample(for: .claude), showsStatus: true)
         .padding(11)
         .frame(width: 340)
         .background(GlassBackground())

@@ -1,4 +1,5 @@
 import SwiftUI
+import AgentBarKit
 
 /// Terminal: the panel as a terminal readout, from the "Phosphor" design handoff of
 /// 3 Sep 2026.
@@ -118,5 +119,16 @@ struct TerminalPalette {
 
     func figure(_ percent: Double) -> Color {
         Palette.level(percent) == .hot ? alertValue : value
+    }
+
+    /// A status level in the readout's own three colours, so a status mark and a meter
+    /// never disagree. Unknown is the faintest ink rather than a colour of its own.
+    func status(_ level: StatusLevel?) -> Color {
+        switch Palette.level(level ?? .unknown) {
+        case .calm: meterLit
+        case .warm: meterLit.opacity(0.6)
+        case .hot: alertMeter
+        case nil: faint
+        }
     }
 }

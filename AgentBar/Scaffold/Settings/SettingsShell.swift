@@ -118,9 +118,21 @@ private struct SidebarFooter: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(nsImage: appIcon)
-                .resizable()
-                .frame(width: 22, height: 22)
+            // The mark the menu bar shows, not the Dock icon: this is the app as the user
+            // meets it, and at 18 pt the full icon is a smudge of what the mark says
+            // plainly. Drawn as a template so it takes the sidebar's own ink.
+            if let mark = markImage {
+                Image(nsImage: mark)
+                    .resizable()
+                    .renderingMode(.template)
+                    .frame(width: 18, height: 18)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 22)
+            } else {
+                Image(nsImage: appIcon)
+                    .resizable()
+                    .frame(width: 22, height: 22)
+            }
             Text(appName)
                 .font(.system(size: 13))
                 .foregroundStyle(.secondary)
@@ -209,6 +221,15 @@ struct SupportPane: View {
 /// bundle, which lags behind a new icon until the caches are rebuilt.
 private var appIcon: NSImage {
     NSImage(named: "AppIcon") ?? NSApp.applicationIconImage
+}
+
+/// The menu bar mark, by the name every app in this family gives it. Copied before it is
+/// marked as a template: `NSImage(named:)` hands back one shared instance, and the status
+/// item resizes the same object.
+private var markImage: NSImage? {
+    guard let image = NSImage(named: "MenuBarIcon")?.copy() as? NSImage else { return nil }
+    image.isTemplate = true
+    return image
 }
 
 /// The small grey line under a setting that says what it does.
