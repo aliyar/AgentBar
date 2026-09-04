@@ -8,6 +8,8 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-04
+
 ### Added
 - **Whether the service is working, beside how much of it is left.** Each agent's own status
   page is read every five minutes, and every minute while something is wrong, and its
@@ -249,8 +251,9 @@ version heading and uses them as the release notes.
   shows "—", a figure written hours ago says how old it is, and a context whose limit is
   not written anywhere reports its tokens instead of a made-up percentage.
 
-[Unreleased]: https://github.com/aliyar/AgentBar/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/aliyar/AgentBar/compare/v1.2.0...HEAD
 [1.0.0]: https://github.com/aliyar/AgentBar/releases/tag/v1.0.0
 [1.0.1]: https://github.com/aliyar/AgentBar/releases/tag/v1.0.1
 [1.1.0]: https://github.com/aliyar/AgentBar/releases/tag/v1.1.0
 [1.1.1]: https://github.com/aliyar/AgentBar/releases/tag/v1.1.1
+[1.2.0]: https://github.com/aliyar/AgentBar/releases/tag/v1.2.0
