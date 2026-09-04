@@ -6,7 +6,7 @@ How the repository is put together, and the things that are easy to get wrong.
 
 ```
 AgentBar/
-├── project.yml              xcodegen spec — the source of truth for the Xcode project
+├── project.yml              xcodegen spec: the source of truth for the Xcode project
 ├── Makefile                 generate / build / run / test / screenshots / release
 ├── AgentBar/                the app target (SwiftUI + AppKit)
 │   ├── Scaffold/            app-agnostic: nothing here knows the app's name (a test checks)
@@ -72,7 +72,7 @@ AgentBar.app  (com.greatpixels.AgentBar, LSUIElement, not sandboxed, Developer I
 │   ├── AgentsModel: refresh loop, publishes Snapshot
 │   ├── StatusItem: gauge title "78%" or symbol, popover on click
 │   ├── Overview (popover and Dock window share it; Usage and Conversations are its sections), Settings, UpdateController (Sparkle 2)
-└── AgentBarWidget.appex  (WidgetKit, sandboxed, App Group) — decodes the snapshot only
+└── AgentBarWidget.appex  (WidgetKit, sandboxed, App Group): decodes the snapshot only
 ```
 
 Only the app skeleton exists today; the rest lands milestone by milestone.
@@ -121,7 +121,7 @@ shared package once a third app exists: `SettingsWindowController` owns the one 
 (unified toolbar, remembered frame, reopened rather than recreated), `SettingsShell` lays the
 panes out like System Settings (sidebar list, grouped form, title in the toolbar
 with back and forward buttons that walk the panes visited, and the app's menu bar mark,
-name and version at the sidebar's foot — the mark rather than the Dock icon, which at
+name and version at the sidebar's foot, the mark rather than the Dock icon, which at
 18 pt is a smudge of what the mark says plainly), `AboutPane`, `SupportPane` and `Footnote` are the pieces
 every app's panes share. The app's half is `SettingsView`: an enum of panes conforming to `SettingsPane`
 (title, symbol) and a form per pane. Open it with `settingsWindow.show()` or `show(pane:)`.
@@ -150,7 +150,7 @@ Team-ID-prefixed form (`RCQFGHVGQJ.com.greatpixels.AgentBar`), not `group.…`: 
 Debug builds are signed automatically with the development team. Release builds are built
 with `CODE_SIGNING_ALLOWED=NO` and then signed by `scripts/sign-app.sh`: Sparkle's XPC
 services, `Autoupdate`, `Updater.app` and the framework individually, then the app with its
-entitlements — never `--deep`, which would overwrite the nested signatures. With a Developer ID
+entitlements, never `--deep`, which would overwrite the nested signatures. With a Developer ID
 identity the app gets the hardened runtime and a secure timestamp (both required for
 notarization); ad-hoc builds get neither, because an ad-hoc signature has no Team ID and the
 hardened runtime's library validation would then refuse the embedded Sparkle.
@@ -161,7 +161,7 @@ The feed is `https://agentbar.greatpixels.com/appcast.xml` (`SUFeedURL` in `proj
 the zips are on the download host, never on GitHub, so the repository can stay private.
 `SUPublicEDKey` is empty until the key pair exists; `UpdateController.start()` refuses to start
 without it, so a development build simply has updates off. The key lives in the login Keychain
-under account **`agentbar`** — always pass `--account agentbar` to `generate_keys` and
+under account **`agentbar`**: always pass `--account agentbar` to `generate_keys` and
 `sign_update`, the same Keychain holds the sibling apps' keys. Back the private key up once
 (`generate_keys --account agentbar -x <file>`); losing it strands every installed copy.
 
@@ -174,13 +174,13 @@ The formats are **undocumented and the agents' to change**. Every field is optio
 in; the parsers degrade to "nothing reported", never crash. Pin them with tests against real
 samples, dated in the test names.
 
-- **Claude limits on disk**: `~/.claude/cache/usage.json` — one ~2 KB file. **Claude Code does
+- **Claude limits on disk**: `~/.claude/cache/usage.json`, one ~2 KB file. **Claude Code does
   not write it**: on this Mac it is written by the user's own status line script, which fetches
   `api.anthropic.com/api/oauth/usage` at most every 15 minutes (found 2 Sep 2026). A Mac
   without that script has no file, which is why the accounts are asked (see "The accounts"
   below); the file stays the fallback. `limits[]` carries `session`, `weekly_all` and `weekly_scoped` (whose
   `scope.model.display_name` names the per-model row); `five_hour`/`seven_day` are the
-  fallback. **`percent`/`utilization` is what has been *used*** — show it as written, as a bar
+  fallback. **`percent`/`utilization` is what has been *used***: show it as written, as a bar
   that fills. Never invert to "left".
 - **Changing the status item's image or tooltip while the popover is shown makes AppKit
   dismiss the popover** (RepoBar found this first). `StatusItemController.render()` defers
@@ -199,10 +199,10 @@ samples, dated in the test names.
 - **Sample data lives in the package** (`Snapshot.sample`): the app's previews and screenshot
   harness, the Settings "Preview with sample data" switch (Debug builds only) and the widget
   gallery all draw it.
-- **Claude conversations**: `~/.claude/sessions/<pid>.json` — one file per running session, with
+- **Claude conversations**: `~/.claude/sessions/<pid>.json`, one file per running session, with
   the name Claude Code gave it and `status: "busy"`. Files outlive their process: check the pid
   with `kill(pid, 0)`.
-- **Codex limits**: no usage file of its own — they ride in the session transcript's last
+- **Codex limits**: no usage file of its own; they ride in the session transcript's last
   `token_count` event (`payload.rate_limits.primary.{used_percent, window_minutes, resets_at}`,
   the reset a unix timestamp). The newest rollout is found by walking `sessions/YYYY/MM/DD`
   (never by listing thousands of files) and only its last 512 KB is read. Codex only writes while
@@ -219,7 +219,7 @@ samples, dated in the test names.
 - **Context percentage** (Claude) only when the limit is known (`[1m]` marker or >200K tokens); otherwise
   show tokens. There is no reliable place the limit is written.
 - **Walking up the process tree** to the owning terminal or editor: stop at the first `.regular`
-  app, not the first process with a bundle id — Electron helpers have bundle ids and no windows.
+  app, not the first process with a bundle id: Electron helpers have bundle ids and no windows.
 - **Cost is not shown.** Claude Code writes a `totalCostUSD` it computed itself; Codex writes
   none and its prices are in no public table. A figure for one and a blank for the other reads
   as a bug.
@@ -298,14 +298,14 @@ one block per agent. The intent lives in the extension only.
 Quota belongs to the account, not the machine: what was spent on another Mac, or while the
 agent was not running here, never reaches the files. So `AccountUsage` asks each agent's
 account, the way the agents' own tools and the well-known menu bar apps (CodexBar, Blume)
-do — one read-only GET, with the sign-in the agent already keeps on this Mac. Decided
+do: one read-only GET, with the sign-in the agent already keeps on this Mac. Decided
 3 Sep 2026, replacing the plan's "no account is contacted"; that rested on the belief that
 Claude Code writes `usage.json`, which it does not.
 
 | Agent | Sign-in read from | Endpoint | Answer |
 |---|---|---|---|
 | Claude | Keychain item `Claude Code-credentials` via `/usr/bin/security find-generic-password -w`; else `~/.claude/.credentials.json` | `api.anthropic.com/api/oauth/usage` (header `anthropic-beta: oauth-2025-04-20`) | the `usage.json` shape, `ClaudeReader.reading(from:)` |
-| Codex | `~/.codex/auth.json` → `tokens.access_token`, `account_id` (only `auth_mode: chatgpt`; expired tokens are not used, never refreshed — Codex refreshes its own file) | `chatgpt.com/backend-api/wham/usage` (header `ChatGPT-Account-Id`) | `rate_limit.primary_window/secondary_window`, `additional_rate_limits[]`, `credits` |
+| Codex | `~/.codex/auth.json` → `tokens.access_token`, `account_id` (only `auth_mode: chatgpt`; expired tokens are not used, never refreshed, since Codex refreshes its own file) | `chatgpt.com/backend-api/wham/usage` (header `ChatGPT-Account-Id`) | `rate_limit.primary_window/secondary_window`, `additional_rate_limits[]`, `credits` |
 | Cursor | `…/Cursor/User/globalStorage/state.vscdb` → `cursorAuth/accessToken`, sent as the cookie `WorkosCursorSessionToken=<user id>::<token>` | `cursor.com/api/usage-summary` | `individualUsage.plan` → `overall` → `teamUsage.pooled`, billing cycle |
 
 - **Why the `security` tool and not the Security framework**: Claude Code stores the item
@@ -330,13 +330,13 @@ Claude Code writes `usage.json`, which it does not.
 
 ## What the panel draws, and in what order
 
-The panel's body is a list of `PanelSection`s — `.agent(Agent)` for one agent's group,
+The panel's body is a list of `PanelSection`s: `.agent(Agent)` for one agent's group,
 `.conversations` for what is running right now. Both are things the panel stacks and
 neither is more fixed than the other, so both are moved and hidden the same way.
 
 `AppSettings.sectionOrder` is the stored list; `AppSettings.sections` is it narrowed to
 what is shown, and `AppSettings.agents` is the agents' part of that, which is what the
-readers work from. `AgentsModel.merged` sorts each snapshot's limits by it — and that is
+readers work from. `AgentsModel.merged` sorts each snapshot's limits by it, and that is
 what makes the menu bar's bars and the widget follow the same order, since both draw that
 snapshot rather than the list.
 
@@ -379,8 +379,8 @@ down while Claude Code keeps working is not this agent's outage, and waking some
 is the mistake the mapping exists to avoid. `Agent.statusComponents` names the parts each
 agent runs on; they are matched case-insensitively **by prefix**, so `Claude API` finds
 `Claude API (api.anthropic.com)`. Names are matched rather than the opaque ids so that what
-the app watches can be checked against the page by reading it. When none matches — a page
-renamed a component — the reading falls back to the page's own indicator and sets
+the app watches can be checked against the page by reading it. When none matches, which is what a page
+that renamed a component looks like, the reading falls back to the page's own indicator and sets
 `isFallback`, which is logged; the panel still says something true, and the mapping wants
 revisiting.
 
@@ -407,7 +407,7 @@ revisiting.
 
 `StatusWatch` decides, and it holds no clock and opens no connection: one reading in, at
 most one announcement out. That is what makes these rules testable, and they are the whole
-feature — a status page is easy to read and easy to shout about at the wrong moment.
+feature: a status page is easy to read and easy to shout about at the wrong moment.
 
 - **The first reading never announces.** Starting the app during an outage would otherwise
   announce an outage the user is already living through.
@@ -424,8 +424,8 @@ was told about. Two switches in Settings › Agents say whether to announce a se
 down and coming back; *which* agents is not a question of its own, because it is already
 answered by the agents shown.
 
-`UNUserNotificationCenter` needs no entitlement here — the app is not sandboxed and is
-signed with a Developer ID — but it is unusable in a host that is not a real `.app`, so
+`UNUserNotificationCenter` needs no entitlement here, since the app is not sandboxed and is
+signed with a Developer ID, but it is unusable in a host that is not a real `.app`, so
 `StatusNotifier.isAvailable` checks that as well as `isRunningTests`. Permission is asked
 when a switch is turned on, or when there is a first message to show; never at launch.
 
@@ -436,7 +436,7 @@ produced; it travels on `OverviewContext` instead, so the widget is untouched.
 
 In the panel it is **one mark before the agent's name** and nothing else. Not a row among
 the meters: those are a list of one kind of thing and this is not one of them. Not a word
-either — the word would be read on every panel open to say "working" almost every time, so
+either: the word would be read on every panel open to say "working" almost every time, so
 the colour says it at a glance, resting on the mark says the rest, and clicking it opens the
 whole page. For the same reason the mark is quiet until something is actually wrong: a lit
 dot on every agent, every time the panel opens, is three marks competing with the meters to
@@ -448,25 +448,25 @@ from, and its documentation. It replaced a link on the agent's name, which could
 lead to one of them and did not say which.
 
 Clicking it **pushes a screen**. `PanelRoute` is `.overview` or `.status(agent)`, held by a
-`PanelNavigation` per surface — the popover and the Dock window keep their own place, and
+`PanelNavigation` per surface: the popover and the Dock window keep their own place, and
 both reset when the panel closes, because a menu bar panel opens on the thing it is for.
 The panel's own header becomes the back button (Escape works too) and the footer stays put,
 so only the body changes. The screen carries the page's own sentence, every component it
 lists, whatever incidents are open, and a link to the page at the foot of what it produced.
 
-The components this agent runs on are marked — an eye in the glass panel, a `›` in the
-readout's margin — and resting on any row says whether it is one of them and why that
+The components this agent runs on are marked (an eye in the glass panel, a `›` in the
+readout's margin), and resting on any row says whether it is one of them and why that
 matters. Without the mark the distinction lived only in ink strength, which shows that two
 rows are different without saying what the difference is. Colour follows the same rule:
 drawing an unwatched component in red would undo the reason the mapping exists.
 
-The menu bar item grows a small monochrome mark (`StatusItemController.alert`) — monochrome
+The menu bar item grows a small monochrome mark (`StatusItemController.alert`), monochrome
 because the meters' colours already mean something else, and the menu bar tints what it likes.
 
 ## What is left when the windows are full
 
 A plan that runs out is not the end of the reading: an account may spend past it, or hold
-credits against it. Both come back through `Reading`, which is what a reader answers with —
+credits against it. Both come back through `Reading`, which is what a reader answers with:
 the windows, the balance, and when it was written.
 
 - **A ceiling makes a window.** Claude's `extra_usage` (once the person enables it) and its
@@ -513,19 +513,19 @@ time rather than keeping copies.
 ## Site
 
 `site/` is a Next.js app with `output: 'export'`: every page is prerendered to static HTML
-(metadata, sitemap, robots, Open Graph) and deploys as a Render static site — root directory
+(metadata, sitemap, robots, Open Graph) and deploys as a Render static site: root directory
 `site`, build `npm ci && npm run build`, publish `out`, domain `agentbar.greatpixels.com`.
 `render.yaml` carries a build filter on `site/**` so app commits do not republish the site.
 `site/app/release.ts` is the one place the site states the version and the download link;
 `scripts/release.sh` rewrites it. The appcast is `site/public/appcast.xml`.
 
-`site/app/site.ts` holds the site's identity — name, URL, maker, tagline, description — the
+`site/app/site.ts` holds the site's identity (name, URL, maker, tagline, description), the
 Open Graph card (`ogImage`: `public/og.png`, rendered by `make icon`, with its dimensions and
 alt text stated so scrapers draw the large card on the first fetch) and `pageMetadata()`,
 which every document page uses because Next replaces the layout's `openGraph` and `twitter`
 objects rather than merging into them. When the raster changes, bump the `?v=` on
 `ogImage.url`: link previews cache the image by URL. `site/app/schema.ts` is the home page's
-JSON-LD — `SoftwareApplication`, `WebSite`, `Organization` and `FAQPage`, all built from
+JSON-LD: `SoftwareApplication`, `WebSite`, `Organization` and `FAQPage`, all built from
 `content.ts`, `release.ts` and `site.ts` so nothing is asserted that the page does not say.
 
 The page is a Mac desktop with AgentBar living on it: the menu bar strip (its menus are the

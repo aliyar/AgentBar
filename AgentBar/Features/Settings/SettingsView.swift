@@ -293,7 +293,7 @@ struct SettingsView: View {
         Section {
             Toggle("Check service status", isOn: $settings.checksStatus)
         } footer: {
-            Footnote("Each agent's own status page, read every five minutes and every minute while something is wrong. AgentBar reads the parts you run on — \(Self.watched) — so an outage elsewhere on the page does not raise an alarm. These pages are public: no account is involved and nothing about you is sent.")
+            Footnote("Each agent's own status page, read every five minutes and every minute while something is wrong. AgentBar reads the parts you run on (\(Self.watched)), so an outage elsewhere on the page does not raise an alarm. These pages are public: no account is involved and nothing about you is sent.")
         }
         if settings.checksStatus {
             Section {

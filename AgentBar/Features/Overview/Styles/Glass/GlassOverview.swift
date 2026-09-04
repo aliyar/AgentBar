@@ -101,7 +101,7 @@ struct GlassOverview: View {
 
     /// The panel's own title bar. On a pushed screen the mark gives way to a back button
     /// and the agent's name, the way a screen that was pushed says where it is and how to
-    /// leave — the controls at the right stay where they are throughout.
+    /// leave; the controls at the right stay where they are throughout.
     private func header(now: Date) -> some View {
         let glass = Palette.glass(scheme)
         let name = Group {

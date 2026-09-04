@@ -5,7 +5,7 @@
 <h1 align="center">AgentBar</h1>
 
 <p align="center">
-  What the coding agents on this Mac are doing, and how much of their quota is left —
+  What the coding agents on this Mac are doing, and how much of their quota is left:
   in the menu bar, in the Dock, and as a macOS widget.
 </p>
 
@@ -15,8 +15,8 @@
   <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="MIT license">
 </p>
 
-AgentBar reads what Claude Code, Codex and Cursor leave on this Mac — the rate-limit windows, the
-sessions that are running right now — and shows it where you glance anyway: a percentage in the
+AgentBar reads what Claude Code, Codex and Cursor leave on this Mac (the rate-limit windows and the
+sessions that are running right now) and shows it where you glance anyway: a percentage in the
 menu bar, a popover with a meter per window and a row per conversation, an optional Dock window,
 and a widget for Notification Center and the desktop. It also watches each agent's own status
 page, and tells you when a service stops working and when it starts again.

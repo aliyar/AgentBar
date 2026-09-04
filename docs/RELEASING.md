@@ -58,7 +58,7 @@ daily check or through **Check for Updates…** in Settings.
   Paste the public key into `SUPublicEDKey` in `project.yml`. Losing the private key strands
   every installed copy: the app rejects updates signed with any other key.
 - For the download host: `npx wrangler login` once, and `R2_BUCKET` in the environment
-  (default `greatpixels-downloads`). Without it the script commits the zip into the site —
+  (default `greatpixels-downloads`). Without it the script commits the zip into the site:
   fine for the first release, move before the second: every zip committed stays in history.
 
 ## Version policy

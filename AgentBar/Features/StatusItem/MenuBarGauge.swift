@@ -42,7 +42,7 @@ enum MenuBarGauge {
             return "▍ \(limit.agent.title) · \(limit.title): \(Format.percent(limit.percentUsed)) used\(left)"
         }
         if let clock {
-            lines.append("\(title) — time left on \(clock.agent.title) · \(clock.title)\(time == .fullest ? " (the fullest window)" : "")")
+            lines.append("\(title): time left on \(clock.agent.title) · \(clock.title)\(time == .fullest ? " (the fullest window)" : "")")
         }
         let summary = lines.joined(separator: "\n")
         return StatusItemGauge(bars: bars, title: title,

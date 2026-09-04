@@ -48,7 +48,7 @@ struct UsageSection: View {
                          accessory: AnyView(AgentLinksMenu(agent: agent)))
             GroupBox_ {
                 if !agent.isInstalled {
-                    Note("Not installed — \(agent.folderPath) is not on this Mac")
+                    Note("Not installed: \(agent.folderPath) is not on this Mac")
                 } else if limits.isEmpty, let problem = account?.problem {
                     Note(agent == .cursor ? "Cursor's usage comes from its account: \(problem)" : "Nothing on disk yet, and the account says: \(problem)")
                 } else if limits.isEmpty {

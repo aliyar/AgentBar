@@ -35,7 +35,7 @@ extension Snapshot {
                 Conversation(agent: .cursor, id: "5", name: "Rename the settings pane and its tests",
                              project: "repobar", isBusy: true, pid: 5,
                              model: "Composer", effort: "high", lastActivity: now.addingTimeInterval(-240)),
-                Conversation(agent: .claude, id: "3", name: "Done — the landing page builds as a static export.",
+                Conversation(agent: .claude, id: "3", name: "Done: the landing page builds as a static export.",
                              project: "repobar", isBusy: false, pid: 3, contextPercent: 31, contextTokens: 310_000,
                              model: "Opus 5", effort: "medium", branch: "site", lastActivity: now.addingTimeInterval(-600)),
                 Conversation(agent: .codex, id: "4", name: "Waiting on review of release script",

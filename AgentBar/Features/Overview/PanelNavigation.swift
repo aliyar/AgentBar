@@ -1,6 +1,6 @@
 import Observation
 
-/// Which screen a panel is showing. One per surface — the popover and the Dock window each
+/// Which screen a panel is showing. One per surface: the popover and the Dock window each
 /// keep their own place, so opening one does not move the other.
 ///
 /// Reset when the panel closes: a menu bar panel opens on the thing it is for, not on

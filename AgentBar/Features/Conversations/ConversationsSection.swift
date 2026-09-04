@@ -61,7 +61,7 @@ private struct ConversationRow: View {
     private var detailLine: String {
         let parts = details.joined(separator: " · ")
         guard app != nil else { return parts }
-        return parts.isEmpty ? "click to focus" : "\(parts) — click to focus"
+        return parts.isEmpty ? "click to focus" : "\(parts) \u{00B7} click to focus"
     }
 
     var body: some View {

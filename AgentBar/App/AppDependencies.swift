@@ -242,9 +242,9 @@ final class AppDependencies {
         statusItem.alert = !failing.isEmpty
         let unwell = failing.map(\.title).joined(separator: ", ")
         statusItem.summary = if !failing.isEmpty {
-            "AgentBar — \(unwell) \(failing.count == 1 ? "is" : "are") down"
+            "AgentBar: \(unwell) \(failing.count == 1 ? "is" : "are") down"
         } else if snapshot.isEmpty {
-            "AgentBar — nothing reported yet"
+            "AgentBar: nothing reported yet"
         } else {
             "AgentBar"
         }
