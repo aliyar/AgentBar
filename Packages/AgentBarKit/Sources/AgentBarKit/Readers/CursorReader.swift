@@ -97,7 +97,7 @@ public enum CursorReader {
         return projects
     }
 
-    /// "Users-elma-Projects-great-menubar" → "great-menubar", by walking the slug as a path
+    /// "Users-me-Projects-side-project" → "side-project", by walking the slug as a path
     /// and letting a segment keep its dashes when the dashed folder exists.
     static func projectName(fromSlug slug: String, exists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }) -> String {
         let parts = slug.split(separator: "-").map(String.init)

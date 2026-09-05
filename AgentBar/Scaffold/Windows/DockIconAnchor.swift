@@ -4,7 +4,7 @@ import AppKit
 /// another process and its icon frames are only readable with the Accessibility
 /// permission, so instead this parks an invisible window over the slice of the Dock the
 /// pointer is on - the click that reopened the app came from there - and hands its view
-/// back as something `NSPopover` can point at. (Great Menubar's approach.)
+/// back as something `NSPopover` can point at.
 final class DockIconAnchor {
     private var window: NSWindow?
 

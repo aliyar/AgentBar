@@ -47,9 +47,9 @@ struct CursorReaderTests {
     }
 
     @Test func projectSlugsRecoverDashedFolderNames() {
-        let existing: Set<String> = ["/Users", "/Users/me", "/Users/me/Projects", "/Users/me/Projects/great-menubar", "/Users/me/Projects/agentbar"]
+        let existing: Set<String> = ["/Users", "/Users/me", "/Users/me/Projects", "/Users/me/Projects/side-project", "/Users/me/Projects/agentbar"]
         #expect(CursorReader.projectName(fromSlug: "Users-me-Projects-agentbar", exists: existing.contains) == "agentbar")
-        #expect(CursorReader.projectName(fromSlug: "Users-me-Projects-great-menubar", exists: existing.contains) == "great-menubar")
+        #expect(CursorReader.projectName(fromSlug: "Users-me-Projects-side-project", exists: existing.contains) == "side-project")
         // Nothing on disk: the last dashed part stands in.
         #expect(CursorReader.projectName(fromSlug: "Users-me-Elsewhere-thing", exists: { _ in false }) == "thing")
     }
