@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { ogImage, site } from "./site";
 
@@ -72,7 +73,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         {children}
-      </body>
+              {/* Google Analytics: which pages are read and where people come from, and nothing
+            about anyone by name. The privacy page says so. Loaded after the page is
+            interactive, so it never stands between a reader and the words. */}
+        <Script src={`https://www.googletagmanager.com/gtag/js?id=${site.analyticsID}`} strategy="afterInteractive" />
+        <Script id="gtag-init" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${site.analyticsID}');`}
+        </Script>
+</body>
     </html>
   );
 }

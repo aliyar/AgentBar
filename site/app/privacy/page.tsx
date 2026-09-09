@@ -63,10 +63,17 @@ export default function Privacy() {
 
         <h3>What this website collects</h3>
         <p>
-          Nothing of its own. This site sets no cookies, runs no analytics, and loads no fonts, scripts, images or
-          trackers from third-party domains; every file it serves comes from this domain. The site is served by a
-          hosting provider that keeps standard server logs (IP address, timestamp, requested file, user agent) to
-          serve and protect it. We do not read them for anything else.
+          This site uses Google Analytics to learn which pages are read, roughly where visitors come from and what
+          they arrived on, so we know whether the words are doing their job. Google sets a cookie for it and
+          receives the usual page-view data; it does not receive your IP address in a stored form (Analytics 4
+          drops it) and we send it nothing about you by name. If you would rather not be counted, a content blocker
+          or your browser&rsquo;s tracking protection stops it, and the site works exactly the same without it.
+        </p>
+        <p>
+          The fonts, scripts and images of the site itself come from this domain; the only third party is Google,
+          for the analytics above. The site is served by a hosting provider that keeps standard server logs (IP
+          address, timestamp, requested file, user agent) to serve and protect it. We do not read them for anything
+          else.
         </p>
 
         <h3>Your data rights</h3>

@@ -8,6 +8,13 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+### Changed
+
+- The website counts its readers with Google Analytics, shared with the sibling sites, so
+  we know which pages are read and how many people press Download; a download click is
+  counted with the version and which button it was. The privacy page says what is
+  collected and how to opt out. The app itself still sends nothing.
+
 ## [Unreleased]
 
 ### Changed

@@ -4,6 +4,8 @@ export const site = {
   maker: "GreatPixels",
   makerUrl: "https://greatpixels.com",
   support: "support@greatpixels.com",
+  /** Google Analytics 4, shared with the sibling sites. The privacy page describes what it collects; keep the two in step. */
+  analyticsID: "G-9FSWBSMGE6",
   // The page stays light in both appearances, so one theme colour covers it: the wallpaper base.
   themeColor: "#ecdfcf",
   tagline: "What the coding agents on this Mac are doing, and how much of their quota is left.",

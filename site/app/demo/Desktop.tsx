@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { DownloadButton } from "../ui/DownloadButton";
 import { Mark } from "./AppIcon";
 import { Dock } from "./Dock";
 import { MenuBar } from "./MenuBar";
@@ -156,11 +157,7 @@ export function Desktop() {
           <p className="hero-tagline">{site.tagline}</p>
           <p className="hero-sub">Claude Code, Codex and Cursor. In the menu bar, above the Dock, and as a widget.</p>
           <div className="hero-cta">
-            <a className="button" href={release.url}>
-              <span className="button-prompt" aria-hidden="true">›</span>
-              Download {site.name}
-              <span className="button-cursor" aria-hidden="true" />
-            </a>
+            <DownloadButton where="hero" />
             <span className="hero-meta">
               macOS {release.minMacOS} or later{release.size.startsWith("0.0") ? "" : ` · ${release.size}`} · Free
               <br />
