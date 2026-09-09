@@ -184,7 +184,7 @@ samples, dated in the test names.
   fallback. **`percent`/`utilization` is what has been *used***: show it as written, as a bar
   that fills. Never invert to "left".
 - **Changing the status item's image or tooltip while the popover is shown makes AppKit
-  dismiss the popover** (RepoBar found this first). `StatusItemController.render()` defers
+  dismiss the popover** (FetchBar found this first). `StatusItemController.render()` defers
   the change until the popover closes; otherwise the gauge's minute tick, arriving with the
   read the popover open triggers, closes the panel under the user's click.
 - **A click on our own popover can reach the global mouse monitor** when the app is not

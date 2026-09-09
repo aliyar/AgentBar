@@ -108,7 +108,7 @@ extension CodexReaderTests {
         """
         try rollout.write(to: today.appendingPathComponent("rollout-2026-09-02T22-12-13-01a063f7.jsonl"), atomically: true, encoding: .utf8)
         // An older rollout from another directory, and one with no session on it.
-        try #"{"type":"session_meta","payload":{"id":"old","cwd":"/Users/me/Projects/repobar"}}"#
+        try #"{"type":"session_meta","payload":{"id":"old","cwd":"/Users/me/Projects/fetchbar"}}"#
             .write(to: today.appendingPathComponent("rollout-2026-09-02T09-00-00-old.jsonl"), atomically: true, encoding: .utf8)
 
         let processes = [

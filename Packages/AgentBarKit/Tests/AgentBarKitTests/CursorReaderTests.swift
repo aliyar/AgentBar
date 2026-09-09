@@ -27,7 +27,7 @@ struct CursorReaderTests {
             composer(id: "old", updatedAgo: 2 * 3600, now: now),
             composer(id: "not-an-agent-chat", updatedAgo: 60, now: now),
         ]
-        let projects = ["recent": "agentbar", "busy": "repobar", "old": "agentbar"]
+        let projects = ["recent": "agentbar", "busy": "fetchbar", "old": "agentbar"]
         let conversations = CursorReader.conversations(fromComposers: records, projects: projects, now: now, editorPID: 777)
         // The old chat is gone; the busy one counts however old; chats without a transcript folder are not agent chats.
         #expect(conversations.map(\.id) == ["recent", "busy"])

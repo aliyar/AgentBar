@@ -54,11 +54,11 @@ export const conversations: Conversation[] = [
     busy: true, contextPercent: 22, contextTokens: 220_000, model: "GPT-5", effort: "medium", branch: "site", idleFor: 60,
   },
   {
-    id: "3", agent: "claude", name: "Done: the landing page builds as a static export.", project: "repobar",
+    id: "3", agent: "claude", name: "Done: the landing page builds as a static export.", project: "fetchbar",
     busy: false, contextPercent: 31, contextTokens: 310_000, model: "Opus 5", effort: "medium", branch: "site", idleFor: 600,
   },
   {
-    id: "4", agent: "codex", name: "Waiting on review of release script", project: "repobar",
+    id: "4", agent: "codex", name: "Waiting on review of release script", project: "fetchbar",
     busy: false, contextPercent: 64, contextTokens: 640_000, model: "GPT-5", effort: "high", branch: "release", idleFor: 1200,
   },
 ];
