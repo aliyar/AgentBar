@@ -39,11 +39,11 @@ SITE_DIR="$ROOT/site"
 # The feed and the zip are release assets, so the app depends on the repository rather
 # than on a domain we might one day stop paying for. "latest" always resolves to the
 # newest release, and every release keeps its own copy of the feed it shipped with.
-APPCAST="$DIST/appcast.xml"
 APPCAST_URL="https://github.com/$REPO/releases/latest/download/appcast.xml"
 SITE_VERSION_FILE="$SITE_DIR/app/release.ts"
 INSTALL_TEMPLATE="$ROOT/scripts/install.template.txt"
 DIST="$ROOT/dist"
+APPCAST="$DIST/appcast.xml"
 DERIVED_DATA="$ROOT/build/DerivedData"
 SPARKLE_ACCOUNT="agentbar"          # Keychain account holding the EdDSA private key; never omit --account
 SPARKLE_BIN="${SPARKLE_BIN:-$DERIVED_DATA/SourcePackages/artifacts/sparkle/Sparkle/bin}"
