@@ -8,6 +8,8 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-09-09
+
 ### Changed
 
 - The app updates itself from the GitHub release rather than from the website: the feed and
@@ -265,9 +267,10 @@ version heading and uses them as the release notes.
   shows "—", a figure written hours ago says how old it is, and a context whose limit is
   not written anywhere reports its tokens instead of a made-up percentage.
 
-[Unreleased]: https://github.com/aliyar/AgentBar/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/aliyar/AgentBar/compare/v1.2.1...HEAD
 [1.0.0]: https://github.com/aliyar/AgentBar/releases/tag/v1.0.0
 [1.0.1]: https://github.com/aliyar/AgentBar/releases/tag/v1.0.1
 [1.1.0]: https://github.com/aliyar/AgentBar/releases/tag/v1.1.0
 [1.1.1]: https://github.com/aliyar/AgentBar/releases/tag/v1.1.1
 [1.2.0]: https://github.com/aliyar/AgentBar/releases/tag/v1.2.0
+[1.2.1]: https://github.com/aliyar/AgentBar/releases/tag/v1.2.1
