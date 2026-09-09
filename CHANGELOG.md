@@ -18,10 +18,6 @@ version heading and uses them as the release notes.
   we know which pages are read and how many people press Download; a download click is
   counted with the version and which button it was. The privacy page says what is
   collected and how to opt out. The app itself still sends nothing.
-
-## [Unreleased]
-
-### Changed
 - A window that has already started over is drawn with a plain dash rather than an em dash,
   and so are a reset with no date anyone writes and a version that cannot be read. The mark
   means the same thing; the character is the one the rest of the project now uses.
