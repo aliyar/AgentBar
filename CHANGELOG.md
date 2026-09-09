@@ -8,6 +8,14 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+### Fixed
+
+- Launch at login stays off for anyone who never asked for it. Version 1.0.0 shipped without
+  the marker that remembers the question was put, so an install from that version had the
+  login item registered on its next launch. The app also leaves it alone when it runs from a
+  disk image or a translocated copy, where the path it would register is gone by the next
+  boot; the copy that lands in Applications still gets the default.
+
 ### Changed
 
 - The site's install steps say to open the disk image and drag the app onto Applications,
