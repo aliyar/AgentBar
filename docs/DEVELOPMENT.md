@@ -518,7 +518,8 @@ time rather than keeping copies.
 `site`, build `npm ci && npm run build`, publish `out`, domain `agentbar.greatpixels.com`.
 `render.yaml` carries a build filter on `site/**` so app commits do not republish the site.
 `site/app/release.ts` is the one place the site states the version and the download link;
-`scripts/release.sh` rewrites it. The appcast is `site/public/appcast.xml`.
+`scripts/release.sh` rewrites it, pointing it at the zip attached to the GitHub release. The
+appcast is written into `dist/` and attached to the same release; the site serves neither.
 
 `site/app/site.ts` holds the site's identity (name, URL, maker, tagline, description), the
 Open Graph card (`ogImage`: `public/og.png`, rendered by `make icon`, with its dimensions and

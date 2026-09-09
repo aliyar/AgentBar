@@ -135,12 +135,16 @@ a switch of their own.
 
 ## Install
 
-Download the latest zip from [the website](https://agentbar.greatpixels.com), unzip it, drag
+Download the latest zip from
+[the releases page](https://github.com/aliyar/AgentBar/releases/latest) (the button on
+[the website](https://agentbar.greatpixels.com) points at the same file), unzip it, drag
 **AgentBar.app** to Applications and open it. It appears in the menu bar, and nothing else happens
-until you click it. Builds are signed with a Developer ID certificate and notarized, and the app
-updates itself.
+until you click it. Builds are signed with a Developer ID certificate and notarized.
 
-Requires macOS 14 or later. Free.
+The app then updates itself: it reads the Sparkle feed attached to the newest release, and every
+zip is signed with the same EdDSA key, so an update that is not ours is refused.
+
+Requires macOS 14 or later. Free and open source under the [MIT License](LICENSE).
 
 ## Development
 

@@ -76,7 +76,8 @@ scripts/install-local.sh --app <unzipped .app>
 
 `install-local.sh` keeps a Developer ID signature and its stapled ticket; it only re-signs
 ad-hoc builds. To test the update flow, serve `site/out` locally and point the app at it:
-`defaults write com.greatpixels.AgentBar UpdateFeedURL http://localhost:3000/appcast.xml`.
+`defaults write com.greatpixels.AgentBar UpdateFeedURL http://localhost:8000/appcast.xml`, with
+`dist/appcast.xml` served from that directory.
 
 ## If something goes wrong
 
@@ -94,6 +95,6 @@ ad-hoc builds. To test the update flow, serve `site/out` locally and point the a
 ## Checking a published build
 
 ```bash
-curl -s https://agentbar.greatpixels.com/appcast.xml | head -20
+curl -sL https://github.com/aliyar/AgentBar/releases/latest/download/appcast.xml | head -20
 spctl -a -vv /Applications/AgentBar.app     # "accepted, source=Notarized Developer ID"
 ```

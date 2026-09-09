@@ -1,5 +1,5 @@
 AgentBar {{VERSION}}
-What the coding agents on this Mac are doing, and how much of their quota is left —
+What the coding agents on this Mac are doing, and how much of their quota is left:
 in the menu bar, in the Dock, and as a macOS widget.
 
 ────────────────────────────────────────────────────────────
@@ -13,12 +13,14 @@ INSTALL
 ────────────────────────────────────────────────────────────
 FIRST RUN
 
-AgentBar lives in the menu bar (look for the gauge) — there is no Dock icon
+AgentBar lives in the menu bar (look for the gauge); there is no Dock icon
 unless you turn it on in Settings. Click the gauge for the meters and the
 running conversations; right-click for Settings and Quit.
 
-Everything is read from the agents' own files on this Mac (~/.claude, ~/.codex).
-No account is contacted, no credential is ever seen, nothing leaves the machine.
+The windows and the conversations are read from the agents' own files on this
+Mac (~/.claude, ~/.codex). For the figures only an account knows, each agent's
+account is asked with the sign-in that agent already keeps here, read-only; no
+credential is stored, shown or logged, and your conversations never leave.
 
 UPDATES
 
@@ -30,3 +32,4 @@ REQUIREMENTS
 macOS {{MIN_MACOS}} or later.
 
 https://agentbar.greatpixels.com
+Source, MIT licensed: https://github.com/aliyar/AgentBar
