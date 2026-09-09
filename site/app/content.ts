@@ -133,6 +133,10 @@ export const faq = [
     a: "A change is announced only after two readings agree, so a moment's flap says nothing. A page it could not reach is never reported as an outage: your Wi-Fi dropping looks exactly like a dead service, and one of those is not news. An outage already under way when AgentBar starts is not announced either. Both messages can be turned off in Settings › Status.",
   },
   {
+    q: "Is it really free, and can I read the source?",
+    a: "Free, and open source under the MIT licence: the app, its tests and this website are one repository on GitHub. Read what it sends before you trust it with an account, or build it yourself. Issues and pull requests are welcome there.",
+  },
+  {
     q: "Which agents next?",
     a: "The three here are the ones on this Mac. Others follow as they get used; usage is the first thing AgentBar shows, not the last.",
   },

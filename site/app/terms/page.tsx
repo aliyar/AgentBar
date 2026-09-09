@@ -25,9 +25,11 @@ export default function Terms() {
 
         <h3>The software</h3>
         <p>
-          You may download, install and use {site.name} on any Mac you use, for any purpose. It is provided “as
-          is”, without warranty of any kind: it reads figures the agents and their services publish and shows them
-          to you, and those figures, their timing and their meaning belong to the services that produce them.
+          {site.name} is free and open source under the <Link href="/license/">MIT License</Link>: you may use,
+          copy, modify and distribute it, including commercially, as long as the copyright notice travels with it.
+          The <a href={site.repo} target="_blank" rel="noopener">source is on GitHub</a>. It is provided “as is”,
+          without warranty of any kind: it reads figures the agents and their services publish and shows them to
+          you, and those figures, their timing and their meaning belong to the services that produce them.
           {" "}{site.maker} is not liable for decisions made on the strength of a number in a menu bar.
         </p>
 

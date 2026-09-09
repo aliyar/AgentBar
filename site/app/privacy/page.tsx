@@ -76,6 +76,13 @@ export default function Privacy() {
           else.
         </p>
 
+        <h3>You can check all of it</h3>
+        <p>
+          {site.name} is open source under the MIT licence. What it reads, what it asks and what it sends are in
+          the same repository as this page:{" "}
+          <a href={site.repo} target="_blank" rel="noopener">github.com/aliyar/AgentBar</a>.
+        </p>
+
         <h3>Your data rights</h3>
         <p>
           We hold no personal data about you, so there is nothing to export, correct or delete on our side. If you

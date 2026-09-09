@@ -30,6 +30,12 @@ export function SiteFooter() {
           <Link href="/#install">Install</Link>
           <Link href="/#faq">Questions</Link>
         </nav>
+        <nav className="footer-col" aria-label="Project">
+          <b>Project</b>
+          <a href={site.repo} target="_blank" rel="noopener">GitHub repository</a>
+          <a href={`${site.repo}/releases`} target="_blank" rel="noopener">All releases</a>
+          <a href={`${site.repo}/issues`} target="_blank" rel="noopener">Report an issue</a>
+        </nav>
         {/* Named by what is in it, as the other columns are: the maker's name said nothing
             about Support, Privacy and Terms. */}
         <nav className="footer-col" aria-label="Anything else">
@@ -37,6 +43,7 @@ export function SiteFooter() {
           <a href={`mailto:${site.support}`}>Support</a>
           <Link href="/privacy/">Privacy</Link>
           <Link href="/terms/">Terms</Link>
+          <Link href="/license/">License</Link>
         </nav>
       </div>
     </footer>

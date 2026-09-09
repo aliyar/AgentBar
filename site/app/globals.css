@@ -302,6 +302,20 @@ p { margin: 0; }
 @media (max-width: 780px) { .doc { padding: 24px 22px 72px; } }
 .doc-date { color: var(--fg-3); font-size: 13px; margin-bottom: 18px; }
 .doc-lead { font-size: 18px; line-height: 1.5; }
+/* A licence is read as it is written: the mono face, the original line breaks, and a scroll
+   of its own on a narrow window rather than a page that shifts sideways. */
+.doc-pre {
+  margin-top: 10px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: var(--panel-2, rgb(0 0 0 / 0.04));
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.08);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
 
 /* ── The first viewport ───────────────────────────────────────────────────────────── */
 .stage {
@@ -828,7 +842,7 @@ p { margin: 0; }
 
 /* the footer */
 .footer { padding: 48px 48px 132px; color: var(--wall-fg-2); font-size: 15px; border-top: 0.5px solid var(--wall-rule); }
-.footer-inner { max-width: 1040px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: 32px; }
+.footer-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(4, minmax(0, 1fr)); gap: 28px; }
 /* The lockup is a way home, not a link to read: it is the name, and a name is not
    underlined. */
 .footer-brand .lockup { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: -0.03em; color: var(--wall-fg); text-decoration: none; }

@@ -13,7 +13,7 @@ export function SiteCTA() {
           <p>Every agent's quota and every running conversation, one glance away, on the Mac you are already using.</p>
           <DownloadButton where="end" big />
           <p className="cta-meta">
-            Version {release.version} · {release.size.startsWith("0.0") ? "" : `${release.size} · `}{release.date} · macOS {release.minMacOS} or later · Free · Signed and notarized · Updates itself
+            Version {release.version} · {release.size.startsWith("0.0") ? "" : `${release.size} · `}{release.date} · macOS {release.minMacOS} or later · Free and open source · Signed and notarized · Updates itself
           </p>
         </div>
       </section>
