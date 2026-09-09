@@ -157,9 +157,9 @@ hardened runtime's library validation would then refuse the embedded Sparkle.
 
 ## In-app updates (Sparkle 2)
 
-The feed is `https://agentbar.greatpixels.com/appcast.xml` (`SUFeedURL` in `project.yml`);
-the zips are on the download host rather than on GitHub, so an update never depends on a
-release asset.
+The feed is `https://github.com/aliyar/AgentBar/releases/latest/download/appcast.xml`
+(`SUFeedURL` in `project.yml`); the zip and the feed are both assets of the GitHub release,
+so an update depends on the repository rather than on a domain.
 `SUPublicEDKey` is empty until the key pair exists; `UpdateController.start()` refuses to start
 without it, so a development build simply has updates off. The key lives in the login Keychain
 under account **`agentbar`**: always pass `--account agentbar` to `generate_keys` and

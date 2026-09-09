@@ -10,6 +10,10 @@ version heading and uses them as the release notes.
 
 ### Changed
 
+- The app updates itself from the GitHub release rather than from the website: the feed and
+  the zip are both release assets now, so an update depends on the repository rather than on
+  a domain. A copy installed before this reads the old address and will not see new versions;
+  download once from the site and it is on the new feed for good.
 - The website counts its readers with Google Analytics, shared with the sibling sites, so
   we know which pages are read and how many people press Download; a download click is
   counted with the version and which button it was. The privacy page says what is

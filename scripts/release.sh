@@ -10,12 +10,11 @@
 #   3. Moves the "Unreleased" section of CHANGELOG.md under the new version
 #   4. Builds Release, signs it (scripts/sign-app.sh with the Developer ID certificate)
 #   5. Zips it (with install.txt) into dist/, notarizes the zip and staples the ticket
-#   6. Uploads the zip to the download host (scripts/upload-r2.sh); if that is not set up,
-#      commits it under site/public/releases/ instead (fallback, see docs/RELEASING.md)
-#   7. Signs the zip with the Sparkle EdDSA key (Keychain account "agentbar"), prepends an
-#      item to site/public/appcast.xml, points the site at the new version, builds the site
-#   8. Commits "Release X.Y.Z", tags vX.Y.Z, pushes, creates the GitHub release (notes only:
-#      the zip lives on the download host, so an update never depends on a release asset)
+#   6. Names the download: the zip is a GitHub release asset, uploaded in step 8
+#   7. Signs the zip with the Sparkle EdDSA key (Keychain account "agentbar"), writes the
+#      appcast into dist/, points the site at the new version, builds the site
+#   8. Commits "Release X.Y.Z", tags vX.Y.Z, pushes, and creates the GitHub release with the
+#      zip and the appcast attached: Sparkle reads the feed from the release, not from a site
 #
 # Options:
 #   --dry-run      Do steps 1, 4 and 5 into dist/; change nothing in the repo, R2 or GitHub
@@ -27,7 +26,6 @@
 # Environment:
 #   NOTARY_PROFILE  notarytool keychain profile (default: the name in .notary-profile, gitignored)
 #   SIGN_IDENTITY   codesign identity to use instead of the auto-detected Developer ID
-#   R2_BUCKET       Cloudflare R2 bucket for scripts/upload-r2.sh (unset → site fallback)
 #
 set -euo pipefail
 
@@ -38,10 +36,11 @@ SCHEME="AgentBar"
 REPO="${REPO:-aliyar/AgentBar}"
 CHANGELOG="$ROOT/CHANGELOG.md"
 SITE_DIR="$ROOT/site"
-APPCAST="$SITE_DIR/public/appcast.xml"
-APPCAST_URL="https://agentbar.greatpixels.com/appcast.xml"
-DOWNLOAD_HOST="https://dl.greatpixels.com/agentbar"
-FALLBACK_RELEASES_DIR="$SITE_DIR/public/releases"
+# The feed and the zip are release assets, so the app depends on the repository rather
+# than on a domain we might one day stop paying for. "latest" always resolves to the
+# newest release, and every release keeps its own copy of the feed it shipped with.
+APPCAST="$DIST/appcast.xml"
+APPCAST_URL="https://github.com/$REPO/releases/latest/download/appcast.xml"
 SITE_VERSION_FILE="$SITE_DIR/app/release.ts"
 INSTALL_TEMPLATE="$ROOT/scripts/install.template.txt"
 DIST="$ROOT/dist"
@@ -247,25 +246,14 @@ if [ "$DRY_RUN" -eq 1 ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 6. Upload
+# 6. Where the zip will live
 # ---------------------------------------------------------------------------
-step "6/8" "Upload the zip"
-if [ -n "${R2_BUCKET:-}" ]; then
-  DOWNLOAD_URL="$("$ROOT/scripts/upload-r2.sh" "$ZIP_PATH" | tail -1)"
-  ok "Uploaded to $DOWNLOAD_URL"
-else
-  # Fallback: commit the zip into the site, as Great Menubar does. Move to R2 before the second
-  # release — every zip committed here stays in git history forever.
-  warn "R2_BUCKET not set: committing the zip under site/public/releases/ instead"
-  mkdir -p "$FALLBACK_RELEASES_DIR"
-  for old in "$FALLBACK_RELEASES_DIR"/$APP_NAME-*.zip; do [ -e "$old" ] && git rm -q --cached "$old" 2>/dev/null; rm -f "$old"; done
-  cp "$ZIP_PATH" "$FALLBACK_RELEASES_DIR/$ZIP_NAME"
-  # The repository ignores *.zip; the release zips are the one exception (.gitignore), and
-  # -f makes sure of it either way.
-  git add -f "$FALLBACK_RELEASES_DIR/$ZIP_NAME"
-  DOWNLOAD_URL="${APPCAST_URL%/appcast.xml}/releases/$ZIP_NAME"
-  ok "Zip staged at $DOWNLOAD_URL"
-fi
+step "6/8" "Name the download"
+# The zip is uploaded with the GitHub release in step 8; its address is known now, because
+# the tag is. Nothing binary goes into the repository: a zip committed here would stay in
+# the history for good.
+DOWNLOAD_URL="https://github.com/$REPO/releases/download/$TAG/$ZIP_NAME"
+ok "The download will be $DOWNLOAD_URL"
 
 # ---------------------------------------------------------------------------
 # 7. Sparkle appcast + site
@@ -380,8 +368,7 @@ ok "Site builds with $VERSION"
 # 8. Commit, tag, publish
 # ---------------------------------------------------------------------------
 step "8/8" "Commit, tag, publish"
-git add project.yml "$CHANGELOG" "$APPCAST" "$SITE_VERSION_FILE"
-[ -d "$FALLBACK_RELEASES_DIR" ] && git add -A "$FALLBACK_RELEASES_DIR"
+git add project.yml "$CHANGELOG" "$SITE_VERSION_FILE"
 git commit -q -m "Release $VERSION" -m "$NOTES"
 git tag -a "$TAG" -m "$APP_NAME $TAG" -m "$NOTES"
 ok "Committed $(git rev-parse --short HEAD), tagged $TAG"
@@ -394,10 +381,13 @@ if [ "$PUBLISH" -eq 1 ]; then
     echo "Download: $DOWNLOAD_URL"; echo
     echo "Requires macOS $MIN_MACOS or later. Installed copies update themselves through **Check for Updates…**."
   } > "$BODY_FILE"
-  gh release create "$TAG" --repo "$REPO" --title "$APP_NAME $VERSION" --notes-file "$BODY_FILE" >/dev/null
-  ok "Pushed $RELEASE_BRANCH and $TAG; GitHub release created (notes only)"
-  echo; ok "Render redeploys the site on push: $APPCAST_URL will serve $VERSION in a few minutes."
+  # The zip and the feed ride with the release: the app updates itself from here, and the
+  # site's download button points at the same file.
+  gh release create "$TAG" --repo "$REPO" --title "$APP_NAME $VERSION" --notes-file "$BODY_FILE" \
+    "$ZIP_PATH" "$APPCAST" >/dev/null
+  ok "Pushed $RELEASE_BRANCH and $TAG; GitHub release created with the zip and the appcast"
+  echo; ok "Sparkle reads $APPCAST_URL, which now resolves to $VERSION."
 else
   warn "Not published (--no-publish). To publish:"
-  echo "    git push origin $RELEASE_BRANCH refs/tags/$TAG && gh release create $TAG --repo $REPO --title \"$APP_NAME $VERSION\" --notes-file <notes>"
+  echo "    git push origin $RELEASE_BRANCH refs/tags/$TAG && gh release create $TAG --repo $REPO --title \"$APP_NAME $VERSION\" --notes-file <notes> $ZIP_PATH $APPCAST"
 fi

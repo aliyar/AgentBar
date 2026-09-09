@@ -21,12 +21,14 @@ make release VERSION=1.2.3
 | 3 | Move `## [Unreleased]` entries under `## [X.Y.Z] - date`, update the compare links | `CHANGELOG.md` |
 | 4 | Release build with `CODE_SIGNING_ALLOWED=NO`, then `scripts/sign-app.sh` with the Developer ID certificate (Sparkle components individually, hardened runtime, timestamp) | – |
 | 5 | Zip app + `install.txt` with `ditto`, notarize with `notarytool`, staple the ticket, re-zip | `dist/` |
-| 6 | Upload the zip with `scripts/upload-r2.sh` (`R2_BUCKET` set), or fall back to committing it under `site/public/releases/` | R2 or `site/public/releases/` |
-| 7 | `sign_update --account agentbar`, prepend an item to the appcast (keeps 5), write `site/app/release.ts`, build the site | `site/public/appcast.xml`, `site/app/release.ts` |
-| 8 | `git commit -m "Release X.Y.Z"`, annotated tag `vX.Y.Z`, push, `gh release create` with the notes (no assets) | GitHub |
+| 6 | Name the download: `https://github.com/aliyar/AgentBar/releases/download/vX.Y.Z/AgentBar-X.Y.Z.zip`, uploaded in step 8 | – |
+| 7 | `sign_update --account agentbar`, write the appcast into `dist/` (keeps 5 items), write `site/app/release.ts`, build the site | `dist/appcast.xml`, `site/app/release.ts` |
+| 8 | `git commit -m "Release X.Y.Z"`, annotated tag `vX.Y.Z`, push, `gh release create` with the zip and the appcast attached | GitHub |
 
-Render redeploys the site on the push to `main`; installed apps see the update on their next
-daily check or through **Check for Updates…** in Settings.
+Nothing binary goes into the repository: the zip and the feed are release assets, and Sparkle
+reads `https://github.com/aliyar/AgentBar/releases/latest/download/appcast.xml`, which always
+resolves to the newest release. Render redeploys the site on the push to `main`; installed
+apps see the update on their next daily check or through **Check for Updates…** in Settings.
 
 ### Options
 
@@ -57,9 +59,8 @@ daily check or through **Check for Updates…** in Settings.
   ```
   Paste the public key into `SUPublicEDKey` in `project.yml`. Losing the private key strands
   every installed copy: the app rejects updates signed with any other key.
-- For the download host: `npx wrangler login` once, and `R2_BUCKET` in the environment
-  (default `greatpixels-downloads`). Without it the script commits the zip into the site:
-  fine for the first release, move before the second: every zip committed stays in history.
+- Nothing else. The download host is GitHub: `gh` is already required above, and the zip
+  and the appcast are attached to the release it creates.
 
 ## Version policy
 

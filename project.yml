@@ -66,11 +66,11 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.greatpixels.AgentBar
             CFBundleURLSchemes: [agentbar]
-        # Sparkle 2: the feed and the zips are served from the site rather than from GitHub,
-        # so an update never depends on a release asset. SUPublicEDKey is filled in once the EdDSA key pair exists
+        # Sparkle 2: the feed and the zips are release assets, so an update depends on the
+        # repository rather than on a domain. SUPublicEDKey is filled in once the EdDSA key pair exists
         # (`generate_keys --account agentbar`, see docs/RELEASING.md); the updater does not start
         # while it is empty.
-        SUFeedURL: "https://agentbar.greatpixels.com/appcast.xml"
+        SUFeedURL: "https://github.com/aliyar/AgentBar/releases/latest/download/appcast.xml"
         SUPublicEDKey: "lXUV7eofupmNcuoyn/TLer94TTXPleMXFTKsDq13tjs="
         SUEnableAutomaticChecks: true
         SUScheduledCheckInterval: 86400
