@@ -86,8 +86,8 @@ export const status = [
 ] as const;
 
 export const install = [
-  { step: "Download the zip and open it.", note: "Signed with a Developer ID and notarized by Apple; macOS opens it without a fuss." },
-  { step: "Drag AgentBar to Applications and open it.", note: "It appears in the menu bar. Nothing else happens until you click it." },
+  { step: "Download the disk image and open it.", note: "Signed with a Developer ID and notarized by Apple; macOS opens it without a fuss." },
+  { step: "Drag AgentBar onto Applications, then open it from there.", note: "It appears in the menu bar. Nothing else happens until you click it." },
   { step: "Settings › General, if you like.", note: "Launch at login, where it lives, what a Dock click opens. Updates arrive on their own." },
 ] as const;
 

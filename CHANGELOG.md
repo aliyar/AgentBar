@@ -8,6 +8,11 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+### Changed
+
+- The site's install steps say to open the disk image and drag the app onto Applications,
+  which is what the download now is.
+
 ## [1.2.2] - 2026-09-09
 
 ### Changed
