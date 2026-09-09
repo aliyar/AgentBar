@@ -9,11 +9,12 @@ export type DownloadWhere = "hero" | "end";
 /**
  * A click is the nearest thing a static site has to a download, and Google Analytics gets
  * it as an event with the version. Called by every way down to the file, since a link that
- * counted in one place and not another would report a number that is quietly wrong.
+ * counted in one place and not another would report a number that is quietly wrong. `app`
+ * rides along so the event says which app it belongs to on its own.
  */
 export function countDownload(where: DownloadWhere) {
   const w = window as unknown as { gtag?: (...args: unknown[]) => void };
-  w.gtag?.("event", "download", { version: release.version, where, file: release.url.split("/").pop() });
+  w.gtag?.("event", "download", { app: "agentbar", version: release.version, where, file: release.url.split("/").pop() });
 }
 
 /**

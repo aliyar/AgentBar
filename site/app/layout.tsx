@@ -78,10 +78,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             interactive, so it never stands between a reader and the words. */}
         <Script src={`https://www.googletagmanager.com/gtag/js?id=${site.analyticsID}`} strategy="afterInteractive" />
         <Script id="gtag-init" strategy="afterInteractive">
-          {`window.dataLayer = window.dataLayer || [];
+          {`if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
+window.gtag = gtag;
 gtag('js', new Date());
-gtag('config', '${site.analyticsID}');`}
+gtag('config', '${site.analyticsID}');
+}`}
         </Script>
 </body>
     </html>

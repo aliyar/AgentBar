@@ -5,7 +5,7 @@ export const site = {
   makerUrl: "https://greatpixels.com",
   support: "support@greatpixels.com",
   /** Google Analytics 4, shared with the sibling sites. The privacy page describes what it collects; keep the two in step. */
-  analyticsID: "G-9FSWBSMGE6",
+  analyticsID: "G-CD99SNZ4YB",
   /** The source. Free and open under the MIT licence, and the site says so. */
   repo: "https://github.com/aliyar/AgentBar",
   // The page stays light in both appearances, so one theme colour covers it: the wallpaper base.
