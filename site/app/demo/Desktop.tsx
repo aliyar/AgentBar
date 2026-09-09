@@ -159,7 +159,7 @@ export function Desktop() {
           <div className="hero-cta">
             <DownloadButton where="hero" />
             <span className="hero-meta">
-              macOS {release.minMacOS} or later{release.size.startsWith("0.0") ? "" : ` · ${release.size}`} · Free and open source
+              macOS {release.minMacOS} or later · Free and open source
               <br />
               Signed and notarized · Updates itself
             </span>

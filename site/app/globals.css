@@ -785,8 +785,10 @@ p { margin: 0; }
   /* Its natural height, not the wrapper's: a flex item stretches by default, and a laptop
      squashed to the scaled box before being scaled again loses its proportions. */
   align-items: flex-start;
-  overflow: hidden;
-  height: calc(627px * var(--laptop-scale));
+  /* A transform leaves the old box behind, so the space under a scaled-down laptop has to
+     be taken back. It was taken by clipping, which cut the lid's shadow and the base, wider
+     than the lid by design; a negative margin takes the same space and cuts nothing. */
+  margin-bottom: calc((var(--laptop-scale) - 1) * 627px);
 }
 @media (max-width: 1100px) { .laptop-wrap { --laptop-scale: 0.82; } }
 @media (max-width: 860px) { .laptop-wrap { --laptop-scale: 0.62; } }

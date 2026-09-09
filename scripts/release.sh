@@ -9,12 +9,16 @@
 #   2. Bumps MARKETING_VERSION / CURRENT_PROJECT_VERSION in project.yml, regenerates the project
 #   3. Moves the "Unreleased" section of CHANGELOG.md under the new version
 #   4. Builds Release, signs it (scripts/sign-app.sh with the Developer ID certificate)
-#   5. Zips it (with install.txt) into dist/, notarizes the zip and staples the ticket
-#   6. Names the download: the zip is a GitHub release asset, uploaded in step 8
+#   5. Zips it (with install.txt) into dist/, notarizes and staples it, then builds the disk
+#      image people download (create-dmg: the app, an Applications link and the window laid
+#      out over Design/DMG/background.png), signs it, notarizes it and staples it
+#   6. Names the two downloads: the disk image for people, the zip for Sparkle, both
+#      assets of the GitHub release created in step 8
 #   7. Signs the zip with the Sparkle EdDSA key (Keychain account "agentbar"), writes the
 #      appcast into dist/, points the site at the new version, builds the site
 #   8. Commits "Release X.Y.Z", tags vX.Y.Z, pushes, and creates the GitHub release with the
-#      zip and the appcast attached: Sparkle reads the feed from the release, not from a site
+#      disk image, the zip and the appcast attached: Sparkle reads the feed from the release,
+#      not from a site
 #
 # Options:
 #   --dry-run      Do steps 1, 4 and 5 into dist/; change nothing in the repo, R2 or GitHub
@@ -42,6 +46,7 @@ SITE_DIR="$ROOT/site"
 APPCAST_URL="https://github.com/$REPO/releases/latest/download/appcast.xml"
 SITE_VERSION_FILE="$SITE_DIR/app/release.ts"
 INSTALL_TEMPLATE="$ROOT/scripts/install.template.txt"
+DMG_BACKGROUND_DIR="$ROOT/Design/DMG"     # written by make icon
 DIST="$ROOT/dist"
 APPCAST="$DIST/appcast.xml"
 DERIVED_DATA="$ROOT/build/DerivedData"
@@ -93,8 +98,11 @@ done
 # 1. Pre-flight
 # ---------------------------------------------------------------------------
 step "1/8" "Pre-flight checks"
-for tool in xcodegen xcodebuild gh ditto plutil codesign python3 xmllint npm; do
+for tool in xcodegen xcodebuild gh ditto plutil codesign python3 xmllint npm create-dmg tiffutil; do
   command -v "$tool" >/dev/null || die "$tool is required"
+done
+for f in background.png background@2x.png; do
+  [ -f "$DMG_BACKGROUND_DIR/$f" ] || die "$DMG_BACKGROUND_DIR/$f is missing; run: make icon"
 done
 [ -x "$ROOT/scripts/sign-app.sh" ] || die "scripts/sign-app.sh missing or not executable"
 
@@ -141,6 +149,8 @@ NEW_BUILD=$(( ${OLD_BUILD:-0} + 1 ))
 TAG="v$VERSION"
 ZIP_NAME="$APP_NAME-$VERSION.zip"
 ZIP_PATH="$DIST/$ZIP_NAME"
+DMG_NAME="$APP_NAME-$VERSION.dmg"
+DMG_PATH="$DIST/$DMG_NAME"
 MIN_MACOS="$(sed -n 's/^ *macOS: "\([^"]*\)".*/\1/p' project.yml | head -1)"
 git rev-parse -q --verify "refs/tags/$TAG" >/dev/null && die "Tag $TAG already exists"
 
@@ -220,17 +230,24 @@ sed -e "s/{{VERSION}}/$VERSION/g" -e "s/{{MIN_MACOS}}/$MIN_MACOS/g" "$INSTALL_TE
 cp "$STAGE_DIR/install.txt" "$DIST/install.txt"
 ditto -c -k --sequesterRsrc "$STAGE_DIR" "$ZIP_PATH"
 
-if [ "$NOTARIZE" -eq 1 ]; then
-  info "Submitting to Apple for notarization (usually a few minutes)…"
-  NOTARY_JSON="$DIST/.notary.json"
+# Two files go to Apple, the zip and the disk image, so the submission is a function.
+notarize() { # <file> <what it is>
+  local file="$1" what="$2" status id
+  # On its own line: `local` evaluates every right-hand side before it binds any name.
+  local json="$DIST/.notary-$(basename "$file").json"
+  info "Submitting $what to Apple for notarization (usually a few minutes)…"
   # notarytool exits 0 even when Apple rejects the submission, so read the status, not $?.
-  xcrun notarytool submit "$ZIP_PATH" --keychain-profile "$NOTARY_PROFILE" --wait \
-    --output-format json > "$NOTARY_JSON" 2>"$TEMP_DIR/notary.err" || true
-  NOTARY_STATUS="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("status",""))' "$NOTARY_JSON" 2>/dev/null || true)"
-  NOTARY_ID="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("id",""))' "$NOTARY_JSON" 2>/dev/null || true)"
-  [ "$NOTARY_STATUS" = "Accepted" ] || { head -5 "$TEMP_DIR/notary.err" >&2 || true
-    die "Notarization ${NOTARY_STATUS:-failed}. Details: xcrun notarytool log ${NOTARY_ID:-<id>} --keychain-profile $NOTARY_PROFILE"; }
-  ok "Notarized by Apple (submission $NOTARY_ID)"
+  xcrun notarytool submit "$file" --keychain-profile "$NOTARY_PROFILE" --wait \
+    --output-format json > "$json" 2>"$TEMP_DIR/notary.err" || true
+  status="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("status",""))' "$json" 2>/dev/null || true)"
+  id="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("id",""))' "$json" 2>/dev/null || true)"
+  [ "$status" = "Accepted" ] || { head -5 "$TEMP_DIR/notary.err" >&2 || true
+    die "Notarization of $what ${status:-failed}. Details: xcrun notarytool log ${id:-<id>} --keychain-profile $NOTARY_PROFILE"; }
+  ok "Notarized $what (submission $id)"
+}
+
+if [ "$NOTARIZE" -eq 1 ]; then
+  notarize "$ZIP_PATH" "the app"
   # Staple, then rebuild the zip: everything derived from it (EdDSA signature, length) must
   # describe the file people actually download.
   xcrun stapler staple "$STAGE_DIR/$APP_NAME.app" >/dev/null || die "stapler staple failed"
@@ -239,7 +256,45 @@ if [ "$NOTARIZE" -eq 1 ]; then
   ok "Stapled the notarization ticket and repackaged the zip"
 fi
 ZIP_SIZE="$(stat -f%z "$ZIP_PATH")"
-ok "$ZIP_NAME ($(du -h "$ZIP_PATH" | cut -f1))"
+ok "$ZIP_NAME ($(du -h "$ZIP_PATH" | cut -f1)), for updates"
+
+# The disk image is what people download: the stapled app, a link to Applications, and a
+# window laid out so the one thing to do is obvious. An app run straight out of a zip in
+# Downloads runs from a read-only copy that cannot update itself; a window with an arrow in
+# it is what gets an app into Applications. The background is drawn by make icon and the
+# positions here match the arrow in it. create-dmg lays the window out through the Finder,
+# which asks once for permission to control it (System Settings, Privacy & Security,
+# Automation).
+DMG_STAGE="$TEMP_DIR/dmg"; mkdir -p "$DMG_STAGE"
+ditto "$STAGE_DIR/$APP_NAME.app" "$DMG_STAGE/$APP_NAME.app"
+BACKGROUND="$TEMP_DIR/background.tiff"
+tiffutil -cathidpicheck "$DMG_BACKGROUND_DIR/background.png" "$DMG_BACKGROUND_DIR/background@2x.png" -out "$BACKGROUND" >/dev/null 2>&1 \
+  || die "tiffutil could not combine the disk image background"
+VOLICON="$STAGE_DIR/$APP_NAME.app/Contents/Resources/AppIcon.icns"
+VOLICON_ARGS=(); [ -f "$VOLICON" ] && VOLICON_ARGS=(--volicon "$VOLICON")
+rm -f "$DMG_PATH"
+if ! create-dmg \
+    --volname "$APP_NAME" "${VOLICON_ARGS[@]}" \
+    --background "$BACKGROUND" \
+    --window-pos 200 140 --window-size 660 400 \
+    --icon-size 128 --text-size 13 \
+    --icon "$APP_NAME.app" 165 180 --hide-extension "$APP_NAME.app" \
+    --app-drop-link 495 180 \
+    --no-internet-enable --hdiutil-quiet \
+    "$DMG_PATH" "$DMG_STAGE" > "$TEMP_DIR/dmg.log" 2>&1; then
+  tail -8 "$TEMP_DIR/dmg.log" >&2
+  die "create-dmg failed. If it could not run its AppleScript, allow the terminal to control the Finder and run again."
+fi
+[ -f "$DMG_PATH" ] || die "create-dmg produced no disk image"
+if [ "$NOTARIZE" -eq 1 ]; then
+  codesign --force --sign "$SIGN_IDENTITY" --timestamp "$DMG_PATH" >/dev/null 2>&1 || die "codesign of the disk image failed"
+  notarize "$DMG_PATH" "the disk image"
+  xcrun stapler staple "$DMG_PATH" >/dev/null || die "stapler staple of the disk image failed"
+  xcrun stapler validate "$DMG_PATH" >/dev/null || die "stapler validate of the disk image failed"
+  ok "Signed and stapled the disk image"
+fi
+DMG_SIZE="$(stat -f%z "$DMG_PATH")"
+ok "$DMG_NAME ($(du -h "$DMG_PATH" | cut -f1)), for people"
 
 if [ "$DRY_RUN" -eq 1 ]; then
   echo; ok "Dry run complete: artifacts in dist/, nothing else changed."; exit 0
@@ -252,8 +307,9 @@ step "6/8" "Name the download"
 # The zip is uploaded with the GitHub release in step 8; its address is known now, because
 # the tag is. Nothing binary goes into the repository: a zip committed here would stay in
 # the history for good.
-DOWNLOAD_URL="https://github.com/$REPO/releases/download/$TAG/$ZIP_NAME"
-ok "The download will be $DOWNLOAD_URL"
+DOWNLOAD_URL="https://github.com/$REPO/releases/download/$TAG/$DMG_NAME"
+UPDATE_URL="https://github.com/$REPO/releases/download/$TAG/$ZIP_NAME"
+ok "The download will be $DOWNLOAD_URL; Sparkle takes $UPDATE_URL"
 
 # ---------------------------------------------------------------------------
 # 7. Sparkle appcast + site
@@ -264,7 +320,7 @@ ED_SIGNATURE="$(echo "$ED_ATTRS" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*
 [ -n "$ED_SIGNATURE" ] || die "sign_update did not return an EdDSA signature"
 
 NOTES_TMP="$TEMP_DIR/notes.txt"; printf '%s\n' "$NOTES" > "$NOTES_TMP"
-python3 - "$APPCAST" "$APP_NAME" "$VERSION" "$NEW_BUILD" "$MIN_MACOS" "$DOWNLOAD_URL" "$ZIP_SIZE" "$ED_SIGNATURE" "$APPCAST_URL" "$NOTES_TMP" <<'PY'
+python3 - "$APPCAST" "$APP_NAME" "$VERSION" "$NEW_BUILD" "$MIN_MACOS" "$UPDATE_URL" "$ZIP_SIZE" "$ED_SIGNATURE" "$APPCAST_URL" "$NOTES_TMP" <<'PY'
 import html, re, sys
 from datetime import datetime, timezone
 appcast, app, version, build, min_macos, url, size, sig, feed_url, notes_path = sys.argv[1:11]
@@ -348,7 +404,7 @@ open(appcast, "w", encoding="utf-8").write(f"""<?xml version="1.0" encoding="utf
 """)
 PY
 xmllint --noout "$APPCAST" || die "Generated appcast.xml is not well-formed XML"
-ok "appcast.xml → $VERSION (build $NEW_BUILD), enclosure $DOWNLOAD_URL"
+ok "appcast.xml → $VERSION (build $NEW_BUILD), enclosure $UPDATE_URL"
 
 # The site states the version, the download link and the size in exactly one file.
 cat > "$SITE_VERSION_FILE" <<TS
@@ -357,7 +413,7 @@ export const release = {
   version: "$VERSION",
   date: "$(date -u +%Y-%m-%d)",
   url: "$DOWNLOAD_URL",
-  size: "$(python3 -c "print(f'{$ZIP_SIZE/1024/1024:.1f} MB')")",
+  size: "$(python3 -c "print(f'{$DMG_SIZE/1024/1024:.1f} MB')")",
   minMacOS: "$MIN_MACOS",
 } as const;
 TS
@@ -384,10 +440,10 @@ if [ "$PUBLISH" -eq 1 ]; then
   # The zip and the feed ride with the release: the app updates itself from here, and the
   # site's download button points at the same file.
   gh release create "$TAG" --repo "$REPO" --title "$APP_NAME $VERSION" --notes-file "$BODY_FILE" \
-    "$ZIP_PATH" "$APPCAST" >/dev/null
-  ok "Pushed $RELEASE_BRANCH and $TAG; GitHub release created with the zip and the appcast"
+    "$DMG_PATH" "$ZIP_PATH" "$APPCAST" >/dev/null
+  ok "Pushed $RELEASE_BRANCH and $TAG; GitHub release created with the disk image, the zip and the appcast"
   echo; ok "Sparkle reads $APPCAST_URL, which now resolves to $VERSION."
 else
   warn "Not published (--no-publish). To publish:"
-  echo "    git push origin $RELEASE_BRANCH refs/tags/$TAG && gh release create $TAG --repo $REPO --title \"$APP_NAME $VERSION\" --notes-file <notes> $ZIP_PATH $APPCAST"
+  echo "    git push origin $RELEASE_BRANCH refs/tags/$TAG && gh release create $TAG --repo $REPO --title \"$APP_NAME $VERSION\" --notes-file <notes> $DMG_PATH $ZIP_PATH $APPCAST"
 fi

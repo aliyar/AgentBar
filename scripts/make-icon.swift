@@ -112,3 +112,52 @@ if FileManager.default.fileExists(atPath: site.path) {
     }
     write(card, to: site.appendingPathComponent("public/og.png"))
 }
+
+// MARK: The disk image's window
+
+// The window is 660 by 400 points and the icons are 128 points, centred where
+// scripts/release.sh puts them: the app at (165, 180) and Applications at (495, 180),
+// counted from the top left as the Finder counts. The one thing the window has to say is
+// said above them, as a heading; nothing is drawn where an icon or its label will be, and
+// nothing in the bottom hundred points, which a Finder showing its path bar or status bar
+// covers.
+let dmgWindow = NSSize(width: 660, height: 400)
+func dmgBackground(scale: CGFloat) -> Data {
+    let width = Int(dmgWindow.width * scale), height = Int(dmgWindow.height * scale)
+    return png(from: master, width: width, height: height) { context in
+        context.scaleBy(x: scale, y: scale)
+        // The Finder counts from the top; AppKit draws from the bottom.
+        func y(_ fromTop: CGFloat) -> CGFloat { dmgWindow.height - fromTop }
+
+        NSColor(srgbRed: 0xF2 / 255, green: 0xF2 / 255, blue: 0xF4 / 255, alpha: 1).setFill()
+        NSRect(origin: .zero, size: dmgWindow).fill()
+
+        let green = NSColor(srgbRed: 0x3B / 255, green: 0xC2 / 255, blue: 0x8A / 255, alpha: 1)
+        let slate = NSColor(srgbRed: 0x2A / 255, green: 0x2D / 255, blue: 0x36 / 255, alpha: 1)
+
+        // The arrow, between the two icons and clear of both.
+        let arrow = NSBezierPath()
+        arrow.lineWidth = 5
+        arrow.lineCapStyle = .round
+        arrow.lineJoinStyle = .round
+        arrow.move(to: NSPoint(x: 252, y: y(180)))
+        arrow.line(to: NSPoint(x: 404, y: y(180)))
+        arrow.move(to: NSPoint(x: 382, y: y(158)))
+        arrow.line(to: NSPoint(x: 406, y: y(180)))
+        arrow.line(to: NSPoint(x: 382, y: y(202)))
+        green.setStroke()
+        arrow.stroke()
+
+        // Above the icons, where a heading goes.
+        let paragraph = NSMutableParagraphStyle(); paragraph.alignment = .center
+        let caption = NSAttributedString(string: "Drag AgentBar into Applications, then open it from there.", attributes: [
+            .font: NSFont.systemFont(ofSize: 17, weight: .medium),
+            .foregroundColor: slate.withAlphaComponent(0.82),
+            .paragraphStyle: paragraph,
+        ])
+        caption.draw(with: NSRect(x: 40, y: y(66), width: dmgWindow.width - 80, height: 24), options: [.usesLineFragmentOrigin])
+    }
+}
+let dmg = root.appendingPathComponent("Design/DMG")
+write(dmgBackground(scale: 1), to: dmg.appendingPathComponent("background.png"))
+write(dmgBackground(scale: 2), to: dmg.appendingPathComponent("background@2x.png"))

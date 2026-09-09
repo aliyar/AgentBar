@@ -8,6 +8,19 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+### Changed
+
+- The download is a disk image: the app, a link to Applications and a window that says to
+  drag one onto the other. An app run straight out of a zip in Downloads runs from a
+  read-only copy that cannot update itself and registers a login item at a path that will
+  not exist next time. The zip stays, because it is what Sparkle unpacks for an update.
+
+### Fixed
+
+- The laptop under "The widget" is drawn whole again. The space a scaled-down laptop leaves
+  behind was taken back by clipping, which cut its shadow and the base, wider than the lid
+  by design; a negative margin takes the same space and cuts nothing.
+
 ## [1.2.1] - 2026-09-09
 
 ### Changed
