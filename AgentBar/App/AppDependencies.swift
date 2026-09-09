@@ -150,18 +150,33 @@ final class AppDependencies {
         }
     }
 
+    /// Launch at login is on by default: the first launch registers it, macOS says so itself,
+    /// and Settings › General turns it off. Later launches leave that choice alone. Reads the
+    /// status refreshed just before the call: already enabled means there is nothing to do, and
+    /// approval pending means someone switched it off in System Settings, where registering
+    /// again neither works nor takes the hint.
+    ///
+    /// A disk image or a translocated copy is somewhere the app is only passing through, and
+    /// the path registered from there is gone by the next boot. Leave without spending the one
+    /// chance, so the copy that lands in Applications still gets the default.
+    private func registerLoginItemOnFirstRun() {
+        let path = Bundle.main.bundleURL.path
+        guard !path.hasPrefix("/Volumes/"), !path.contains("/AppTranslocation/") else {
+            Log.app.notice("not registering a login item from \(path, privacy: .public)")
+            return
+        }
+        guard settings.takeFirstLaunch() else { return }
+        guard !loginItem.isEnabled, !loginItem.requiresApproval else { return }
+        loginItem.register()
+    }
+
     func start() {
         observeSettings()
         observeDock()
         observeGauge()
         observeAppearance()
         loginItem.refresh()
-        // Launch at login is on by default: the first launch registers it (macOS tells
-        // the user, and Settings › General can turn it off); later launches leave the
-        // user's choice alone.
-        if settings.takeFirstLaunch(), !loginItem.isEnabled, !loginItem.requiresApproval {
-            loginItem.register()
-        }
+        registerLoginItemOnFirstRun()
         model.start()
         status.start()
         updates.start()

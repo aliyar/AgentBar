@@ -265,8 +265,18 @@ final class AppSettings {
     }
 
     /// True once per install: the first launch registers the login item and remembers it did.
+    ///
+    /// Absent means one of two very different things. On a fresh install nothing of ours is on
+    /// disk yet and the app may put itself in Login Items. On a copy that predates the key
+    /// there are settings already, and 1.0.0 shipped without it, so reading absent as "never
+    /// asked" would opt those installs in behind their back. Anything of our own on disk
+    /// counts as asked.
     func takeFirstLaunch() -> Bool {
-        guard !defaults.bool(forKey: Keys.loginItemOffered) else { return false }
+        let offered = defaults.object(forKey: Keys.loginItemOffered) as? Bool
+            ?? (defaults.object(forKey: Keys.gauge) != nil
+                || defaults.object(forKey: Keys.appearance) != nil
+                || defaults.object(forKey: Keys.sectionOrder) != nil)
+        guard !offered else { return false }
         defaults.set(true, forKey: Keys.loginItemOffered)
         return true
     }
