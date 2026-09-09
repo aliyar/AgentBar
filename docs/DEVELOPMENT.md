@@ -158,7 +158,8 @@ hardened runtime's library validation would then refuse the embedded Sparkle.
 ## In-app updates (Sparkle 2)
 
 The feed is `https://agentbar.greatpixels.com/appcast.xml` (`SUFeedURL` in `project.yml`);
-the zips are on the download host, never on GitHub, so the repository can stay private.
+the zips are on the download host rather than on GitHub, so an update never depends on a
+release asset.
 `SUPublicEDKey` is empty until the key pair exists; `UpdateController.start()` refuses to start
 without it, so a development build simply has updates off. The key lives in the login Keychain
 under account **`agentbar`**: always pass `--account agentbar` to `generate_keys` and
@@ -540,9 +541,8 @@ mirror changes with it. The page's faces are Martian Mono (Evil Martians, SIL OF
 Atkinson Hyperlegible Next (Braille Institute, SIL OFL) for the text, self-hosted
 as variable files in `public/fonts/` so no third-party domain is ever loaded; the drawn app
 elements keep the Mac's own face, because they are the app. Tailwind v4 is set up
-(`postcss.config.mjs`, `@import "tailwindcss"`) but the page is written with semantic classes. `PRODUCT.md` and `DESIGN.md` in `site/`
-record what the site is for and how it is drawn; `.impeccable/` holds the design skill's
-working files (the surface brief is tracked, captures and logs are not).
+(`postcss.config.mjs`, `@import "tailwindcss"`) but the page is written with semantic classes. What the site is
+for and how it is drawn is recorded in the notes repository rather than here.
 
 ## Conventions
 

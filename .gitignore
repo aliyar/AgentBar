@@ -38,7 +38,7 @@ site/next-env.d.ts
 site/*.tsbuildinfo
 
 # AI assistant / editor metadata - never published
-.claude/settings.local.json
+.claude/
 CLAUDE.md
 CLAUDE.local.md
 **/CLAUDE.md
@@ -49,7 +49,8 @@ CLAUDE.local.md
 *.plan.md
 .vscode/
 
-# impeccable working files (the design skill): questions, review captures, mocks
-site/.impeccable/questions/
-site/.impeccable/review/
-site/.impeccable/mocks/
+# The site's own briefs and design working files: they live in the notes repository,
+# not here, so the code repository holds only what could be public.
+site/PRODUCT.md
+site/DESIGN.md
+site/.impeccable/

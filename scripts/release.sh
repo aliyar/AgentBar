@@ -15,7 +15,7 @@
 #   7. Signs the zip with the Sparkle EdDSA key (Keychain account "agentbar"), prepends an
 #      item to site/public/appcast.xml, points the site at the new version, builds the site
 #   8. Commits "Release X.Y.Z", tags vX.Y.Z, pushes, creates the GitHub release (notes only:
-#      the zip lives on the download host, so the repository can stay private)
+#      the zip lives on the download host, so an update never depends on a release asset)
 #
 # Options:
 #   --dry-run      Do steps 1, 4 and 5 into dist/; change nothing in the repo, R2 or GitHub

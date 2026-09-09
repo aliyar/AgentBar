@@ -31,8 +31,8 @@ Website: [agentbar.greatpixels.com](https://agentbar.greatpixels.com)
 
 ## Project status
 
-Early. The skeleton builds and shows a menu bar item; the readers, the popover, the widget and
-the Dock window follow, in that order. See [CHANGELOG.md](CHANGELOG.md).
+Shipping. The menu bar item, the panel, the Dock window and the widget are all in, for Claude
+Code, Codex and Cursor. See [CHANGELOG.md](CHANGELOG.md) for what each release brought.
 
 ## Install
 
