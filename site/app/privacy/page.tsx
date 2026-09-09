@@ -52,9 +52,10 @@ export default function Privacy() {
             but the app&rsquo;s name. It can be turned off in Settings &rsaquo; Status.
           </li>
           <li>
-            <strong>An update check.</strong> Once a day {site.name} fetches a small file from this site listing the
-            latest version. That request tells our hosting provider your IP address and the app’s user agent, as
-            any download would. You can turn automatic checks off in Settings › General.
+            <strong>An update check.</strong> Once a day {site.name} fetches a small file from GitHub listing the
+            latest version, and the new version from there when there is one. Those requests tell GitHub your IP
+            address and the app’s user agent, as any download would. You can turn automatic checks off in
+            Settings › General.
           </li>
         </ul>
         <p>

@@ -122,7 +122,7 @@ export const faq = [
   },
   {
     q: "How do updates work?",
-    a: "The app checks this site once a day and installs updates itself; you can turn that off in Settings › General. Builds are signed with a Developer ID, notarized by Apple, and the update feed is signed with a key only this app accepts.",
+    a: "The app reads the feed attached to the newest release on GitHub once a day and installs updates itself; you can turn that off in Settings › General. Builds are signed with a Developer ID, notarized by Apple, and every zip is signed with a key only this app accepts, so an update that is not ours is refused.",
   },
   {
     q: "How does it know a service is down?",
