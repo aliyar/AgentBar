@@ -3,7 +3,7 @@ import { SiteEnd } from "./ui/SiteEnd";
 import { AppIcon } from "./demo/AppIcon";
 import { AnatomyScene, HonestyScene, LaptopScene, PlacesScene, StatusScene, StylesScene } from "./demo/Scenes";
 import { Mark } from "./demo/AppIcon";
-import { alerts, faq, honesty, install, status } from "./content";
+import { alerts, faq, honesty, install, status, usage, usageAlerts } from "./content";
 import { release } from "./release";
 import { homeSchema, jsonLd } from "./schema";
 import { site } from "./site";
@@ -38,32 +38,23 @@ export default function Home() {
           <StylesScene />
         </section>
 
+        <section className="band" id="alerts">
+          <div className="band-head">
+            <h2>Before it runs out</h2>
+            <p className="lede">A word when a window you care about reaches a mark you chose, once at each, so the week does not end in the middle of a task.</p>
+          </div>
+          <Alerts items={usageAlerts} />
+          <Notes items={usage} />
+        </section>
+
         <section className="band" id="status">
           <div className="band-head">
             <h2>When it goes down</h2>
             <p className="lede">Every agent&rsquo;s own status page, beside its quota, and a word when a service stops working and when it starts again.</p>
           </div>
           <StatusScene />
-          <div className="alerts" aria-hidden="true">
-            {alerts.map((a) => (
-              <div key={a.title} className={`alert alert--${a.tone}`}>
-                <span className="alert-mark"><Mark size={18} /></span>
-                <div className="alert-text">
-                  <b>{a.title}</b>
-                  <span>{a.body}</span>
-                </div>
-                <span className="alert-when">{a.when}</span>
-              </div>
-            ))}
-          </div>
-          <div className="notes">
-            {status.map((n) => (
-              <div key={n.lead} className="note">
-                <b>{n.lead}</b>
-                <p>{n.text}</p>
-              </div>
-            ))}
-          </div>
+          <Alerts items={alerts} />
+          <Notes items={status} />
         </section>
 
         <section className="band" id="widget">
@@ -131,5 +122,36 @@ export default function Home() {
         <SiteEnd />
       </main>
     </>
+  );
+}
+
+/** Messages drawn as macOS shows them: the app hands its words to Notification Center. */
+function Alerts({ items }: { items: readonly { title: string; body: string; when: string; tone: string }[] }) {
+  return (
+    <div className="alerts" aria-hidden="true">
+      {items.map((a) => (
+        <div key={a.title} className={`alert alert--${a.tone}`}>
+          <span className="alert-mark"><Mark size={18} /></span>
+          <div className="alert-text">
+            <b>{a.title}</b>
+            <span>{a.body}</span>
+          </div>
+          <span className="alert-when">{a.when}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Notes({ items }: { items: readonly { lead: string; text: string }[] }) {
+  return (
+    <div className="notes">
+      {items.map((n) => (
+        <div key={n.lead} className="note">
+          <b>{n.lead}</b>
+          <p>{n.text}</p>
+        </div>
+      ))}
+    </div>
   );
 }

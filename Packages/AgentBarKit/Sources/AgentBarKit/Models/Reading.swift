@@ -13,13 +13,18 @@ public struct Reading: Equatable, Sendable {
     public var identity: Identity
     /// When the agent wrote these figures; nil for an answer that came from the account.
     public var written: Date?
+    /// Credits that start a limit over early, when the account lists them. Only Codex's
+    /// account does; nil means not asked or not answered, never "none".
+    public var resetCredits: ResetCredits?
 
     public init(limits: [UsageLimit] = [], credits: Credits? = nil,
-                identity: Identity = Identity(), written: Date? = nil) {
+                identity: Identity = Identity(), written: Date? = nil,
+                resetCredits: ResetCredits? = nil) {
         self.limits = limits
         self.credits = credits
         self.identity = identity
         self.written = written
+        self.resetCredits = resetCredits
     }
 
     public var isEmpty: Bool { limits.isEmpty && credits == nil && identity.isEmpty }

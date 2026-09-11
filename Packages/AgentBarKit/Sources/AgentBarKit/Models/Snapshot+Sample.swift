@@ -2,9 +2,10 @@ import Foundation
 
 /// A snapshot with something in every row, for previews, the screenshot harness and the
 /// widget gallery. Every kind of row the panel can draw is here - the plan's windows, a
-/// model that meters its own, what is spent past the plan, a balance, an account on each
-/// agent, and a conversation from each - so each can be seen without waiting for an agent
-/// to be in exactly that state. The figures are the design handoff's.
+/// model that meters its own, what is spent past the plan, a balance, credits that reset a
+/// limit early, an account on each agent, and a conversation from each - so each can be
+/// seen without waiting for an agent to be in exactly that state. The figures are the
+/// design handoff's.
 extension Snapshot {
     public static var sample: Snapshot {
         let now = Date()
@@ -48,6 +49,10 @@ extension Snapshot {
             credits: [.codex: Credits(balance: 12.4)],
             identities: [.claude: Identity(plan: "Max 20x", email: "you@example.com"),
                          .codex: Identity(plan: "Pro Lite", email: "you@example.com", name: "Your Name"),
-                         .cursor: Identity(plan: "Pro", email: "you@example.com")])
+                         .cursor: Identity(plan: "Pro", email: "you@example.com")],
+            resetCredits: [.codex: ResetCredits(credits: [
+                ResetCredits.Credit(expiresAt: now.addingTimeInterval(3 * 86400 + 4 * 3600)),
+                ResetCredits.Credit(expiresAt: now.addingTimeInterval(18 * 86400 + 7 * 3600)),
+            ])])
     }
 }

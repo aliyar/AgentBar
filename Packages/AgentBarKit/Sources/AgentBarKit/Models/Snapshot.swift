@@ -17,11 +17,13 @@ public struct Snapshot: Equatable, Codable, Sendable {
     public var credits: [Agent: Credits]
     /// Whose figures each agent's are: the plan, and the person signed in.
     public var identities: [Agent: Identity]
+    /// The credits each agent's account holds for starting a limit over early.
+    public var resetCredits: [Agent: ResetCredits]
 
     public init(limits: [UsageLimit] = [], conversations: [Conversation] = [],
                 lastWritten: [Agent: Date] = [:], readAt: Date = .now,
                 accounts: [Agent: AccountStatus] = [:], credits: [Agent: Credits] = [:],
-                identities: [Agent: Identity] = [:]) {
+                identities: [Agent: Identity] = [:], resetCredits: [Agent: ResetCredits] = [:]) {
         self.limits = limits
         self.conversations = conversations
         self.lastWritten = lastWritten
@@ -29,12 +31,14 @@ public struct Snapshot: Equatable, Codable, Sendable {
         self.accounts = accounts
         self.credits = credits
         self.identities = identities
+        self.resetCredits = resetCredits
     }
 
     /// Folds one agent's reading in: its windows, its balance, and when it was written.
     public mutating func take(_ reading: Reading, for agent: Agent) {
         limits += reading.limits
         if let credits = reading.credits { self.credits[agent] = credits }
+        if let resets = reading.resetCredits { resetCredits[agent] = resets }
         if !reading.identity.isEmpty {
             identities[agent] = (identities[agent] ?? Identity()).merged(with: reading.identity)
         }

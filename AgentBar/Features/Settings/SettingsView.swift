@@ -4,7 +4,7 @@ import AgentBarKit
 /// AgentBar's panes. v1 settings: agents shown, gauge on/off, Dock on/off, launch at login,
 /// updates. Dock and launch at login arrive with their features.
 nonisolated enum AgentBarSettingsPane: String, SettingsPane {
-    case general, appearance, menuBar, agents, status, support, about
+    case general, appearance, menuBar, agents, alerts, status, support, about
 
     var id: String { rawValue }
 
@@ -14,6 +14,7 @@ nonisolated enum AgentBarSettingsPane: String, SettingsPane {
         case .appearance: "Appearance"
         case .menuBar: "Menu Bar"
         case .agents: "Agents"
+        case .alerts: "Alerts"
         case .status: "Status"
         case .support: "Support"
         case .about: "About"
@@ -26,6 +27,7 @@ nonisolated enum AgentBarSettingsPane: String, SettingsPane {
         case .appearance: "paintbrush"
         case .menuBar: "menubar.rectangle"
         case .agents: "cpu"
+        case .alerts: "bell.badge"
         case .status: "waveform.path.ecg"
         case .support: "questionmark.bubble"
         case .about: "info.circle"
@@ -58,6 +60,7 @@ struct SettingsView: View {
             case .appearance: appearance
             case .menuBar: menuBar
             case .agents: agents
+            case .alerts: usageAlerts
             case .status: serviceStatus
             case .support: SupportPane(intro: "Get in touch for any feedback, questions or feature requests.", rows: Self.supportRows)
             case .about: AboutPane(website: Self.website, extra: AnyView(checkForUpdates))
@@ -283,6 +286,72 @@ struct SettingsView: View {
             }
         }
     }
+
+    /// Which windows are announced as they fill, and at which marks. Its own pane: it is
+    /// about the user's quota, where the Status pane is about the services behind it.
+    @ViewBuilder
+    private var usageAlerts: some View {
+        @Bindable var settings = settings
+        let windows = model.snapshot.limits.filter { settings.agents.contains($0.agent) }
+        let reporting = settings.agents.filter { agent in windows.contains { $0.agent == agent } }
+        Section {
+            LabeledContent("Tell me at") {
+                HStack(spacing: 4) {
+                    ForEach(Self.alertSteps, id: \.self) { step in
+                        Toggle(isOn: Binding(get: { settings.alertThresholds.contains(step) },
+                                             set: { settings.setThreshold(step, $0) })) {
+                            Text("\(step)%").monospacedDigit()
+                        }
+                        .toggleStyle(.button)
+                        .controlSize(.small)
+                    }
+                }
+            }
+            if !notificationsAllowed, settings.alertsAnything {
+                LabeledContent {
+                    Button("Open Notification Settings") { AppDependencies.shared.notifier.openSystemSettings() }
+                        .controlSize(.small)
+                } label: {
+                    Text("macOS is not showing AgentBar's notifications")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } header: {
+            Text("Usage Alerts")
+        } footer: {
+            Footnote("Once for each mark, per window: at 80%, then again at 90%, and not on every read in between. A window that starts over is watched from the start again.")
+        }
+        if windows.isEmpty {
+            Section {
+                Text("Windows appear here once an agent reports them.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        ForEach(reporting, id: \.self) { agent in
+            Section {
+                ForEach(windows.filter { $0.agent == agent }) { window in
+                    Toggle(isOn: Binding(get: { settings.alerts(on: window.id) },
+                                         set: { settings.setAlerts(on: window.id, $0) })) {
+                        LabeledContent(window.title) {
+                            Text("\(Format.percent(window.hasRolledOver(by: .now) ? 0 : window.percentUsed)) used")
+                                .monospacedDigit()
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                }
+            } header: {
+                Text(agent.title)
+            } footer: {
+                if agent == reporting.last {
+                    Footnote("Only the windows turned on here are announced. Clicking a message opens the panel.")
+                }
+            }
+        }
+    }
+
+    /// The marks offered: every ten to begin with, closer together near the top, where a
+    /// window is nearly full and the difference matters.
+    static let alertSteps = [50, 60, 70, 75, 80, 85, 90, 95, 100]
 
     /// Whether the agents' status pages are read, and who gets told when one changes.
     /// Its own pane: it is about the services behind the agents, not about which agents

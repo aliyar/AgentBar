@@ -55,7 +55,11 @@ picks the theme, the windows to show, and whether the running conversations are 
 
 - **Every window, one glance.** Claude's session and weekly windows, the weekly window per model,
   Codex's five-hour and weekly windows, Cursor's monthly plan usage. Each with a meter, a
-  percentage and the time until it starts over, green through amber to red as it fills.
+  percentage and the time until it starts over, green through amber to red as it fills. Under
+  Codex, how many credits you hold for starting a limit over early, and when each one expires.
+- **It tells you before a window runs out.** Pick the windows worth a message and the marks to hear
+  them at: once at 80%, once more at 90%, and nothing on the reads in between. A window that starts
+  over is watched from the start again.
 - **The conversations that are running.** Named by what was last said in them, with a breathing dot
   while the agent works and how full the context is. Claude Code and Codex give a real percentage
   where the window size is known; Cursor's agent chats come from the editor's own transcripts.

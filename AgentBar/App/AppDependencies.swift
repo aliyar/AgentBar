@@ -12,7 +12,9 @@ final class AppDependencies {
     /// What the agents' own status pages say. Its own model: it asks public pages on a
     /// cadence of its own and must keep asking with nothing on screen.
     let status: StatusModel
-    let notifier = StatusNotifier()
+    let notifier = Notifier()
+    /// Which marks each window has been announced at; kept across launches.
+    let usageAlerts = UsageAlerts()
     /// Where each panel is: the popover and the Dock window keep their own place, so
     /// opening one does not move the other.
     let popoverNavigation = PanelNavigation()
@@ -174,6 +176,7 @@ final class AppDependencies {
         observeSettings()
         observeDock()
         observeGauge()
+        observeUsageAlerts()
         observeAppearance()
         loginItem.refresh()
         registerLoginItemOnFirstRun()
@@ -205,7 +208,7 @@ final class AppDependencies {
     /// say is asking about a feature the user has not met yet.
     private func observeNotifications() {
         let announces = withObservationTracking {
-            settings.announcesAnything
+            settings.announcesAnything || settings.alertsAnything
         } onChange: { [weak self] in
             Task { @MainActor in self?.observeNotifications() }
         }
@@ -242,6 +245,21 @@ final class AppDependencies {
         DockPresence.set(presence.inDock)
         if presence.inMenuBar { statusItem.install() } else { statusItem.remove() }
         if !presence.inDock, dockWindow.isVisible { dockWindow.close() }
+    }
+
+    /// Each new snapshot is held against the marks the user chose, and what it crosses is
+    /// said once. Sample data is not anyone's usage and is never announced.
+    private func observeUsageAlerts() {
+        let (snapshot, sample, windows, thresholds) = withObservationTracking {
+            (model.snapshot, model.isShowingSample, settings.alertWindows, settings.alertThresholds)
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.observeUsageAlerts() }
+        }
+        guard !sample else { return }
+        let now = Date()
+        for alert in usageAlerts.observe(snapshot.limits, watching: Set(windows), thresholds: thresholds, now: now) {
+            notifier.post(alert, now: now)
+        }
     }
 
     /// The status item shows the gauge - Claude's windows as bars and the time left on

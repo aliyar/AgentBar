@@ -9,7 +9,7 @@ export const agents = [
   },
   {
     name: "Codex",
-    windows: "Its 5-hour and weekly windows, from the rollout it writes while it runs and from the ChatGPT sign-in.",
+    windows: "Its 5-hour and weekly windows, from the rollout it writes while it runs and from the ChatGPT sign-in, and the limit resets the account holds, with when each one expires.",
     conversations:
       "Sessions found through their running process; their context is a real percentage, since Codex writes its window size.",
   },
@@ -48,6 +48,37 @@ export const alerts = [
     body: "You can carry on.",
     when: "16:31",
     tone: "back" as const,
+  },
+] as const;
+
+/** Two usage alerts for one window as it fills, drawn as macOS shows them. */
+export const usageAlerts = [
+  {
+    title: "Codex · Weekly: 82% used",
+    body: "Past your 80% mark. Starts over in 4d 5h, Tue 15:12.",
+    when: "09:40",
+    tone: "warm" as const,
+  },
+  {
+    title: "Codex · Weekly: 91% used",
+    body: "Past your 90% mark. Starts over in 4d, Tue 15:12.",
+    when: "15:12",
+    tone: "hot" as const,
+  },
+] as const;
+
+export const usage = [
+  {
+    lead: "You pick the windows.",
+    text: "Nothing is announced until you choose it in Settings › Alerts: Claude's session, its week, Codex's week, or any other window an agent reports. The marks are yours too, 80% and 90% to begin with.",
+  },
+  {
+    lead: "Once for each mark.",
+    text: "80% says so once and 90% once more; the reads in between say nothing. A read that jumps past both says the higher one, once.",
+  },
+  {
+    lead: "A new window starts afresh.",
+    text: "When a window starts over, its marks are announced again as it fills. A restart does not repeat what was already said, and a figure from a window that has already rolled over raises nothing.",
   },
 ] as const;
 
@@ -131,6 +162,10 @@ export const faq = [
   {
     q: "Will it wake me for nothing?",
     a: "A change is announced only after two readings agree, so a moment's flap says nothing. A page it could not reach is never reported as an outage: your Wi-Fi dropping looks exactly like a dead service, and one of those is not news. An outage already under way when AgentBar starts is not announced either. Both messages can be turned off in Settings › Status.",
+  },
+  {
+    q: "What are Codex's limit resets?",
+    a: "Credits OpenAI grants that start a Codex limit over before its time, each with its own expiry. The last line of the Codex group counts them; click it for when each one expires and how long that leaves. They come from the same read-only request to the account, and AgentBar never uses one.",
   },
   {
     q: "Is it really free, and can I read the source?",

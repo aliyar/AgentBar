@@ -33,6 +33,9 @@ public enum AccountUsage {
         // Read once: the sign-in carries Claude's plan as well as its token.
         let claude = agent == .claude ? Credentials.claude() : nil
         guard let request = request(for: agent, now: now, claude: claude) else { return .failure(.notSignedIn) }
+        // Asked beside the usage, not after it: a second round trip would double the wait
+        // for figures that do not depend on it.
+        async let resets = resetCredits(for: agent, session: session, now: now)
         let data: Data, response: URLResponse
         do {
             (data, response) = try await session.data(for: request)
@@ -49,7 +52,19 @@ public enum AccountUsage {
         }
         // Claude states no plan in its usage answer; its sign-in does.
         if let plan = claude?.plan { reading.identity.plan = plan }
-        return reading.isEmpty ? .failure(.unreadable) : .success(reading)
+        guard !reading.isEmpty else { return .failure(.unreadable) }
+        reading.resetCredits = await resets
+        return .success(reading)
+    }
+
+    /// The reset credits, for the one agent whose account lists them. Best effort: a
+    /// failure here is no reason to lose the usage that came back beside it, so every
+    /// problem reads as nil and the panel keeps the last list it had.
+    static func resetCredits(for agent: Agent, session: URLSession, now: Date) async -> ResetCredits? {
+        guard agent == .codex, let request = resetCreditsRequest(now: now),
+              let answer = try? await session.data(for: request),
+              let status = (answer.1 as? HTTPURLResponse)?.statusCode, (200..<300).contains(status) else { return nil }
+        return codexResetCredits(from: answer.0)
     }
 
     static func request(for agent: Agent, now: Date, claude: Credentials.Claude? = nil) -> URLRequest? {
@@ -61,10 +76,8 @@ public enum AccountUsage {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
         case .codex:
-            guard let codex = Credentials.codex(now: now) else { return nil }
-            request = URLRequest(url: URL(string: "https://chatgpt.com/backend-api/wham/usage")!)
-            request.setValue("Bearer \(codex.accessToken)", forHTTPHeaderField: "Authorization")
-            if let account = codex.accountID { request.setValue(account, forHTTPHeaderField: "ChatGPT-Account-Id") }
+            guard let codex = codexRequest("https://chatgpt.com/backend-api/wham/usage", now: now) else { return nil }
+            request = codex
         case .cursor:
             guard let cookie = Credentials.cursorSessionCookie(now: now) else { return nil }
             request = URLRequest(url: URL(string: "https://cursor.com/api/usage-summary")!)
@@ -73,6 +86,43 @@ public enum AccountUsage {
         request.setValue("AgentBar (macOS)", forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 10
         return request
+    }
+
+    static func resetCreditsRequest(now: Date) -> URLRequest? {
+        guard var request = codexRequest("https://chatgpt.com/backend-api/wham/rate-limit-reset-credits", now: now) else { return nil }
+        request.setValue("AgentBar (macOS)", forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = 10
+        return request
+    }
+
+    /// A GET to Codex's account with the sign-in Codex keeps, scoped to its workspace.
+    private static func codexRequest(_ address: String, now: Date) -> URLRequest? {
+        guard let codex = Credentials.codex(now: now) else { return nil }
+        var request = URLRequest(url: URL(string: address)!)
+        request.setValue("Bearer \(codex.accessToken)", forHTTPHeaderField: "Authorization")
+        if let account = codex.accountID { request.setValue(account, forHTTPHeaderField: "ChatGPT-Account-Id") }
+        return request
+    }
+
+    // MARK: Codex - chatgpt.com/backend-api/wham/rate-limit-reset-credits (shape of 11 Sep 2026)
+
+    struct CodexResetCredits: Decodable {
+        struct Credit: Decodable {
+            let status: String?
+            let expires_at: String?
+            let granted_at: String?
+        }
+        let credits: [FailableDecodable<Credit>]
+    }
+
+    /// The credits the account calls available. Nil when the answer is not the inventory
+    /// at all, so a shape that changed reads as "not answered", not as "none left".
+    public static func codexResetCredits(from data: Data) -> ResetCredits? {
+        guard let answer = try? JSONDecoder().decode(CodexResetCredits.self, from: data) else { return nil }
+        let available = answer.credits.compactMap(\.value).filter { $0.status?.lowercased() == "available" }
+        return ResetCredits(credits: available.map {
+            ResetCredits.Credit(expiresAt: ISODate.parse($0.expires_at), grantedAt: ISODate.parse($0.granted_at))
+        })
     }
 
     // MARK: Codex - chatgpt.com/backend-api/wham/usage (shape of 3 Sep 2026)

@@ -83,7 +83,7 @@ struct ScreenshotTests {
 
     /// The two messages the app posts, drawn as macOS shows them. The app hands its text to
     /// Notification Center rather than drawing a banner itself, so this is a picture of the
-    /// system's window carrying exactly the words `StatusNotifier` sends.
+    /// system's window carrying exactly the words `Notifier` sends.
     @Test(.enabled(if: outputDirectory != nil))
     func renderNotificationScreenshots() async throws {
         let directory = try #require(Self.outputDirectory)
@@ -141,7 +141,7 @@ struct ScreenshotTests {
 }
 
 /// A macOS notification, drawn for the README. The app posts its text through Notification
-/// Center and draws no banner of its own, so this carries exactly the words `StatusNotifier`
+/// Center and draws no banner of its own, so this carries exactly the words `Notifier`
 /// sends and nothing it does not.
 private struct NotificationBanner: View {
     let title: String

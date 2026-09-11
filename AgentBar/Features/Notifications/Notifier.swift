@@ -4,19 +4,20 @@ import OSLog
 import UserNotifications
 import AgentBarKit
 
-/// Says one short thing when a service goes down, and one when it comes back.
+/// Says one short thing when something the user asked to hear about happens: a service
+/// goes down or comes back, or a window's use reaches one of the marks they chose.
 ///
-/// The second is the one the feature exists for. A status page can tell you a service is
-/// down; nothing tells you it is working again, so you go back and try until it does. What
-/// this posts is nine words and no buttons - there is nothing to decide, only something to
-/// know.
+/// For a service the second message is the one the feature exists for. A status page can
+/// tell you a service is down; nothing tells you it is working again, so you go back and
+/// try until it does. Each message is a few words and no buttons - there is nothing to
+/// decide, only something to know.
 ///
 /// No entitlement is needed: the app is not sandboxed and is signed with a Developer ID.
 /// Permission is asked the first time the user turns one of the switches on, never at
 /// launch - a menu bar app that asks for notifications before it has anything to say is
 /// asking about a feature the user has not met yet.
 @MainActor
-final class StatusNotifier: NSObject, UNUserNotificationCenterDelegate {
+final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     private let center: UNUserNotificationCenter?
     private var authorization: Task<Bool, Never>?
 
@@ -93,18 +94,35 @@ final class StatusNotifier: NSObject, UNUserNotificationCenterDelegate {
             title = "\(agent.title) is back"
             body = "You can carry on."
         }
-        Task { await deliver(title: title, body: body, agent: agent) }
+        // One identifier per agent: a second message about the same agent replaces the
+        // first rather than stacking a history no one asked for.
+        Task { await deliver(title: title, body: body, identifier: "status.\(agent.rawValue)") }
     }
 
-    private func deliver(title: String, body: String, agent: Agent) async {
+    func post(_ alert: UsageWatch.Alert, now: Date = .now) {
+        guard center != nil else { return }
+        let message = Self.message(for: alert, now: now)
+        // One identifier per window: 90% replaces 80% rather than sitting under it.
+        Task { await deliver(title: message.title, body: message.body, identifier: "usage.\(alert.limit.id)") }
+    }
+
+    /// "Claude · Weekly · all models: 82% used", then the mark it passed and when the
+    /// window starts over - the two things that decide what to do about it.
+    static func message(for alert: UsageWatch.Alert, now: Date) -> (title: String, body: String) {
+        let limit = alert.limit
+        let title = "\(limit.agent.title) \u{00B7} \(limit.title): \(Format.percent(limit.percentUsed)) used"
+        let passed = alert.threshold >= 100 ? "Used up." : "Past your \(alert.threshold)% mark."
+        guard let end = limit.resetsAt, end > now else { return (title, passed) }
+        return (title, "\(passed) Starts over in \(Format.short(end.timeIntervalSince(now))), \(Format.clock(end, now: now)).")
+    }
+
+    private func deliver(title: String, body: String, identifier: String) async {
         guard let center, await requestAuthorization() else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
-        // One identifier per agent: a second message about the same agent replaces the
-        // first rather than stacking a history no one asked for.
-        let request = UNNotificationRequest(identifier: "status.\(agent.rawValue)", content: content, trigger: nil)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
         do {
             try await center.add(request)
             Log.app.notice("notified: \(title, privacy: .public)")

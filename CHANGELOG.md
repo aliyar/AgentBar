@@ -8,6 +8,20 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+### Added
+
+- Usage alerts. *Settings › Alerts* lets you choose the windows worth a message (Claude's
+  session and weekly windows, Codex's weekly, any window an agent reports) and the marks to hear
+  them at, 80% and 90% to begin with. Each mark is announced once per window, and a window that
+  starts over is watched from the start again; a restart does not repeat what was already said.
+  Clicking a message opens the panel.
+- Codex's limit resets. The last line of the Codex group counts the credits your account holds
+  for starting a limit over early; click it for when each one expires and how long that leaves.
+  AgentBar only counts them and never uses one.
+- The site has a section on usage alerts, a question on limit resets, and its demo panel ends
+  the Codex group with the reset line, as the app does. The privacy page says that Codex's
+  account is asked twice at once: its usage, and the resets it holds.
+
 ## [1.2.3] - 2026-09-09
 
 ### Fixed

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Mark } from "./AppIcon";
 import type { PanelState } from "./state";
-import { agentTitle, agents, clock, conversations, level, limitsFor, percent, short, type Conversation, type Limit, captionNotes, plans, status, statusLevel, statusTitle } from "./sample";
+import { agentTitle, agents, clock, conversations, level, limitsFor, percent, short, type Conversation, type Limit, captionNotes, plans, resetCredits, status, statusLevel, statusTitle } from "./sample";
 
 /**
  * The Terminal panel, as the app draws it (Features/Overview/Styles/Terminal): mono, green
@@ -55,6 +55,7 @@ export function TerminalPanel({ state, arrow = "up", arrowRight }: { state: Pane
             {limitsFor(agent).map((limit) => (
               <TRow key={limit.id} limit={limit} state={state} />
             ))}
+            {resetCredits[agent] && <TResets expiries={resetCredits[agent]!} state={state} />}
             {i === agents.length - 1 && <div className="t-hairline" style={{ marginTop: 6 }} />}
           </div>
         ))}
@@ -116,6 +117,27 @@ function TRow({ limit, state }: { limit: Limit; state: PanelState }) {
         {time}
       </button>
     </div>
+  );
+}
+
+/** `limit.resets   2 available ▸`, and opened, `expires mon 18:37   3d 4h` per credit. */
+function TResets({ expiries, state }: { expiries: number[]; state: PanelState }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <button type="button" className="t-resets" onClick={() => setOpen(!open)} aria-expanded={open}
+      title="Credits that start a Codex limit over before its time. AgentBar only counts them; it never uses one.">
+      <span className="t-row">
+        <span className="t-key">limit.resets</span>
+        <span className="t-resets-count">{expiries.length} available</span>
+        <span className="t-resets-mark" aria-hidden="true">{open ? "▾" : "▸"}</span>
+      </span>
+      {open && expiries.map((seconds) => (
+        <span key={seconds} className="t-resets-item">
+          <span>expires {state.now ? clock(new Date(state.now.getTime() + seconds * 1000), state.now).toLowerCase() : ""}</span>
+          <span className="t-resets-left">{short(seconds)}</span>
+        </span>
+      ))}
+    </button>
   );
 }
 

@@ -21,6 +21,9 @@ struct UsageSection: View {
     /// Whose figures these are: the plan, drawn as a badge, and the account it names
     /// when you rest on it.
     var identity: Identity?
+    /// Credits that start a limit over early, when the account lists them: counted on a
+    /// line under the windows, each one's expiry listed when that line is opened.
+    var resetCredits: ResetCredits?
     /// When one of the agent's conversations last moved: a window that has rolled over
     /// is projected forward only while the agent is in use.
     let activeSince: Date?
@@ -58,6 +61,10 @@ struct UsageSection: View {
                         if index > 0 { Rectangle().fill(glass.hairline).frame(height: 0.5) }
                         UsageRow(limit: limit, now: now, activeSince: activeSince, showsClock: $showsClock)
                     }
+                }
+                if agent.isInstalled, let resetCredits {
+                    Rectangle().fill(glass.hairline).frame(height: 0.5)
+                    ResetCreditsRow(agent: agent, credits: resetCredits, now: now)
                 }
             }
         }
@@ -178,6 +185,81 @@ private struct UsageRow: View {
     }
 }
 
+/// How many credits there are for starting a limit over early, and - opened - when each
+/// one expires and how long that leaves. Last in the group: it is what you reach for once
+/// the windows above it are full, not something to read first.
+private struct ResetCreditsRow: View {
+    let agent: Agent
+    let credits: ResetCredits
+    let now: Date
+
+    @Environment(\.colorScheme) private var scheme
+    @State private var expanded = false
+
+    var body: some View {
+        let glass = Palette.glass(scheme)
+        let available = credits.available(at: now)
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                guard !available.isEmpty else { return }
+                withAnimation(.easeOut(duration: 0.18)) { expanded.toggle() }
+            } label: {
+                HStack(spacing: 8) {
+                    Text("Limit resets")
+                        .font(.system(size: 11.5, weight: glass.bodyWeight))
+                        .foregroundStyle(glass.body)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    Text("\(available.count) available")
+                        .font(.system(size: 12.5))
+                        .monospacedDigit()
+                        .foregroundStyle(available.isEmpty ? glass.tertiary : glass.primary)
+                        .lineLimit(1)
+                    // Only something to open has the mark that says it opens.
+                    if !available.isEmpty {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 8.5, weight: .semibold))
+                            .foregroundStyle(glass.tertiary)
+                            .rotationEffect(.degrees(expanded ? 90 : 0))
+                            .frame(width: 10)
+                    }
+                }
+                .padding(.vertical, 7)
+                .padding(.horizontal, 10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .tip("Limit resets", available.isEmpty
+                 ? "Credits that start a \(agent.title) limit over before its time. None to use right now."
+                 : "Credits that start a \(agent.title) limit over before its time, each with its own expiry. Click for when each one expires. AgentBar only counts them; it never uses one.")
+            if expanded, !available.isEmpty {
+                VStack(spacing: 5) {
+                    ForEach(Array(available.enumerated()), id: \.offset) { _, credit in
+                        HStack(spacing: 8) {
+                            Text(credit.expiresAt.map { "Expires \(Format.clock($0, now: now))" } ?? "No expiry")
+                                .font(.system(size: 11))
+                                .foregroundStyle(glass.tertiary)
+                                .lineLimit(1)
+                            Spacer(minLength: 8)
+                            Text(credit.expiresAt.map { "\(Format.short($0.timeIntervalSince(now))) left" } ?? "")
+                                .font(.system(size: 11.5))
+                                .monospacedDigit()
+                                .foregroundStyle(glass.body)
+                                .lineLimit(1)
+                        }
+                        // In line with the count above it, under the words it expands.
+                        .padding(.trailing, 18)
+                    }
+                }
+                .padding(.leading, 10)
+                .padding(.trailing, 10)
+                .padding(.bottom, 8)
+                .transition(.opacity)
+            }
+        }
+    }
+}
+
 // MARK: - Shared pieces of a group
 
 /// The line above a group: its name on the left, a short note on the right.
@@ -271,6 +353,7 @@ struct Note: View {
 #Preview {
     UsageSection(agent: .claude, limits: Snapshot.sample.limits(for: .claude), written: .now, account: nil,
                  credits: Snapshot.sample.credits[.claude], identity: Snapshot.sample.identities[.claude],
+                 resetCredits: Snapshot.sample.resetCredits[.codex],
                  activeSince: .now, now: .now, showsClock: .constant(false),
                  status: .sample(for: .claude), showsStatus: true)
         .padding(11)

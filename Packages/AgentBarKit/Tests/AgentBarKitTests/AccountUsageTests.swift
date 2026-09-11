@@ -51,6 +51,49 @@ struct AccountUsageTests {
             == ["5h · code_review", "Weekly"])
     }
 
+    /// This Mac's account answered with no credits on 11 Sep 2026; the one with credits is
+    /// the shape CodexBar pins in its tests (HEAD 0b181cc), microseconds and all.
+    @Test func codexResetCreditsAreRead_2026_09_11() throws {
+        let none = #"{"credits":[],"available_count":0,"total_earned_count":0,"immediate_reset_purchase_eligible":false,"history_enabled":true}"#
+        #expect(AccountUsage.codexResetCredits(from: Data(none.utf8)) == ResetCredits(credits: []))
+
+        let json = """
+        {"credits":[
+          {"id":"a","reset_type":"codex_rate_limits","status":"available",
+           "granted_at":"2026-06-18T00:39:53.731630Z","expires_at":"2026-07-18T00:39:53.731630Z",
+           "redeem_started_at":null,"redeemed_at":null,"title":"One free rate limit reset"},
+          {"id":"b","reset_type":"codex_rate_limits","status":"available",
+           "granted_at":"2026-06-12T04:03:43Z","expires_at":"2026-07-12T04:03:43Z"},
+          {"id":"c","reset_type":"codex_rate_limits","status":"redeemed",
+           "granted_at":"2026-06-01T00:00:00Z","expires_at":"2026-07-01T00:00:00Z"},
+          {"id":"d","reset_type":"codex_rate_limits","status":"available","granted_at":"2026-06-01T00:00:00Z"},
+          "not an object"
+         ],"available_count":3}
+        """
+        let resets = try #require(AccountUsage.codexResetCredits(from: Data(json.utf8)))
+        // The redeemed one is not kept, the malformed one is dropped, and the rest come in
+        // the order they expire, the one without an expiry last.
+        #expect(resets.credits.count == 3)
+        let expiries = resets.credits.map { $0.expiresAt.map { ISO8601DateFormatter().string(from: $0) } }
+        #expect(expiries == ["2026-07-12T04:03:43Z", "2026-07-18T00:39:53Z", nil])
+        #expect(resets.credits[0].grantedAt == ISO8601DateFormatter().date(from: "2026-06-12T04:03:43Z"))
+
+        // Something that is not the inventory is "not answered", not "none left".
+        #expect(AccountUsage.codexResetCredits(from: Data("{}".utf8)) == nil)
+        #expect(AccountUsage.codexResetCredits(from: Data("nope".utf8)) == nil)
+    }
+
+    /// An expiry that has passed is past, whatever the account last said.
+    @Test func resetCreditsPastTheirExpiryAreNotAvailable() {
+        let now = Date(timeIntervalSince1970: 1_788_400_000)
+        let resets = ResetCredits(credits: [
+            .init(expiresAt: now.addingTimeInterval(-60)),
+            .init(expiresAt: now.addingTimeInterval(86400)),
+            .init(expiresAt: nil),
+        ])
+        #expect(resets.available(at: now).map(\.expiresAt) == [now.addingTimeInterval(86400), nil])
+    }
+
     @Test func codexCreditsComeBackAsABalance() {
         let held = #"{"rate_limit":{"primary_window":{"used_percent":2,"limit_window_seconds":604800,"reset_at":1}},"credits":{"has_credits":true,"unlimited":false,"balance":"12.4"}}"#
         #expect(AccountUsage.codexReading(from: Data(held.utf8)).credits?.caption == "$12.40 credits")

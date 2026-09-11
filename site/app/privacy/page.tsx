@@ -17,7 +17,7 @@ export default function Privacy() {
       <main className="sheet" id="main">
         <article className="doc">
           <h1>Privacy</h1>
-        <p className="doc-date">Last updated 4 September 2026</p>
+        <p className="doc-date">Last updated 11 September 2026</p>
         <p className="doc-lead">
           The short version: {site.name} has no backend, no account of its own and no telemetry. Nothing about
           you, your agents or your usage is collected by us, transmitted to us, or stored anywhere but on your
@@ -40,7 +40,8 @@ export default function Privacy() {
             asks each agent’s service with the sign-in that agent already keeps on this Mac: Claude through Claude
             Code’s sign-in, Codex through its ChatGPT sign-in, Cursor through the editor’s. Each is one read-only
             request every five minutes, one when the panel opens (at most once a minute), and one when you press
-            refresh. The request goes to that service, as it would from the agent itself. The credential is read
+            refresh; Codex’s is two at once, its usage and the limit resets it holds. The request goes to that
+            service, as it would from the agent itself. The credential is read
             when needed and never stored, logged, displayed or sent anywhere else. Each agent’s account can be left
             out in Settings › Agents.
           </li>

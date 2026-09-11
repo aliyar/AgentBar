@@ -88,3 +88,51 @@ struct AppSettingsTests {
         #expect(PanelSection(rawValue: "nonsense") == nil)
     }
 }
+
+/// Which windows are announced as they fill, and at which marks; and the words it says.
+@Suite("AppSettings · usage alerts")
+@MainActor
+struct UsageAlertSettingsTests {
+    private func settings() -> AppSettings {
+        AppSettings(defaults: UserDefaults(suiteName: "UsageAlertSettingsTests-\(UUID().uuidString)")!)
+    }
+
+    /// Nothing is announced until a window is chosen; the marks wait at 80 and 90.
+    @Test func aFreshInstallAnnouncesNothing() {
+        let settings = settings()
+        #expect(settings.alertWindows.isEmpty)
+        #expect(settings.alertThresholds == [80, 90])
+        #expect(!settings.alertsAnything)
+    }
+
+    @Test func choicesAreKeptSortedAndSurviveARelaunch() {
+        let defaults = UserDefaults(suiteName: "UsageAlertSettingsTests-\(UUID().uuidString)")!
+        let settings = AppSettings(defaults: defaults)
+        settings.setAlerts(on: "claude|5h", true)
+        settings.setAlerts(on: "claude|5h", true)
+        settings.setThreshold(95, true)
+        settings.setThreshold(50, true)
+        settings.setThreshold(80, false)
+        #expect(settings.alertWindows == ["claude|5h"])
+        #expect(settings.alertThresholds == [50, 90, 95])
+        #expect(settings.alertsAnything)
+
+        let again = AppSettings(defaults: defaults)
+        #expect(again.alertWindows == ["claude|5h"])
+        #expect(again.alertThresholds == [50, 90, 95])
+        again.setAlerts(on: "claude|5h", false)
+        #expect(!again.alertsAnything)
+    }
+
+    @Test func theMessageSaysTheWindowTheMarkAndWhenItStartsOver() {
+        let now = Date(timeIntervalSince1970: 1_788_400_000)
+        let weekly = UsageLimit(agent: .codex, title: "Weekly", percentUsed: 91.4,
+                                resetsAt: now.addingTimeInterval(86400 + 4 * 3600), windowLength: 7 * 86400)
+        let message = Notifier.message(for: .init(limit: weekly, threshold: 90), now: now)
+        #expect(message.title == "Codex \u{00B7} Weekly: 91% used")
+        #expect(message.body.hasPrefix("Past your 90% mark. Starts over in 1d 4h, "))
+
+        let extra = UsageLimit(agent: .claude, title: "Extra usage", percentUsed: 100, resetsAt: nil)
+        #expect(Notifier.message(for: .init(limit: extra, threshold: 100), now: now).body == "Used up.")
+    }
+}

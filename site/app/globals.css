@@ -472,6 +472,15 @@ p { margin: 0; }
 .row-time { min-width: 38px; flex: none; text-align: right; font-size: 12.5px; color: var(--g-primary); white-space: nowrap; border: 0; background: transparent; padding: 0; cursor: pointer; font-variant-numeric: tabular-nums; }
 .row-time:hover { text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--g-tertiary); }
 
+/* limit resets: the last line of a group, opening into one line per credit */
+.resets { display: block; width: 100%; min-width: 0; text-align: left; border: 0; border-top: 0.5px solid var(--g-hairline); background: transparent; padding: 7px 10px; cursor: pointer; color: inherit; font: inherit; }
+.resets:hover { background: var(--g-hover); }
+.resets-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.resets-count { margin-left: auto; font-size: 12.5px; color: var(--g-primary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.resets.is-open .conv-chev svg { transform: rotate(90deg); }
+.resets-item { display: flex; gap: 8px; padding: 5px 20px 0 0; font-size: 11px; color: var(--g-tertiary); white-space: nowrap; }
+.resets-left { margin-left: auto; font-size: 11.5px; color: var(--g-body); font-variant-numeric: tabular-nums; }
+
 /* conversations */
 .conv { display: block; width: 100%; min-width: 0; text-align: left; border: 0; background: transparent; padding: 6px 10px; cursor: pointer; color: inherit; }
 .conv + .conv { border-top: 0.5px solid var(--g-hairline); }
@@ -530,7 +539,7 @@ p { margin: 0; }
 .t-body { padding: 11px 13px 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .t-body .t-hairline { background: rgb(var(--t-green) / 0.14); }
 .t-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
-/* The two messages, drawn as macOS shows them. */
+/* Notifications, drawn as macOS shows them. */
 .alerts { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin-top: 28px; }
 .alert { display: flex; align-items: center; gap: 11px; width: 340px; padding: 12px 14px; border-radius: 16px;
   background: var(--g-menu); border: 0.5px solid var(--g-hairline); box-shadow: 0 10px 30px rgb(0 0 0 / 0.22); }
@@ -538,6 +547,8 @@ p { margin: 0; }
   background: var(--g-group); color: var(--g-primary); flex: none; }
 .alert--down .alert-mark { color: var(--hot); }
 .alert--back .alert-mark { color: var(--calm); }
+.alert--warm .alert-mark { color: var(--warm); }
+.alert--hot .alert-mark { color: var(--hot); }
 .alert-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .alert-text b { font-size: 13px; font-weight: 600; color: var(--g-primary); }
 .alert-text span { font-size: 12px; color: var(--g-secondary); }
@@ -560,6 +571,12 @@ p { margin: 0; }
 .t-pct.hot { color: var(--t-alert-value); }
 .t-time { min-width: 40px; flex: none; text-align: right; color: rgb(var(--t-ink)); border: 0; background: transparent; padding: 0; font: inherit; cursor: pointer; margin-left: auto; }
 .t-time:hover { text-decoration: underline; text-decoration-color: rgb(var(--t-green) / 0.5); }
+.t-resets { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.t-resets:hover { background: rgb(var(--t-green) / 0.07); }
+.t-resets-count { margin-left: auto; color: rgb(var(--t-ink)); white-space: nowrap; }
+.t-resets-mark { width: 8px; flex: none; font-size: 10px; color: rgb(var(--t-green) / 0.7); }
+.t-resets-item { display: flex; gap: 8px; padding: 3px 16px 0 12px; font-size: 10.5px; color: rgb(var(--t-ink) / 0.5); white-space: nowrap; }
+.t-resets-left { margin-left: auto; font-size: 11px; color: rgb(var(--t-ink)); }
 .t-conv { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 2px 0; font: inherit; color: inherit; cursor: pointer; }
 .t-conv:hover { background: rgb(var(--t-green) / 0.07); }
 .t-conv-line { display: flex; align-items: baseline; gap: 7px; }

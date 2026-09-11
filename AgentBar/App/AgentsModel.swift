@@ -16,6 +16,9 @@ final class AgentsModel {
     enum Reason { case timer, popoverOpened, manual, settingsChanged }
 
     private(set) var snapshot = Snapshot()
+    /// The snapshot is the made-up one: nothing in it is anyone's usage, so nothing in it
+    /// is announced. Set with the snapshot, since the setting changes before the read does.
+    private(set) var isShowingSample = false
     private(set) var isRefreshing = false
 
     /// The agents to read. Changing it reads again straight away.
@@ -91,7 +94,10 @@ final class AgentsModel {
             let read = await files
             for (agent, result) in results {
                 switch result {
-                case .success(let reading):
+                case .success(var reading):
+                    // The reset credits are asked beside the usage and may miss while it
+                    // answers; the last list stands until the next one comes.
+                    if reading.resetCredits == nil { reading.resetCredits = answers[agent]?.reading.resetCredits }
                     answers[agent] = AccountAnswer(reading: reading, at: now)
                     problems[agent] = nil
                     Log.app.debug("\(agent.rawValue, privacy: .public) account: \(reading.limits.count) windows")
@@ -101,6 +107,7 @@ final class AgentsModel {
                 }
             }
             snapshot = sample ? Snapshot.sample : merged(read, now: now)
+            isShowingSample = sample
             // A read of the files alone takes milliseconds; the panels show a read in
             // progress, so a manual one stays visible long enough to register.
             if reason == .manual {
@@ -158,6 +165,9 @@ final class AgentsModel {
                     snapshot.identities[agent] = (snapshot.identities[agent] ?? Identity())
                         .merged(with: answer.reading.identity)
                 }
+                // Like the plan, an inventory rather than a reading: only the account has
+                // it, and a file written later says nothing about it.
+                if let resets = answer.reading.resetCredits { snapshot.resetCredits[agent] = resets }
                 let fileIsNewer = (read.lastWritten[agent] ?? .distantPast) > answer.at
                 if !fileIsNewer {
                     snapshot.limits.removeAll { $0.agent == agent }

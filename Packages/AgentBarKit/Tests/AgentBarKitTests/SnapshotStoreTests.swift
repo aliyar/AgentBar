@@ -14,6 +14,7 @@ struct SnapshotStoreTests {
         snapshot.readAt = now
         snapshot.lastWritten = [.claude: now]
         snapshot.accounts = [.claude: AccountStatus(fetchedAt: now)]
+        snapshot.resetCredits = [.codex: ResetCredits(credits: [.init(expiresAt: now.addingTimeInterval(86400), grantedAt: now)])]
         snapshot.limits = snapshot.limits.map {
             UsageLimit(agent: $0.agent, title: $0.title, percentUsed: $0.percentUsed, resetsAt: now.addingTimeInterval(3600), windowLength: $0.windowLength)
         }

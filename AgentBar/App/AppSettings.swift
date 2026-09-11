@@ -30,6 +30,8 @@ final class AppSettings {
         static let statusChecks = "statusChecks"
         static let notifiesDown = "notifiesDown"
         static let notifiesBack = "notifiesBack"
+        static let alertWindows = "usageAlertWindows"
+        static let alertThresholds = "usageAlertThresholds"
     }
 
     /// Whose time left the menu bar shows next to the bars.
@@ -233,6 +235,35 @@ final class AppSettings {
         checksStatus && (notifiesDown || notifiesBack)
     }
 
+    /// The windows whose use is announced as it fills, by `UsageLimit.id`. None by
+    /// default: which windows are worth a message is the user's to say, and a message
+    /// nobody asked for is the fastest way to have them all turned off.
+    var alertWindows: [String] {
+        didSet { defaults.set(alertWindows, forKey: Keys.alertWindows) }
+    }
+
+    /// The marks those windows are announced at, as percentages, lowest first.
+    var alertThresholds: [Int] {
+        didSet { defaults.set(alertThresholds, forKey: Keys.alertThresholds) }
+    }
+
+    static let defaultAlertThresholds = [80, 90]
+
+    /// Whether any window's use can be announced at all.
+    var alertsAnything: Bool { !alertWindows.isEmpty && !alertThresholds.isEmpty }
+
+    func alerts(on window: String) -> Bool { alertWindows.contains(window) }
+
+    func setAlerts(on window: String, _ on: Bool) {
+        if on { if !alertWindows.contains(window) { alertWindows.append(window) } } else { alertWindows.removeAll { $0 == window } }
+    }
+
+    func setThreshold(_ threshold: Int, _ on: Bool) {
+        var marks = Set(alertThresholds)
+        if on { marks.insert(threshold) } else { marks.remove(threshold) }
+        alertThresholds = marks.sorted()
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         // The defaults a first launch lands on: the gauge in the menu bar, the app in the
@@ -262,6 +293,8 @@ final class AppSettings {
         checksStatus = defaults.object(forKey: Keys.statusChecks) as? Bool ?? true
         notifiesDown = defaults.object(forKey: Keys.notifiesDown) as? Bool ?? true
         notifiesBack = defaults.object(forKey: Keys.notifiesBack) as? Bool ?? true
+        alertWindows = defaults.stringArray(forKey: Keys.alertWindows) ?? []
+        alertThresholds = (defaults.array(forKey: Keys.alertThresholds) as? [Int]) ?? Self.defaultAlertThresholds
     }
 
     /// True once per install: the first launch registers the login item and remembers it did.

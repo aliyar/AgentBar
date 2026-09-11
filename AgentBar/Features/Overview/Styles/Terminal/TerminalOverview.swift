@@ -204,6 +204,9 @@ struct TerminalOverview: View {
                     }
                 }
             }
+            if agent.isInstalled, let resets = context.snapshot.resetCredits[agent] {
+                TerminalResetsRow(agent: agent, credits: resets, now: now, palette: palette)
+            }
         }
     }
 
@@ -519,6 +522,76 @@ private struct BlockMeter: View {
             .font(TerminalOverview.mono(size))
             .tracking(-0.5)
             .lineLimit(1)
+    }
+}
+
+/// `limit.resets   2 available ▸`, and opened, a line per credit: `expires thu 14:05   3d 4h`.
+private struct TerminalResetsRow: View {
+    let agent: Agent
+    let credits: ResetCredits
+    let now: Date
+    let palette: TerminalPalette
+
+    @State private var expanded = false
+    @State private var hovering = false
+
+    var body: some View {
+        let available = credits.available(at: now)
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("limit.resets")
+                    .font(TerminalOverview.mono(11))
+                    .foregroundStyle(palette.key)
+                    .lineLimit(1)
+                    .frame(width: 100, alignment: .leading)
+                Spacer(minLength: 4)
+                Text("\(available.count) available")
+                    .font(TerminalOverview.mono(11))
+                    .monospacedDigit()
+                    .foregroundStyle(available.isEmpty ? palette.faint : palette.value)
+                    .lineLimit(1)
+                    .fixedSize()
+                // Only something to open has the mark that says it opens.
+                Text(available.isEmpty ? " " : (expanded ? "\u{25BE}" : "\u{25B8}"))
+                    .font(TerminalOverview.mono(10))
+                    .foregroundStyle(palette.prompt)
+                    .frame(width: 8)
+            }
+            if expanded, !available.isEmpty {
+                ForEach(Array(available.enumerated()), id: \.offset) { _, credit in
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(credit.expiresAt.map { "expires \(Format.clock($0, now: now).lowercased())" } ?? "no expiry")
+                            .font(TerminalOverview.mono(10.5))
+                            .foregroundStyle(palette.faint)
+                            .lineLimit(1)
+                        Spacer(minLength: 4)
+                        Text(credit.expiresAt.map { TerminalOverview.compact($0.timeIntervalSince(now)) } ?? "")
+                            .font(TerminalOverview.mono(11))
+                            .monospacedDigit()
+                            .foregroundStyle(palette.value)
+                            .lineLimit(1)
+                            .fixedSize()
+                    }
+                    .padding(.leading, 12)
+                    .padding(.trailing, 16)
+                }
+            }
+        }
+        .padding(.vertical, 1)
+        .padding(.horizontal, 4)
+        .background(RoundedRectangle(cornerRadius: 4, style: .continuous)
+            .fill(hovering && !available.isEmpty ? palette.hover : .clear))
+        .padding(.horizontal, -4)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard !available.isEmpty else { return }
+            expanded.toggle()
+        }
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.14), value: expanded)
+        .tip("Limit resets", available.isEmpty
+             ? "Credits that start a \(agent.title) limit over before its time. None to use right now."
+             : "Credits that start a \(agent.title) limit over before its time, each with its own expiry. Click for when each one expires. AgentBar only counts them; it never uses one.")
     }
 }
 
