@@ -8,6 +8,8 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-11
+
 ### Added
 
 - Usage alerts. *Settings › Alerts* lets you choose the windows worth a message (Claude's
@@ -311,7 +313,7 @@ version heading and uses them as the release notes.
   shows "—", a figure written hours ago says how old it is, and a context whose limit is
   not written anywhere reports its tokens instead of a made-up percentage.
 
-[Unreleased]: https://github.com/aliyar/AgentBar/compare/v1.2.3...HEAD
+[Unreleased]: https://github.com/aliyar/AgentBar/compare/v1.3.0...HEAD
 [1.0.0]: https://github.com/aliyar/AgentBar/releases/tag/v1.0.0
 [1.0.1]: https://github.com/aliyar/AgentBar/releases/tag/v1.0.1
 [1.1.0]: https://github.com/aliyar/AgentBar/releases/tag/v1.1.0
@@ -320,3 +322,4 @@ version heading and uses them as the release notes.
 [1.2.1]: https://github.com/aliyar/AgentBar/releases/tag/v1.2.1
 [1.2.2]: https://github.com/aliyar/AgentBar/releases/tag/v1.2.2
 [1.2.3]: https://github.com/aliyar/AgentBar/releases/tag/v1.2.3
+[1.3.0]: https://github.com/aliyar/AgentBar/releases/tag/v1.3.0
