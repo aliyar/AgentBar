@@ -21,6 +21,10 @@
   <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-green">
 </p>
 
+
+https://github.com/user-attachments/assets/41013d25-5887-4a1b-8750-e0c3f9f9c86f
+
+
 <p align="center">
   <img src="docs/screenshots/menubar.png" width="860" alt="AgentBar open from the macOS menu bar: bars and the time left in the menu bar itself, and under it the panel with a meter per rate-limit window for Claude, Codex and Cursor and the conversations running right now">
 </p>
