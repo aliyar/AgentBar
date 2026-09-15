@@ -8,7 +8,7 @@
  */
 import { faq } from "./content";
 import { release } from "./release";
-import { ogImage, site } from "./site";
+import { ogImage, site, video } from "./site";
 
 const publisher = {
   "@type": "Organization",
@@ -56,6 +56,19 @@ export const homeSchema = {
       isAccessibleForFree: true,
       codeRepository: site.repo,
       author: { "@id": publisher["@id"] },
+      publisher: { "@id": publisher["@id"] },
+    },
+    {
+      "@type": "VideoObject",
+      "@id": `${site.url}/#video`,
+      name: video.title,
+      description: video.description,
+      thumbnailUrl: `${site.url}${video.poster}`,
+      uploadDate: video.uploaded,
+      duration: video.duration,
+      url: video.watchUrl,
+      embedUrl: `https://www.youtube-nocookie.com/embed/${video.id}`,
+      about: { "@id": `${site.url}/#app` },
       publisher: { "@id": publisher["@id"] },
     },
     {

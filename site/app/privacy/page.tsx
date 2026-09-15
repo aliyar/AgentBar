@@ -17,7 +17,7 @@ export default function Privacy() {
       <main className="sheet" id="main">
         <article className="doc">
           <h1>Privacy</h1>
-        <p className="doc-date">Last updated 11 September 2026</p>
+        <p className="doc-date">Last updated 15 September 2026</p>
         <p className="doc-lead">
           The short version: {site.name} has no backend, no account of its own and no telemetry. Nothing about
           you, your agents or your usage is collected by us, transmitted to us, or stored anywhere but on your
@@ -72,8 +72,14 @@ export default function Privacy() {
           or your browser&rsquo;s tracking protection stops it, and the site works exactly the same without it.
         </p>
         <p>
-          The fonts, scripts and images of the site itself come from this domain; the only third party is Google,
-          for the analytics above. The site is served by a hosting provider that keeps standard server logs (IP
+          The explainer video on the home page is hosted on YouTube. Until you press play, the page shows a still
+          image served from this domain and nothing is requested from YouTube. When you press play, the player
+          loads from youtube-nocookie.com; YouTube then receives your IP address and the usual request data, and
+          may store data in your browser to play the video, under Google&rsquo;s own privacy policy.
+        </p>
+        <p>
+          The fonts, scripts and images of the site itself come from this domain; the only third parties are
+          Google, for the analytics above, and YouTube, once you play the video. The site is served by a hosting provider that keeps standard server logs (IP
           address, timestamp, requested file, user agent) to serve and protect it. We do not read them for anything
           else.
         </p>

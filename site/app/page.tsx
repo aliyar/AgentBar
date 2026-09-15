@@ -1,5 +1,6 @@
 import { Desktop } from "./demo/Desktop";
 import { SiteEnd } from "./ui/SiteEnd";
+import { ExplainerVideo } from "./ui/ExplainerVideo";
 import { AppIcon } from "./demo/AppIcon";
 import { AnatomyScene, HonestyScene, LaptopScene, PlacesScene, StatusScene, StylesScene } from "./demo/Scenes";
 import { Mark } from "./demo/AppIcon";
@@ -14,6 +15,10 @@ export default function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(homeSchema)} />
       <Desktop />
       <main className="sheet" id="main">
+        <div className="film" id="video">
+          <ExplainerVideo />
+        </div>
+
         <section className="band" id="shows">
           <div className="band-head">
             <h2>What it shows</h2>

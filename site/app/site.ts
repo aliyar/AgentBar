@@ -16,6 +16,22 @@ export const site = {
 } as const;
 
 /**
+ * The explainer on YouTube. The page draws the poster (a frame of the video, served from
+ * this domain) and loads the player only when it is asked for; the privacy page says so.
+ */
+export const video = {
+  id: "hH7ZQLDP2Z8",
+  watchUrl: "https://youtu.be/hH7ZQLDP2Z8",
+  title: "AgentBar in 85 seconds",
+  description:
+    "Every rate-limit window for Claude Code, Codex and Cursor, the conversations running right now, usage alerts, and a service going down and coming back.",
+  length: "1:25",
+  duration: "PT1M25S",
+  poster: "/video/explainer-poster.jpg",
+  uploaded: "2026-09-15",
+} as const;
+
+/**
  * The card every link preview draws: Slack, iMessage, X, LinkedIn, Discord.
  * Rendered by `make icon` into `public/og.png`; the dimensions are stated here because
  * scrapers that are handed them draw the large card on the first fetch instead of waiting

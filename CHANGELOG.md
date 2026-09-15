@@ -8,6 +8,11 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+### Added
+
+- The site plays an 85-second explainer between the first screen and the sections. Nothing is
+  loaded from YouTube until you press play, and the privacy page says so.
+
 ## [1.3.0] - 2026-09-11
 
 ### Added

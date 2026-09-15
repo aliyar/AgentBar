@@ -693,6 +693,44 @@ p { margin: 0; }
 .band-head { max-width: 640px; margin-bottom: 44px; }
 .band h2 { font-family: var(--font-display); font-size: 32px; font-weight: 700; letter-spacing: -0.05em; line-height: 1.15; text-wrap: balance; }
 .band .lede { margin-top: 12px; font-size: 21px; line-height: 1.45; color: var(--fg-2); letter-spacing: -0.01em; text-wrap: pretty; }
+/* the explainer: it sits on the seam between the desktop and the sheet, half on each. Its
+   width is stated once so the pull upwards is exactly half its height, and the stage keeps
+   that much room under the hero so the words are never covered. The sheet is its own
+   formatting context, so the pull moves the film and not the sheet's background. The frame
+   keeps its size from poster to player, so the page does not move. */
+:root { --film-gutter: 48px; --film-w: min(1104px, 100vw - 2 * var(--film-gutter)); --film-half: calc(var(--film-w) * 9 / 32); }
+@media (max-width: 720px) { :root { --film-gutter: 20px; } }
+.sheet { display: flow-root; }
+.stage { padding-bottom: max(170px, calc(var(--film-half) + 56px)); }
+.film { position: relative; z-index: 1; width: var(--film-w); margin: calc(-1 * var(--film-half)) auto 0; }
+.film-frame { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 20px; overflow: hidden;
+  background: var(--plate); box-shadow: 0 30px 80px rgb(60 36 20 / 0.2), 0 0 0 0.5px var(--plate-edge); }
+.film-frame img, .film-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; object-fit: cover; }
+.film-poster { cursor: pointer; text-decoration: none; }
+.film-poster img { transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.film-poster:hover img { transform: scale(1.015); }
+/* glass on the dark poster, in the middle of it */
+.film-play { position: absolute; left: 50%; top: 50%; width: 96px; height: 96px; margin: -48px 0 0 -48px;
+  border-radius: 50%; display: grid; place-items: center; color: #fff; background: rgb(255 255 255 / 0.16);
+  backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.28), 0 16px 40px rgb(0 0 0 / 0.4);
+  transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1), background-color 0.2s; }
+.film-play svg { width: 38px; height: 38px; margin-left: 5px; fill: currentColor; }
+.film-poster:hover .film-play, .film-poster:focus-visible .film-play { transform: scale(1.06); background: var(--accent); }
+.film-poster:active .film-play { transform: scale(0.97); }
+.film-length { position: absolute; right: 16px; bottom: 14px; padding: 3px 9px; border-radius: 7px;
+  background: rgb(17 18 22 / 0.78); color: #fff; font-family: var(--font-mono); font-size: 13px; font-weight: 500; }
+@media (max-width: 720px) {
+  .film-frame { border-radius: 14px; }
+  .film-play { width: 68px; height: 68px; margin: -34px 0 0 -34px; }
+  .film-play svg { width: 28px; height: 28px; margin-left: 4px; }
+  .film-length { right: 10px; bottom: 9px; font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .film-poster img, .film-play { transition: none; }
+  .film-poster:hover img { transform: none; }
+}
+
 .prose { color: var(--fg-2); font-size: 17px; line-height: 1.55; max-width: 62ch; margin-top: 28px; }
 .prose b { color: var(--fg); font-weight: 600; }
 
