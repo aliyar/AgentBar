@@ -13,6 +13,17 @@ version heading and uses them as the release notes.
 - The site plays an 85-second explainer between the first screen and the sections. Nothing is
   loaded from YouTube until you press play, and the privacy page says so.
 
+### Fixed
+
+- The menu bar item no longer redraws itself without end. macOS reapplies the item's
+  appearance while it snapshots the menu bar, AgentBar took each of those for a change and
+  drew again, and the loop kept a whole core busy: the app sat under "Using Significant
+  Energy" in the battery menu.
+- Cursor's state database is read in place, read-only, instead of being copied to a temporary
+  file for every read. That database can run to gigabytes, and it was copied three times a
+  minute. Only the agent chats' own rows are fetched from it now, not every chat the editor
+  ever held.
+
 ## [1.3.0] - 2026-09-11
 
 ### Added

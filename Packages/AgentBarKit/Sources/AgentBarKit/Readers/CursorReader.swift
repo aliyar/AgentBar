@@ -53,11 +53,15 @@ public enum CursorReader {
         editorPID: Int? = ProcessTree.processes(whosePathContains: "Cursor.app/Contents/MacOS/Cursor").first?.pid
     ) -> [Conversation] {
         let database = home.appendingPathComponent("Library/Application Support/Cursor/User/globalStorage/state.vscdb")
-        guard let db = SQLiteCopy(of: database) else { return [] }
+        guard let db = SQLiteReader(reading: database) else { return [] }
         defer { db.close() }
-        let composers = db.rows(in: "cursorDiskKV", keyLike: "composerData:%").map { Data($0.value.utf8) }
-        return conversations(fromComposers: composers,
-                             projects: agentProjects(home: home), now: now, editorPID: editorPID)
+        // Only a chat with a transcript folder is an agent chat, so only those rows are
+        // fetched, each by its key. The rest - every chat the editor ever held, tens of
+        // megabytes of them - stay on disk.
+        let projects = agentProjects(home: home)
+        let composers = projects.keys.sorted().compactMap { db.value(in: "cursorDiskKV", key: "composerData:\($0)") }
+        return conversations(fromComposers: composers.map { Data($0.utf8) },
+                             projects: projects, now: now, editorPID: editorPID)
     }
 
     /// The parsing on its own: composer records, and which project folder each chat's

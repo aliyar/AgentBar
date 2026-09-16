@@ -115,7 +115,7 @@ public enum Credentials {
     /// cookie: the user id (the tail of the token's subject) and the token, joined by "::".
     public static func cursorSessionCookie(home: URL = HomeDirectory.url, now: Date = .now) -> String? {
         let database = home.appendingPathComponent("Library/Application Support/Cursor/User/globalStorage/state.vscdb")
-        guard let db = SQLiteCopy(of: database) else { return nil }
+        guard let db = SQLiteReader(reading: database) else { return nil }
         defer { db.close() }
         guard let token = db.value(in: "ItemTable", key: "cursorAuth/accessToken") else { return nil }
         return cursorSessionCookie(accessToken: token, now: now)
@@ -124,7 +124,7 @@ public enum Credentials {
     /// The account Cursor's editor has signed in, cached beside its token.
     public static func cursorIdentity(home: URL = HomeDirectory.url) -> Identity {
         let database = home.appendingPathComponent("Library/Application Support/Cursor/User/globalStorage/state.vscdb")
-        guard let db = SQLiteCopy(of: database) else { return Identity() }
+        guard let db = SQLiteReader(reading: database) else { return Identity() }
         defer { db.close() }
         return Identity(plan: Reading.planName(db.value(in: "ItemTable", key: "cursorAuth/stripeMembershipType")),
                         email: db.value(in: "ItemTable", key: "cursorAuth/cachedEmail"))

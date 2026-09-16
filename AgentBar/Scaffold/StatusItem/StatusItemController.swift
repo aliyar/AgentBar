@@ -97,6 +97,20 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     private let popover = NSPopover()
     private var appearanceObservation: NSKeyValueObservation?
     private var renderPending = false
+
+    /// Everything a render draws from. Kept so a render that would draw the same thing
+    /// again does nothing: AppKit re-applies the button's appearance while it snapshots
+    /// the item for each menu bar, and that fires the appearance observation, so a
+    /// render on every notification had the item redrawing itself without end.
+    private struct Rendered: Equatable {
+        let gauge: StatusItemGauge?
+        let symbolName: String
+        let imageName: String?
+        let summary: String
+        let alert: Bool
+        let dark: Bool
+    }
+    private var rendered: Rendered?
     private var globalMonitor: Any?
     private var resignObserver: NSObjectProtocol?
 
@@ -112,6 +126,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         appearanceObservation = nil
         NSStatusBar.system.removeStatusItem(item)
         statusItem = nil
+        rendered = nil
         Log.statusItem.info("status item removed")
     }
 
@@ -140,6 +155,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             }
             button.addSubview(tracking)
         }
+        // A new button has nothing drawn on it yet, whatever the last one showed.
+        rendered = nil
 
         if popover.contentViewController == nil {
             popover.behavior = .transient
@@ -164,6 +181,10 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         }
         renderPending = false
         let dark = button.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let next = Rendered(gauge: gauge, symbolName: symbolName, imageName: imageName,
+                            summary: summary, alert: alert, dark: dark)
+        guard next != rendered else { return }
+        rendered = next
         if let gauge {
             button.toolTip = gauge.summary
             button.setAccessibilityLabel(gauge.summary)
