@@ -29,8 +29,8 @@ https://github.com/user-attachments/assets/41013d25-5887-4a1b-8750-e0c3f9f9c86f
   <img src="docs/screenshots/menubar.png" width="860" alt="AgentBar open from the macOS menu bar: bars and the time left in the menu bar itself, and under it the panel with a meter per rate-limit window for Claude, Codex and Cursor and the conversations running right now">
 </p>
 
-Claude Code, Codex and Cursor each keep their rate-limit windows and their sessions on this Mac, in
-their own files and behind their own sign-in. AgentBar reads them there and shows the answer where
+Claude Code, Codex and Cursor each keep their sessions on this Mac, and their rate-limit windows in
+their own files or behind their own sign-in. AgentBar reads them there and shows the answer where
 you glance anyway: how much of each window is spent, how long until it starts over, and which
 conversations are running right now. It also watches each agent's own status page, so you know
 whether the thing that just stopped working is you or them.
@@ -60,7 +60,8 @@ picks the theme, the windows to show, and whether the running conversations are 
 - **Every window, one glance.** Claude's session and weekly windows, the weekly window per model,
   Codex's five-hour and weekly windows, Cursor's monthly plan usage. Each with a meter, a
   percentage and the time until it starts over, green through amber to red as it fills. Under
-  Codex, how many credits you hold for starting a limit over early, and when each one expires.
+  Claude and Codex, how many credits you hold for starting a limit over early, of which kind, and
+  when each one expires.
 - **It tells you before a window runs out.** Pick the windows worth a message and the marks to hear
   them at: once at 80%, once more at 90%, and nothing on the reads in between. A window that starts
   over is watched from the start again.
@@ -74,11 +75,14 @@ picks the theme, the windows to show, and whether the running conversations are 
   says it is working again. AgentBar reads the parts you actually run on, announces a change only
   once two readings agree, and never reports an unreachable page as an outage.
 - **Nothing invented.** A window that has already started over shows a dash rather than a stale
-  figure. A reading taken hours ago says how old it is. A context whose limit is written nowhere
-  shows its tokens rather than a made-up percentage.
+  figure. A reading taken hours ago says how old it is, and one the agent has worked past since is
+  drawn faded in the menu bar. A context whose limit is written nowhere shows its tokens rather
+  than a made-up percentage.
 - **Little leaves the Mac.** Conversations are read on disk and stay there. The figures only an
-  account knows are asked of that account with the sign-in it already keeps here, read-only, once
-  every five minutes and on a refresh. No credential is stored, shown or logged.
+  account knows are asked of that account with the sign-in it already keeps here, read-only: every
+  ten minutes while the agent works, hourly while it does not, and on a refresh. When a service
+  says it was asked too often, nothing more is asked until it says to. No credential is stored,
+  shown or logged.
 - **Self-updating.** A daily check through [Sparkle](https://sparkle-project.org), EdDSA-signed
   releases, signed with a Developer ID certificate and notarized by Apple.
 
@@ -134,8 +138,8 @@ already under way when you open your Mac is not announced at all.
 
 | Source | What it gives | What it costs |
 |---|---|---|
-| The agents' own files under your home folder | The windows they write and the sessions they run | Nothing leaves the Mac |
-| Each agent's own sign-in, already on this Mac | The figures only the account knows, such as usage from another Mac or from while the agent was not running | One read-only request every five minutes, and one on a refresh |
+| The agents' own files under your home folder | The sessions they run, and the windows Codex writes | Nothing leaves the Mac |
+| Each agent's own sign-in, already on this Mac | Claude's and Cursor's windows, the figures only the account knows (usage from another Mac, or from while the agent was not running), and the limit resets Claude and Codex hold | One read-only request every ten minutes while the agent works, hourly otherwise, and one on a refresh |
 | The public status pages (`status.claude.com`, `status.openai.com`, `status.cursor.com`) | Whether the service is well | No account, and nothing about you |
 
 An agent you turn off is neither read nor asked about. Update checks and the status pages each have

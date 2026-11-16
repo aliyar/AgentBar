@@ -92,6 +92,9 @@ public enum ClaudeReader {
     /// or the account is not eligible - never "none".
     static func resetCredits(in file: UsageFile, now: Date) -> ResetCredits? {
         guard let inventory = file.cedar_ember, inventory.eligible == true else { return nil }
+        // The models that meter a week of their own, to name a reset that gives one back.
+        let models = (file.limits ?? []).compactMap { $0.scope?.model?.display_name?.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty && $0.lowercased() != "all models" }
         var credits: [ResetCredits.Credit] = []
         for grant in (inventory.grants ?? []).compactMap(\.value) {
             guard grant.paused == false, let left = grant.resets_left, left > 0 else { continue }
@@ -101,12 +104,26 @@ public enum ClaudeReader {
             // A bound that was sent but cannot be read is not an open one.
             if (grant.starts_at != nil && starts == nil) || (grant.ends_at != nil && ends == nil) { continue }
             guard credits.count + left <= mostResets else { return nil }
-            let label = grant.label?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let detail = grant.label?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let sentence = detail?.isEmpty == false ? detail : nil
             credits += Array(repeating: ResetCredits.Credit(expiresAt: ends, grantedAt: starts,
-                                                            label: label?.isEmpty == false ? label : nil),
+                                                            label: resetKind(sentence, models: models),
+                                                            detail: sentence),
                              count: left)
         }
         return ResetCredits(credits: credits)
+    }
+
+    /// A grant's label is a sentence ("One full limit reset (November 2026 …)", "New model
+    /// launch: one Fable reset …", seen 16 Nov 2026), so the row gets its kind in the words
+    /// claude.ai uses: "Full reset", "Fable reset". A sentence that names neither is kept
+    /// as it is, and cut by the row.
+    static func resetKind(_ sentence: String?, models: [String]) -> String? {
+        guard let sentence else { return nil }
+        let words = sentence.lowercased()
+        if words.contains("full") { return "Full reset" }
+        if let model = models.first(where: { words.contains($0.lowercased()) }) { return "\(model) reset" }
+        return sentence
     }
 
     /// What the files say about the account: only who is signed in. The windows are the

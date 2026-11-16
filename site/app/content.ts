@@ -3,7 +3,7 @@
 export const agents = [
   {
     name: "Claude Code",
-    windows: "The session window, the weekly window, and the weekly window per model, each with the time until it starts over.",
+    windows: "The session window, the weekly window, and the weekly window per model, each with the time until it starts over, and the limit resets the account holds, with when each one expires.",
     conversations:
       "Every conversation running right now, named by what was last said in it, with a breathing dot while it works and how full its context is.",
   },
@@ -85,11 +85,11 @@ export const usage = [
 export const honesty = [
   {
     lead: "Read from the agents’ own files.",
-    text: "Claude Code and Codex write their windows and sessions under your home folder; AgentBar reads them there. Conversations never leave the Mac.",
+    text: "Claude Code and Codex write their sessions under your home folder, and Codex its windows too; AgentBar reads them there. Conversations never leave the Mac.",
   },
   {
     lead: "Live limits from the agents’ own sign-in.",
-    text: "For the figures that only the account knows (what was spent on another Mac, or while the agent was not running), it asks each agent’s account with the sign-in that agent already keeps on this Mac. One read-only request every five minutes, and on the panel’s refresh. Nothing is stored or logged.",
+    text: "For the figures that only the account knows, it asks each agent’s account with the sign-in that agent already keeps on this Mac. One read-only request every ten minutes while the agent works, once an hour while it does not, and on the panel’s refresh. When a service says it was asked too often, AgentBar waits as long as it says. The last answer is kept on this Mac, and nowhere else.",
   },
   {
     lead: "Each service's own status page.",
@@ -125,7 +125,7 @@ export const install = [
 export const faq = [
   {
     q: "Why does it ask my accounts, and what does it send?",
-    a: "Claude Code, Codex and Cursor each keep a sign-in on this Mac. AgentBar uses it, read-only, to ask the account how much of each window is used, which is the same page you would open in the browser. One request every five minutes, one when you open the panel (at most once a minute), one when you press refresh. Nothing is stored, nothing is logged, and no token is ever shown or sent anywhere else.",
+    a: "Claude Code, Codex and Cursor each keep a sign-in on this Mac. AgentBar uses it, read-only, to ask the account how much of each window is used, which is the same page you would open in the browser. One request every ten minutes while that agent is at work, once an hour while it is not, and one when you press refresh (at most every two minutes); none when you open the panel. If a service says it was asked too often, nothing more is asked until it says to. The last answer is kept on this Mac so the panel is not empty after a restart; no token is ever stored, shown or sent anywhere else.",
   },
   {
     q: "Does it read my conversations?",
@@ -141,7 +141,7 @@ export const faq = [
   },
   {
     q: "Cursor shows only the monthly plan. Codex shows nothing.",
-    a: "Cursor writes no usage on disk, so its figures come from the account only. Codex writes its windows while it runs on this Mac; before its first session here, or on a Mac where it never ran, there is nothing on disk, and the account is asked for the rest.",
+    a: "Cursor writes no usage on disk, and neither does Claude Code, so their figures come from the account only. Codex writes its windows while it runs on this Mac; before its first session here, or on a Mac where it never ran, there is nothing on disk, and the account is asked for the rest.",
   },
   {
     q: "Launch at login asked me to approve something.",
@@ -164,8 +164,8 @@ export const faq = [
     a: "A change is announced only after two readings agree, so a moment's flap says nothing. A page it could not reach is never reported as an outage: your Wi-Fi dropping looks exactly like a dead service, and one of those is not news. An outage already under way when AgentBar starts is not announced either. Both messages can be turned off in Settings › Status.",
   },
   {
-    q: "What are Codex's limit resets?",
-    a: "Credits OpenAI grants that start a Codex limit over before its time, each with its own expiry. The last line of the Codex group counts them; click it for when each one expires and how long that leaves. They come from the same read-only request to the account, and AgentBar never uses one.",
+    q: "What are limit resets?",
+    a: "Credits Anthropic and OpenAI grant that start a Claude or Codex limit over before its time, each with its own expiry. Claude has more than one kind: a full reset, and one that only gives a model’s allowance back. The last line of each group counts them; click it for each one’s kind, when it expires and how long that leaves. They come from the same read-only request to the account, and AgentBar never uses one.",
   },
   {
     q: "Is it really free, and can I read the source?",

@@ -242,19 +242,20 @@ private struct ResetCreditsRow: View {
                         HStack(spacing: 8) {
                             // The kind first, when the account names one: Claude's full reset
                             // and its model resets do different things.
-                            Text((credit.label.map { "\($0) · " } ?? "")
-                                 + (credit.expiresAt.map { "\(credit.label == nil ? "Expires" : "expires") \(Format.clock($0, now: now))" }
-                                    ?? (credit.label == nil ? "No expiry" : "no expiry")))
+                            Text(Self.line(for: credit, now: now))
                                 .font(.system(size: 11))
                                 .foregroundStyle(glass.tertiary)
                                 .lineLimit(1)
                             Spacer(minLength: 8)
+                            // The time left is what the line is for: the kind is cut first.
                             Text(credit.expiresAt.map { "\(Format.short($0.timeIntervalSince(now))) left" } ?? "")
                                 .font(.system(size: 11.5))
                                 .monospacedDigit()
                                 .foregroundStyle(glass.body)
                                 .lineLimit(1)
+                                .fixedSize()
                         }
+                        .tip(credit.label, credit.detail)
                         // In line with the count above it, under the words it expands.
                         .padding(.trailing, 18)
                     }
@@ -265,6 +266,13 @@ private struct ResetCreditsRow: View {
                 .transition(.opacity)
             }
         }
+    }
+
+    /// "Full reset · 11 Dec" when the account names the kind, "Expires 11 Dec" when not.
+    static func line(for credit: ResetCredits.Credit, now: Date) -> String {
+        let date = credit.expiresAt.map { Format.clock($0, now: now) }
+        guard let label = credit.label else { return date.map { "Expires \($0)" } ?? "No expiry" }
+        return "\(label) · \(date ?? "no expiry")"
     }
 }
 

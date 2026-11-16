@@ -71,8 +71,21 @@ export const plans: Record<AgentId, string> = { claude: "Max 20x", codex: "Pro L
 /** What an agent holds against its windows filling. Said beside the name, not metered. */
 export const captionNotes: Partial<Record<AgentId, string>> = { codex: "$12.40 credits" };
 
-/** Credits that start a limit over early, as seconds until each one expires: `Snapshot.sample`'s two. */
-export const resetCredits: Partial<Record<AgentId, number[]>> = { codex: [3 * D + 4 * H, 18 * D + 7 * H] };
+/** A credit that starts a limit over early: seconds until it expires, and its kind when the account names one. */
+export interface ResetCredit {
+  expiresIn: number;
+  label?: string;
+}
+
+/** `Snapshot.sample`'s resets: Claude's name their kind, Codex's are all one kind. */
+export const resetCredits: Partial<Record<AgentId, ResetCredit[]>> = {
+  claude: [
+    { expiresIn: 24 * D + 6 * H, label: "Full reset" },
+    { expiresIn: 112 * D + 16 * H, label: "Fable reset" },
+    { expiresIn: 112 * D + 16 * H, label: "Fable reset" },
+  ],
+  codex: [{ expiresIn: 3 * D + 4 * H }, { expiresIn: 18 * D + 7 * H }],
+};
 
 /** A service level, as the app maps every status page onto one (StatusLevel). */
 export type StatusLevel = "operational" | "degraded" | "partial" | "outage";

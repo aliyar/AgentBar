@@ -13,14 +13,19 @@ public struct ResetCredits: Equatable, Codable, Sendable {
         /// When it can no longer be used. Nil when the account names no expiry.
         public let expiresAt: Date?
         public let grantedAt: Date?
-        /// What kind of reset it is, in the account's words, when it names one. Claude has
-        /// more than one kind: a full reset, and one that only gives a model's allowance back.
+        /// What kind of reset it is, in a few words a row can hold: "Full reset", "Fable
+        /// reset". Claude has more than one kind: a full reset, and one that only gives a
+        /// model's allowance back.
         public let label: String?
+        /// The account's own sentence about it, too long for a row: "New model launch: one
+        /// Fable reset …". Said when the row is rested on.
+        public let detail: String?
 
-        public init(expiresAt: Date?, grantedAt: Date? = nil, label: String? = nil) {
+        public init(expiresAt: Date?, grantedAt: Date? = nil, label: String? = nil, detail: String? = nil) {
             self.expiresAt = expiresAt
             self.grantedAt = grantedAt
             self.label = label
+            self.detail = detail
         }
     }
 

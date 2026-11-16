@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Mark } from "./AppIcon";
 import { AgentLogo } from "./Logos";
 import type { PanelState } from "./state";
-import { agentTitle, agents, captionNotes, clock, conversations, coarse, level, limitsFor, links, percent, plans, resetCredits, short, shortTitle, status, statusLevel, statusTitle, type AgentId, type Conversation, type Limit, type ServiceStatus } from "./sample";
+import { agentTitle, agents, captionNotes, clock, conversations, coarse, level, limitsFor, links, percent, plans, resetCredits, short, shortTitle, status, statusLevel, statusTitle, type AgentId, type Conversation, type Limit, type ResetCredit, type ServiceStatus } from "./sample";
 
 /**
  * The Glass panel, as the app draws it (Features/Overview/Styles/Glass): header with the
@@ -68,7 +68,7 @@ export function Panel({ state, arrow = "up", arrowRight }: { state: PanelState; 
                   {limitsFor(agent).map((limit) => (
                     <UsageRow key={limit.id} limit={limit} state={state} />
                   ))}
-                  {resetCredits[agent] && <ResetsRow expiries={resetCredits[agent]!} state={state} />}
+                  {resetCredits[agent] && <ResetsRow agent={agent} credits={resetCredits[agent]!} state={state} />}
                 </div>
               </section>
             ))}
@@ -200,24 +200,30 @@ function UsageRow({ limit, state }: { limit: Limit; state: PanelState }) {
 }
 
 /** The last line of the Codex group: how many limit resets are held; opened, when each expires. */
-function ResetsRow({ expiries, state }: { expiries: number[]; state: PanelState }) {
+/** "Full reset · 11 Dec" when the account names the kind, "Expires 11 Dec" when not: `UsageSection`'s line. */
+function resetLine(credit: ResetCredit, now: Date | null): string {
+  const date = now ? clock(new Date(now.getTime() + credit.expiresIn * 1000), now) : "";
+  return credit.label ? `${credit.label} · ${date}` : `Expires ${date}`;
+}
+
+function ResetsRow({ agent, credits, state }: { agent: AgentId; credits: ResetCredit[]; state: PanelState }) {
   const [open, setOpen] = useState(false);
   return (
     <button type="button" className={`resets ${open ? "is-open" : ""}`} onClick={() => setOpen(!open)} aria-expanded={open}
-      title="Credits that start a Codex limit over before its time, each with its own expiry. AgentBar only counts them; it never uses one.">
+      title={`Credits that start a ${agentTitle[agent]} limit over before its time, each with its own expiry. AgentBar only counts them; it never uses one.`}>
       <span className="resets-line">
         <span className="row-label">Limit resets</span>
-        <span className="resets-count">{expiries.length} available</span>
+        <span className="resets-count">{credits.length} available</span>
         <span className="conv-chev" aria-hidden="true">
           <svg viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M2.5 1.2 5.3 4 2.5 6.8" />
           </svg>
         </span>
       </span>
-      {open && expiries.map((seconds) => (
-        <span key={seconds} className="resets-item">
-          <span>Expires {state.now ? clock(new Date(state.now.getTime() + seconds * 1000), state.now) : ""}</span>
-          <span className="resets-left">{short(seconds)} left</span>
+      {open && credits.map((credit, index) => (
+        <span key={index} className="resets-item">
+          <span>{resetLine(credit, state.now)}</span>
+          <span className="resets-left">{short(credit.expiresIn)} left</span>
         </span>
       ))}
     </button>

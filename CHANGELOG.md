@@ -8,6 +8,12 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+### Fixed
+
+- Claude's limit resets are named by their kind, "Full reset" or "Fable reset", beside the date
+  they expire. Each line showed the account's whole sentence about the reset instead, cut off
+  before its date; that sentence is now in the line's tooltip.
+
 ## [1.4.0] - 2026-11-16
 
 ### Added

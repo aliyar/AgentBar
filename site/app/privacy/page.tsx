@@ -17,7 +17,7 @@ export default function Privacy() {
       <main className="sheet" id="main">
         <article className="doc">
           <h1>Privacy</h1>
-        <p className="doc-date">Last updated 15 September 2026</p>
+        <p className="doc-date">Last updated 16 November 2026</p>
         <p className="doc-lead">
           The short version: {site.name} has no backend, no account of its own and no telemetry. Nothing about
           you, your agents or your usage is collected by us, transmitted to us, or stored anywhere but on your
@@ -26,11 +26,13 @@ export default function Privacy() {
 
         <h3>What the app reads, and where it stays</h3>
         <p>
-          {site.name} reads the files the coding agents keep under your home folder: Claude Code’s and Codex’s
-          rate-limit figures and session files, the tail of a running conversation’s transcript for its name and
-          context figure and Cursor’s local state. It shows what it finds. It writes one file of its own: the
-          latest snapshot, into its App Group container, so the widget can draw it. Settings live in macOS user
-          defaults. Delete those and {site.name} starts empty. Nothing is sent to us; there is nowhere to send it.
+          {site.name} reads the files the coding agents keep under your home folder: Codex’s rate-limit figures,
+          Claude Code’s and Codex’s session files, the tail of a running conversation’s transcript for its name and
+          context figure and Cursor’s local state. It shows what it finds. It writes two files of its own into its
+          App Group container: the latest snapshot, so the widget can draw it, and the last figures each agent’s
+          account gave with when it may be asked again, so a restart neither starts empty nor asks too soon.
+          Neither holds a credential. Settings live in macOS user defaults. Delete those and {site.name} starts
+          empty. Nothing is sent to us; there is nowhere to send it.
         </p>
 
         <h3>What the app sends over the network</h3>
@@ -39,9 +41,12 @@ export default function Privacy() {
             <strong>Your own agents’ accounts.</strong> To show the limits only the account knows, {site.name}
             asks each agent’s service with the sign-in that agent already keeps on this Mac: Claude through Claude
             Code’s sign-in, Codex through its ChatGPT sign-in, Cursor through the editor’s. Each is one read-only
-            request every five minutes, one when the panel opens (at most once a minute), and one when you press
-            refresh; Codex’s is two at once, its usage and the limit resets it holds. The request goes to that
-            service, as it would from the agent itself. The credential is read
+            request every ten minutes while that agent is at work, once an hour while it is not, and one when you
+            press refresh (at most every two minutes); when a service answers that it was asked too often, nothing
+            more is asked until the time it gives. Codex’s is two at once, its usage and the limit resets it holds;
+            Claude’s asks for both in one, and names itself as an outside Claude tool
+            (<code>claude-cli/&lt;version&gt; (external, cli)</code>), since Claude lists the resets only for
+            those. The request goes to that service, as it would from the agent itself. The credential is read
             when needed and never stored, logged, displayed or sent anywhere else. Each agent’s account can be left
             out in Settings › Agents.
           </li>

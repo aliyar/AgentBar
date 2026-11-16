@@ -50,9 +50,17 @@ extension Snapshot {
             identities: [.claude: Identity(plan: "Max 20x", email: "you@example.com"),
                          .codex: Identity(plan: "Pro Lite", email: "you@example.com", name: "Your Name"),
                          .cursor: Identity(plan: "Pro", email: "you@example.com")],
-            resetCredits: [.codex: ResetCredits(credits: [
-                ResetCredits.Credit(expiresAt: now.addingTimeInterval(3 * 86400 + 4 * 3600)),
-                ResetCredits.Credit(expiresAt: now.addingTimeInterval(18 * 86400 + 7 * 3600)),
-            ])])
+            resetCredits: [
+                // Claude names each kind; Codex's are all one kind and carry no label.
+                .claude: ResetCredits(credits: [
+                    ResetCredits.Credit(expiresAt: now.addingTimeInterval(24 * 86400 + 6 * 3600), label: "Full reset"),
+                    ResetCredits.Credit(expiresAt: now.addingTimeInterval(112 * 86400 + 16 * 3600), label: "Fable reset"),
+                    ResetCredits.Credit(expiresAt: now.addingTimeInterval(112 * 86400 + 16 * 3600), label: "Fable reset"),
+                ]),
+                .codex: ResetCredits(credits: [
+                    ResetCredits.Credit(expiresAt: now.addingTimeInterval(3 * 86400 + 4 * 3600)),
+                    ResetCredits.Credit(expiresAt: now.addingTimeInterval(18 * 86400 + 7 * 3600)),
+                ]),
+            ])
     }
 }

@@ -565,8 +565,8 @@ private struct TerminalResetsRow: View {
             if expanded, !available.isEmpty {
                 ForEach(Array(available.enumerated()), id: \.offset) { _, credit in
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text((credit.label.map { "\($0.lowercased()), " } ?? "")
-                             + (credit.expiresAt.map { "expires \(Format.clock($0, now: now).lowercased())" } ?? "no expiry"))
+                        Text(credit.label.map { "\($0.lowercased()) \(credit.expiresAt.map { Format.clock($0, now: now).lowercased() } ?? "no expiry")" }
+                             ?? (credit.expiresAt.map { "expires \(Format.clock($0, now: now).lowercased())" } ?? "no expiry"))
                             .font(TerminalOverview.mono(10.5))
                             .foregroundStyle(palette.faint)
                             .lineLimit(1)

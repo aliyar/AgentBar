@@ -136,10 +136,11 @@ struct ClaudeReaderTests {
         let now = ISODate.parse("2026-11-16T13:00:00Z")!
         let json = """
         {"five_hour":{"utilization":38.0,"resets_at":"2026-11-16T15:00:00+00:00"},
+         "limits":[{"kind":"weekly_scoped","percent":8,"scope":{"model":{"display_name":"Fable"}}}],
          "cedar_ember":{"eligible":true,"grants":[
-           {"id":"redemption-handle","label":"Fable reset","resets_left":2,"resets_total":2,
+           {"id":"redemption-handle","label":"New model launch: one Fable reset","resets_left":2,"resets_total":2,
             "starts_at":"2026-11-01T00:00:00Z","ends_at":"2027-03-09T07:59:00Z","paused":false,"usable_now":false},
-           {"label":"Full reset","resets_left":1,"paused":false,"ends_at":"2026-12-10T22:00:00Z"},
+           {"label":"One full limit reset (November 2026)","resets_left":1,"paused":false,"ends_at":"2026-12-10T22:00:00Z"},
            {"label":"paused","resets_left":1,"paused":true},
            {"label":"unknown pause","resets_left":1},
            {"label":"used up","resets_left":0,"paused":false},
@@ -150,8 +151,12 @@ struct ClaudeReaderTests {
          ]}}
         """
         let resets = try #require(ClaudeReader.reading(from: Data(json.utf8), now: now).resetCredits)
-        // Soonest expiry first; the redemption handle is nowhere in what is kept.
+        // Soonest expiry first, each named by its kind in claude.ai's words, with the
+        // account's sentence kept for the tooltip; the redemption handle is nowhere.
         #expect(resets.credits.map(\.label) == ["Full reset", "Fable reset", "Fable reset"])
+        #expect(resets.credits.first?.detail == "One full limit reset (November 2026)")
+        #expect(ClaudeReader.resetKind("Something else entirely", models: ["Fable"]) == "Something else entirely")
+        #expect(ClaudeReader.resetKind(nil, models: []) == nil)
         #expect(resets.credits.first?.expiresAt == ISODate.parse("2026-12-10T22:00:00Z"))
         #expect(resets.available(at: now).count == 3)
         #expect(!String(decoding: try JSONEncoder().encode(resets), as: UTF8.self).contains("redemption"))
