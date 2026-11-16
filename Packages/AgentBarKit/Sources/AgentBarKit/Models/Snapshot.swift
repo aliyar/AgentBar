@@ -54,6 +54,18 @@ public struct Snapshot: Equatable, Codable, Sendable {
         conversations.filter { $0.agent == agent }.compactMap(\.lastActivity).max()
     }
 
+    /// How old a reading may be before work done since it makes it doubtful.
+    public static let staleAfter: TimeInterval = 15 * 60
+
+    /// The agent's numbers may have moved since they were read: they are older than
+    /// `staleAfter` and the agent has worked since. An agent left alone keeps its numbers
+    /// however old they are - nothing has moved them.
+    public func isStale(_ agent: Agent, at now: Date) -> Bool {
+        guard let written = lastWritten[agent], now.timeIntervalSince(written) > Self.staleAfter,
+              let active = latestActivity(for: agent) else { return false }
+        return active > written
+    }
+
     /// The live window that is fullest - what the menu bar gauge shows. Rolled-over
     /// windows are history and do not count.
     public func worstLimit(at now: Date = .now) -> UsageLimit? {

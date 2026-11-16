@@ -8,9 +8,10 @@ import AgentBarKit
 ///
 /// Two sources, merged: what the agents left on disk (read every 30 s while the popover
 /// is open, every 60 s while the gauge shows, and on every popover open), and what their
-/// accounts report (asked every 5 minutes, on a popover open at most once a minute, and
-/// on the refresh button at most every 10 s). For an agent that answered, the account's
-/// numbers replace the file's unless the file was written later - Codex just ran, say.
+/// accounts report, asked as seldom as `AccountSchedule` allows: every 10 minutes while
+/// the agent works, hourly while it does not, never into a refusal. For an agent that
+/// answered, the account's numbers replace the file's unless the file was written later -
+/// Codex just ran, say. The last answers and the schedule outlive a relaunch.
 @Observable
 final class AgentsModel {
     enum Reason { case timer, popoverOpened, manual, settingsChanged }
@@ -40,22 +41,20 @@ final class AgentsModel {
         didSet { if showsSampleData != oldValue { refresh(.settingsChanged) } }
     }
 
-    private struct AccountAnswer {
-        let reading: Reading
-        let at: Date
-    }
-
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
     @ObservationIgnored private var pendingReason: Reason?
     @ObservationIgnored private var loopTask: Task<Void, Never>?
-    /// The last numbers each account gave, kept between reads so a file read in between
-    /// does not push them out.
-    @ObservationIgnored private var answers: [Agent: AccountAnswer] = [:]
-    @ObservationIgnored private var attempts: [Agent: Date] = [:]
-    @ObservationIgnored private var problems: [Agent: String] = [:]
+    @ObservationIgnored private let accountStore = AccountStore()
+    /// The last numbers each account gave, why the last ask failed, and when to ask
+    /// again - kept between reads so a file read in between does not push them out, and
+    /// between launches so a relaunch neither shows nothing nor asks into a refusal.
+    @ObservationIgnored private lazy var records: [Agent: AccountRecord] = accountStore?.read() ?? [:]
+    @ObservationIgnored private var loggedResets: Set<Agent> = []
 
     func start() {
-        refresh(.manual)
+        // A launch is not a press of the refresh button: the accounts are asked only when
+        // their schedule says so, which the records carried over from the last run decide.
+        refresh(.timer)
         reschedule()
         // The widget bakes macOS's appearance into its entries (its own views cannot see
         // the desktop's); a change here redraws them with the right one.
@@ -78,8 +77,14 @@ final class AgentsModel {
         let agents = agents
         let sample = showsSampleData
         let now = Date()
-        let due = sample ? [] : agents.filter { liveAgents.contains($0) && isDue($0, reason: reason, now: now) }
-        for agent in due { attempts[agent] = now }
+        let trigger: AccountSchedule.Trigger = reason == .manual ? .manual : .timer
+        let due = sample ? [] : agents.filter { agent in
+            guard liveAgents.contains(agent) else { return false }
+            let record = records[agent] ?? AccountRecord()
+            return record.schedule.isDue(trigger, now: now, answeredAt: record.answeredAt,
+                                         lastActivity: snapshot.latestActivity(for: agent))
+        }
+        for agent in due { records[agent, default: AccountRecord()].schedule.recordAttempt(at: now) }
         refreshTask = Task {
             async let files = Task.detached(priority: .utility) {
                 SnapshotReader.read(agents: agents, now: now)
@@ -93,19 +98,44 @@ final class AgentsModel {
             }
             let read = await files
             for (agent, result) in results {
+                var record = records[agent] ?? AccountRecord()
                 switch result {
                 case .success(var reading):
                     // The reset credits are asked beside the usage and may miss while it
                     // answers; the last list stands until the next one comes.
-                    if reading.resetCredits == nil { reading.resetCredits = answers[agent]?.reading.resetCredits }
-                    answers[agent] = AccountAnswer(reading: reading, at: now)
-                    problems[agent] = nil
+                    if reading.resetCredits == nil { reading.resetCredits = record.answer?.resetCredits }
+                    // Said when the inventory changes, and once per run whatever it is, so
+                    // an account that never sends one can be told from one that has none.
+                    if loggedResets.insert(agent).inserted || reading.resetCredits != record.answer?.resetCredits {
+                        Log.app.notice("""
+                            \(agent.rawValue, privacy: .public) account: \
+                            \(reading.resetCredits.map { "\($0.available(at: now).count)" } ?? "no", privacy: .public) limit resets
+                            """)
+                    }
+                    record.answer = reading
+                    record.answeredAt = now
+                    record.problem = nil
+                    record.schedule.recordSuccess()
                     Log.app.debug("\(agent.rawValue, privacy: .public) account: \(reading.limits.count) windows")
                 case .failure(let problem):
-                    problems[agent] = problem.description
-                    Log.app.notice("\(agent.rawValue, privacy: .public) account: \(problem.description, privacy: .public)")
+                    record.problem = problem.description
+                    if case .rateLimited(let retryAfter) = problem {
+                        record.schedule.recordRefusal(retryAfter: retryAfter, now: now)
+                        // Logged with what the server said, so the limit nobody publishes
+                        // can at least be measured.
+                        Log.app.notice("""
+                            \(agent.rawValue, privacy: .public) account: 429, Retry-After \
+                            \(retryAfter.map { "\(Int($0.timeIntervalSince(now)))s" } ?? "none", privacy: .public), \
+                            refusal \(record.schedule.refusals), next ask after \
+                            \(record.schedule.blockedUntil?.formatted(date: .omitted, time: .standard) ?? "-", privacy: .public)
+                            """)
+                    } else {
+                        Log.app.notice("\(agent.rawValue, privacy: .public) account: \(problem.description, privacy: .public)")
+                    }
                 }
+                records[agent] = record
             }
+            if !due.isEmpty { saveRecords() }
             snapshot = sample ? Snapshot.sample : merged(read, now: now)
             isShowingSample = sample
             // A read of the files alone takes milliseconds; the panels show a read in
@@ -140,15 +170,11 @@ final class AgentsModel {
         }
     }
 
-    private func isDue(_ agent: Agent, reason: Reason, now: Date) -> Bool {
-        let since = attempts[agent].map { now.timeIntervalSince($0) } ?? .infinity
-        // An account that said "too often" (429) is left alone for a quarter of an hour,
-        // whatever the reason; the last answer stays on screen meanwhile.
-        if problems[agent] == AccountUsage.Problem.badResponse(429).description, since < 900 { return false }
-        switch reason {
-        case .manual: return since >= 10
-        case .popoverOpened, .settingsChanged: return since >= 60
-        case .timer: return since >= 300
+    private func saveRecords() {
+        do {
+            try accountStore?.write(records)
+        } catch {
+            Log.app.error("account records not written: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -156,26 +182,27 @@ final class AgentsModel {
     private func merged(_ read: Snapshot, now: Date) -> Snapshot {
         var snapshot = read
         for agent in agents {
-            var status = AccountStatus(fetchedAt: answers[agent]?.at, problem: problems[agent])
-            if liveAgents.contains(agent), let answer = answers[agent] {
+            let record = records[agent]
+            var status = AccountStatus(fetchedAt: record?.answeredAt, problem: record?.problem)
+            if liveAgents.contains(agent), let answer = record?.answer, let answeredAt = record?.answeredAt {
                 // The plan is not a reading and does not go stale the way a window does,
                 // so it is taken from whichever source named it - Cursor and Claude name
                 // it only in their account answer, and have no file to lose it to.
-                if !answer.reading.identity.isEmpty {
+                if !answer.identity.isEmpty {
                     snapshot.identities[agent] = (snapshot.identities[agent] ?? Identity())
-                        .merged(with: answer.reading.identity)
+                        .merged(with: answer.identity)
                 }
                 // Like the plan, an inventory rather than a reading: only the account has
                 // it, and a file written later says nothing about it.
-                if let resets = answer.reading.resetCredits { snapshot.resetCredits[agent] = resets }
-                let fileIsNewer = (read.lastWritten[agent] ?? .distantPast) > answer.at
+                if let resets = answer.resetCredits { snapshot.resetCredits[agent] = resets }
+                let fileIsNewer = (read.lastWritten[agent] ?? .distantPast) > answeredAt
                 if !fileIsNewer {
                     snapshot.limits.removeAll { $0.agent == agent }
-                    snapshot.limits += answer.reading.limits
+                    snapshot.limits += answer.limits
                     // The account knows the balance the files cannot: what was bought or
                     // spent elsewhere. Its answer replaces the file's, never the reverse.
-                    snapshot.credits[agent] = answer.reading.credits
-                    snapshot.lastWritten[agent] = answer.at
+                    snapshot.credits[agent] = answer.credits
+                    snapshot.lastWritten[agent] = answeredAt
                 }
             } else if !liveAgents.contains(agent) {
                 status = AccountStatus()

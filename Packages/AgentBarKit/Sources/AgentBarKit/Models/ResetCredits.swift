@@ -1,8 +1,9 @@
 import Foundation
 
 /// Credits that start one of an agent's limits over before its time: an inventory rather
-/// than a balance, since each credit carries its own expiry. Codex grants them; the
-/// account lists them beside its usage (`wham/rate-limit-reset-credits`).
+/// than a balance, since each credit carries its own expiry. Codex grants them, and lists
+/// them beside its usage (`wham/rate-limit-reset-credits`); Claude grants them too ("Limit
+/// resets" in claude.ai's Settings → Usage), inside its usage answer (`cedar_ember`).
 ///
 /// Not a window and not money, so neither a meter nor the caption's balance: the panel
 /// counts them on a line of their own under the agent's windows, and lists each one's
@@ -12,10 +13,14 @@ public struct ResetCredits: Equatable, Codable, Sendable {
         /// When it can no longer be used. Nil when the account names no expiry.
         public let expiresAt: Date?
         public let grantedAt: Date?
+        /// What kind of reset it is, in the account's words, when it names one. Claude has
+        /// more than one kind: a full reset, and one that only gives a model's allowance back.
+        public let label: String?
 
-        public init(expiresAt: Date?, grantedAt: Date? = nil) {
+        public init(expiresAt: Date?, grantedAt: Date? = nil, label: String? = nil) {
             self.expiresAt = expiresAt
             self.grantedAt = grantedAt
+            self.label = label
         }
     }
 

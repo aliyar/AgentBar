@@ -5,7 +5,7 @@ import Foundation
 ///
 /// The same shape serves both sources, since they answer the same question: the files on
 /// this Mac, and the agent's own account.
-public struct Reading: Equatable, Sendable {
+public struct Reading: Equatable, Codable, Sendable {
     public var limits: [UsageLimit]
     /// A prepaid balance or an unlimited allowance, when the agent reports one.
     public var credits: Credits?
@@ -13,8 +13,8 @@ public struct Reading: Equatable, Sendable {
     public var identity: Identity
     /// When the agent wrote these figures; nil for an answer that came from the account.
     public var written: Date?
-    /// Credits that start a limit over early, when the account lists them. Only Codex's
-    /// account does; nil means not asked or not answered, never "none".
+    /// Credits that start a limit over early, when the account lists them: Codex's and
+    /// Claude's do. Nil means not asked or not answered, never "none".
     public var resetCredits: ResetCredits?
 
     public init(limits: [UsageLimit] = [], credits: Credits? = nil,

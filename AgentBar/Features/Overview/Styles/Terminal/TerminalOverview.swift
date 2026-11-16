@@ -213,9 +213,14 @@ struct TerminalOverview: View {
     /// One note at a time, in the order that changes the reading: why the account did not
     /// answer, then how old the numbers are, then the balance left once they run out.
     private func note(for agent: Agent, limits: [UsageLimit], now: Date) -> String? {
-        if let problem = context.snapshot.accounts[agent]?.problem { return problem }
-        if !limits.isEmpty, let written = context.snapshot.lastWritten[agent],
-           now.timeIntervalSince(written) > 3600 {
+        let written = context.snapshot.lastWritten[agent]
+        if let problem = context.snapshot.accounts[agent]?.problem {
+            // The age of the numbers drawn, not of the account's last answer.
+            guard !limits.isEmpty, let written else { return problem }
+            return "\(problem), \(Self.compact(now.timeIntervalSince(written))) old"
+        }
+        if !limits.isEmpty, let written,
+           now.timeIntervalSince(written) > 3600 || context.snapshot.isStale(agent, at: now) {
             return "stale \(Self.compact(now.timeIntervalSince(written)))"
         }
         return context.snapshot.credits[agent]?.caption
@@ -560,7 +565,8 @@ private struct TerminalResetsRow: View {
             if expanded, !available.isEmpty {
                 ForEach(Array(available.enumerated()), id: \.offset) { _, credit in
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(credit.expiresAt.map { "expires \(Format.clock($0, now: now).lowercased())" } ?? "no expiry")
+                        Text((credit.label.map { "\($0.lowercased()), " } ?? "")
+                             + (credit.expiresAt.map { "expires \(Format.clock($0, now: now).lowercased())" } ?? "no expiry"))
                             .font(TerminalOverview.mono(10.5))
                             .foregroundStyle(palette.faint)
                             .lineLimit(1)

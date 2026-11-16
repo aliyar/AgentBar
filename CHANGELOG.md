@@ -8,6 +8,38 @@ version heading and uses them as the release notes.
 
 ## [Unreleased]
 
+### Added
+
+- Claude's limit resets ("Limit resets" in claude.ai's Settings → Usage) are counted under its
+  windows, like Codex's. Opening the line lists each one with its kind (a full reset, or one for
+  a single model) and its expiry. They come in the same answer as the usage, so no request is
+  added; AgentBar only counts them and never uses one. Claude sends them only to a client that
+  names itself as an outside Claude tool, so the usage request now does
+  (`claude-cli/<version> (external, cli)`, with the version from Claude Code's session files).
+
+### Changed
+
+- The agents' accounts are asked far less often: every 10 minutes while the agent is at work,
+  once an hour while it is not, and at most every 2 minutes from the refresh button. Opening
+  the panel no longer asks. Claude's usage endpoint is shared by everything signed in to the
+  same account, and asking every 5 minutes helped get it refused.
+- When an account says it was asked too often, AgentBar waits as long as the server says
+  before asking again, or 15 minutes doubling up to 2 hours when it does not say. It used to
+  try again every quarter of an hour, which kept one refusal going for 17 hours.
+- The last answer from each account, and when it may be asked again, survive a relaunch: the
+  panel shows the last numbers straight away instead of nothing, and a relaunch no longer
+  asks into a refusal.
+
+### Fixed
+
+- Claude's windows no longer come from `~/.claude/cache/usage.json`. Claude Code does not
+  write that file; a status line script does, on the machines that run one, and its copy
+  could be hours old while Claude's own numbers had moved on.
+- The age beside an agent's name is the age of the numbers shown below it. It said when the
+  account last answered, even when newer numbers from disk had replaced that answer.
+- Numbers that may have moved are drawn faded in the menu bar: when they are more than 15
+  minutes old and the agent has worked since. The tooltip says from when they are.
+
 ## [1.3.1] - 2026-09-16
 
 ### Added

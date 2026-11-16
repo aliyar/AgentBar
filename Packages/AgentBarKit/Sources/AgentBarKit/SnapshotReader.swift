@@ -13,7 +13,9 @@ public enum SnapshotReader {
             let root = agent.defaultURL
             switch agent {
             case .claude:
-                snapshot.take(ClaudeReader.read(in: root), for: .claude)
+                // Like Cursor, Claude leaves no usage on disk: only who is signed in, and
+                // its conversations.
+                snapshot.take(ClaudeReader.read(), for: .claude)
                 snapshot.conversations += ClaudeReader.conversations(in: root)
             case .codex:
                 snapshot.take(CodexReader.read(in: root), for: .codex)

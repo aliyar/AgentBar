@@ -1,8 +1,14 @@
 import Foundation
 
-/// Reads what Claude Code leaves under `~/.claude`: the rate-limit windows in
-/// `cache/usage.json`, the running sessions in `sessions/<pid>.json`, and each session's
-/// context from the tail of its transcript in `projects/`.
+/// Reads what Claude Code leaves under `~/.claude`: the running sessions in
+/// `sessions/<pid>.json`, each session's context from the tail of its transcript in
+/// `projects/`, and parses the rate-limit windows its account answers with.
+///
+/// **Claude Code writes no usage to disk.** A `cache/usage.json` may be there, but it is
+/// a status line script's copy of the account's answer, on the machines that run one, as
+/// old as that script's last successful ask; it was once read here as Claude Code's own,
+/// and showed numbers hours old beside Claude's live ones. The windows come from the
+/// account only (`AccountUsage`), parsed by `reading(from:)` below.
 ///
 /// The formats are undocumented and Claude Code's to change. Every field is optional on the
 /// way in; a shape that is not understood reads as nothing, never as a crash.
@@ -59,20 +65,54 @@ public enum ClaudeReader {
         let limits: [Limit]?
         let extra_usage: ExtraUsage?
         let spend: Spend?
+        let cedar_ember: ResetInventory?
     }
 
-    /// `cache/usage.json`: one small file Claude Code keeps up to date on its own, whether
-    /// or not a session is running. The account it belongs to is named next door, in
-    /// `~/.claude.json`.
-    public static func read(in root: URL, home: URL = HomeDirectory.url) -> Reading {
-        let url = root.appendingPathComponent("cache/usage.json")
-        var found = Reading()
-        if let data = try? Data(contentsOf: url) {
-            found = reading(from: data)
-            found.written = FileTail.modificationDate(of: url)
+    /// `cedar_ember`: the limit resets the account holds, sent only when asked for with
+    /// `?cedar_ember=1`. Shape from CodexBar (HEAD `1f6da9b`, 14 Nov 2026); not yet seen
+    /// on this Mac. A grant's `id` is the handle that redeems it, so it is never decoded.
+    struct ResetInventory: Decodable {
+        struct Grant: Decodable {
+            let label: String?
+            let resets_left: Int?
+            let starts_at: String?
+            let ends_at: String?
+            let paused: Bool?
         }
-        found.identity = found.identity.merged(with: identity(home: home))
-        return found
+        let eligible: Bool?
+        let grants: [FailableDecodable<Grant>]?
+    }
+
+    /// No inventory that size has been seen; one that claims it is malformed, not rich.
+    static let mostResets = 50
+
+    /// The resets usable at `now`, one credit per reset: a grant with two left is two.
+    /// A grant that is paused, used up, not started or expired is left out, and so is one
+    /// whose pause state is not stated. Nil when the account did not answer the question
+    /// or the account is not eligible - never "none".
+    static func resetCredits(in file: UsageFile, now: Date) -> ResetCredits? {
+        guard let inventory = file.cedar_ember, inventory.eligible == true else { return nil }
+        var credits: [ResetCredits.Credit] = []
+        for grant in (inventory.grants ?? []).compactMap(\.value) {
+            guard grant.paused == false, let left = grant.resets_left, left > 0 else { continue }
+            let starts = ISODate.parse(grant.starts_at), ends = ISODate.parse(grant.ends_at)
+            if let starts, starts > now { continue }
+            if let ends, ends <= now { continue }
+            // A bound that was sent but cannot be read is not an open one.
+            if (grant.starts_at != nil && starts == nil) || (grant.ends_at != nil && ends == nil) { continue }
+            guard credits.count + left <= mostResets else { return nil }
+            let label = grant.label?.trimmingCharacters(in: .whitespacesAndNewlines)
+            credits += Array(repeating: ResetCredits.Credit(expiresAt: ends, grantedAt: starts,
+                                                            label: label?.isEmpty == false ? label : nil),
+                             count: left)
+        }
+        return ResetCredits(credits: credits)
+    }
+
+    /// What the files say about the account: only who is signed in. The windows are the
+    /// account's to report.
+    public static func read(home: URL = HomeDirectory.url) -> Reading {
+        Reading(identity: identity(home: home))
     }
 
     /// Who Claude Code is signed in as, from the settings file it keeps beside its folder.
@@ -88,9 +128,10 @@ public enum ClaudeReader {
     }
 
     /// The parsing on its own, so the shape can be pinned by a test.
-    public static func reading(from data: Data) -> Reading {
+    public static func reading(from data: Data, now: Date = .now) -> Reading {
         guard let file = try? JSONDecoder().decode(UsageFile.self, from: data) else { return Reading() }
-        return Reading(limits: limits(in: file), credits: credits(in: file))
+        return Reading(limits: limits(in: file), credits: credits(in: file),
+                       resetCredits: resetCredits(in: file, now: now))
     }
 
     /// The windows, in the order the panel reads them: the session, the weekly window, the
@@ -178,6 +219,26 @@ public enum ClaudeReader {
         /// Epoch milliseconds; the agent rewrites these as the session moves.
         let updatedAt: Double?
         let statusUpdatedAt: Double?
+    }
+
+    /// The Claude Code version the newest session file names, or nil when none does. Read
+    /// from the files rather than by running `claude --version`, which starts the whole
+    /// program for one line.
+    public static func version(in root: URL) -> String? {
+        struct File: Decodable {
+            let version: String?
+            let updatedAt: Double?
+        }
+        let folder = root.appendingPathComponent("sessions")
+        guard let names = try? FileManager.default.contentsOfDirectory(atPath: folder.path) else { return nil }
+        return names.filter { $0.hasSuffix(".json") }
+            .compactMap { name -> File? in
+                guard let data = try? Data(contentsOf: folder.appendingPathComponent(name)) else { return nil }
+                return try? JSONDecoder().decode(File.self, from: data)
+            }
+            .filter { $0.version?.isEmpty == false }
+            .max { ($0.updatedAt ?? 0) < ($1.updatedAt ?? 0) }?
+            .version?.trimmingCharacters(in: .whitespaces)
     }
 
     /// `sessions/<pid>.json`: one file per running session, with the name Claude Code gave

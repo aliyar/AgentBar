@@ -27,6 +27,8 @@ struct UsageSection: View {
     /// When one of the agent's conversations last moved: a window that has rolled over
     /// is projected forward only while the agent is in use.
     let activeSince: Date?
+    /// The agent has worked since these numbers were read: they may have moved.
+    var isStale = false
     let now: Date
     /// Show each window's reset as a clock time instead of the time left. Clicking a
     /// time flips it, for every window at once.
@@ -53,7 +55,7 @@ struct UsageSection: View {
                 if !agent.isInstalled {
                     Note("Not installed: \(agent.folderPath) is not on this Mac")
                 } else if limits.isEmpty, let problem = account?.problem {
-                    Note(agent == .cursor ? "Cursor's usage comes from its account: \(problem)" : "Nothing on disk yet, and the account says: \(problem)")
+                    Note(agent == .codex ? "Nothing on disk yet, and the account says: \(problem)" : "\(agent.title)'s usage comes from its account: \(problem)")
                 } else if limits.isEmpty {
                     Note("Nothing reported yet")
                 } else {
@@ -74,15 +76,17 @@ struct UsageSection: View {
     /// account did not answer, then how old the numbers are, then what is left to spend
     /// once they run out. A balance beside a figure that cannot be trusted would be the
     /// wrong thing to read first.
+    ///
+    /// The age is always the age of the numbers drawn below, whichever source they came
+    /// from - not of the account's last answer, which a later file may have replaced.
     private var caption: String? {
+        let age = written.map { "\(Format.short(now.timeIntervalSince($0), coarse: true)) ago" }
         if let problem = account?.problem {
-            if let fetched = account?.fetchedAt {
-                return "\(problem) · \(Format.short(now.timeIntervalSince(fetched), coarse: true)) ago"
-            }
-            return problem
+            guard !limits.isEmpty, let age else { return problem }
+            return "\(problem) · \(age)"
         }
-        if !limits.isEmpty, let written, now.timeIntervalSince(written) > 3600 {
-            return "\(Format.short(now.timeIntervalSince(written), coarse: true)) ago"
+        if !limits.isEmpty, let written, let age, now.timeIntervalSince(written) > 3600 || isStale {
+            return age
         }
         return credits?.caption
     }
@@ -236,7 +240,11 @@ private struct ResetCreditsRow: View {
                 VStack(spacing: 5) {
                     ForEach(Array(available.enumerated()), id: \.offset) { _, credit in
                         HStack(spacing: 8) {
-                            Text(credit.expiresAt.map { "Expires \(Format.clock($0, now: now))" } ?? "No expiry")
+                            // The kind first, when the account names one: Claude's full reset
+                            // and its model resets do different things.
+                            Text((credit.label.map { "\($0) · " } ?? "")
+                                 + (credit.expiresAt.map { "\(credit.label == nil ? "Expires" : "expires") \(Format.clock($0, now: now))" }
+                                    ?? (credit.label == nil ? "No expiry" : "no expiry")))
                                 .font(.system(size: 11))
                                 .foregroundStyle(glass.tertiary)
                                 .lineLimit(1)

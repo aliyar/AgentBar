@@ -12,6 +12,9 @@ public enum AccountUsage {
         case notSignedIn
         case unauthorized
         case offline(String)
+        /// 429: asked too often. `retryAfter` is the server's own word on when to ask
+        /// again, when it gave one.
+        case rateLimited(retryAfter: Date?)
         case badResponse(Int)
         case unreadable
 
@@ -21,11 +24,23 @@ public enum AccountUsage {
             case .notSignedIn: "not signed in"
             case .unauthorized: "sign in again"
             case .offline: "offline"
-            case .badResponse(429): "asked too often"
+            case .rateLimited: "asked too often"
             case .badResponse(let code): "no answer (\(code))"
             case .unreadable: "unexpected answer"
             }
         }
+    }
+
+    /// `Retry-After` as a moment: a number of seconds, or an HTTP date. Nil when absent
+    /// or unreadable.
+    static func retryAfter(_ value: String?, now: Date) -> Date? {
+        guard let value = value?.trimmingCharacters(in: .whitespaces), !value.isEmpty else { return nil }
+        if let seconds = TimeInterval(value) { return seconds >= 0 ? now.addingTimeInterval(seconds) : nil }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "GMT")
+        formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
+        return formatter.date(from: value)
     }
 
     /// What the account reports, or why it could not be asked.
@@ -36,25 +51,53 @@ public enum AccountUsage {
         // Asked beside the usage, not after it: a second round trip would double the wait
         // for figures that do not depend on it.
         async let resets = resetCredits(for: agent, session: session, now: now)
-        let data: Data, response: URLResponse
+        var data: Data, response: URLResponse
         do {
             (data, response) = try await session.data(for: request)
+            // Claude's reset inventory is asked for in the same request. An account that
+            // will not answer that question (400, 403) is asked once more without it, so
+            // the question never costs the windows; a 401 or 429 is no such refusal.
+            if agent == .claude, let code = (response as? HTTPURLResponse)?.statusCode, code == 400 || code == 403,
+               let plain = withoutResetInventory(request) {
+                (data, response) = try await session.data(for: plain)
+            }
         } catch {
             return .failure(.offline(error.localizedDescription))
         }
-        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        let http = response as? HTTPURLResponse
+        let status = http?.statusCode ?? 0
         if status == 401 || status == 403 { return .failure(.unauthorized) }
+        if status == 429 {
+            return .failure(.rateLimited(retryAfter: retryAfter(http?.value(forHTTPHeaderField: "Retry-After"), now: now)))
+        }
         guard (200..<300).contains(status) else { return .failure(.badResponse(status)) }
         var reading: Reading = switch agent {
-        case .claude: ClaudeReader.reading(from: data)
+        case .claude: ClaudeReader.reading(from: data, now: now)
         case .codex: codexReading(from: data)
         case .cursor: cursorReading(from: data)
         }
         // Claude states no plan in its usage answer; its sign-in does.
         if let plan = claude?.plan { reading.identity.plan = plan }
         guard !reading.isEmpty else { return .failure(.unreadable) }
-        reading.resetCredits = await resets
+        // Codex lists its resets at an address of their own; Claude's came in the answer.
+        if let resets = await resets { reading.resetCredits = resets }
         return .success(reading)
+    }
+
+    /// Claude's usage address asks for the reset inventory too.
+    static let claudeUsageURL = URL(string: "https://api.anthropic.com/api/oauth/usage?cedar_ember=1")!
+
+    /// The same request without the inventory question, and with the plainer identity
+    /// CodexBar retries with; nil when it had no such question.
+    static func withoutResetInventory(_ request: URLRequest, version: String = claudeVersion()) -> URLRequest? {
+        guard let url = request.url, var parts = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              parts.queryItems?.contains(where: { $0.name == "cedar_ember" }) == true else { return nil }
+        parts.queryItems = parts.queryItems?.filter { $0.name != "cedar_ember" }
+        if parts.queryItems?.isEmpty == true { parts.queryItems = nil }
+        var plain = request
+        plain.url = parts.url
+        plain.setValue(claudeLegacyUserAgent(version: version), forHTTPHeaderField: "User-Agent")
+        return plain
     }
 
     /// The reset credits, for the one agent whose account lists them. Best effort: a
@@ -72,7 +115,9 @@ public enum AccountUsage {
         switch agent {
         case .claude:
             guard let token = (claude ?? Credentials.claude())?.accessToken else { return nil }
-            request = URLRequest(url: URL(string: "https://api.anthropic.com/api/oauth/usage")!)
+            // Never cached: the answer holds the handles that redeem each limit reset.
+            request = URLRequest(url: claudeUsageURL, cachePolicy: .reloadIgnoringLocalCacheData)
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
         case .codex:
@@ -83,9 +128,29 @@ public enum AccountUsage {
             request = URLRequest(url: URL(string: "https://cursor.com/api/usage-summary")!)
             request.setValue(cookie, forHTTPHeaderField: "Cookie")
         }
-        request.setValue("AgentBar (macOS)", forHTTPHeaderField: "User-Agent")
+        request.setValue(agent == .claude ? claudeUserAgent(version: claudeVersion()) : "AgentBar (macOS)",
+                         forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 10
         return request
+    }
+
+    /// The Claude Code version to name, when no session file names one. CodexBar's.
+    static let fallbackClaudeVersion = "2.1.0"
+
+    static func claudeVersion(root: URL = Agent.claude.defaultURL) -> String {
+        ClaudeReader.version(in: root) ?? fallbackClaudeVersion
+    }
+
+    /// Claude's usage answer carries the reset inventory only for a client that names
+    /// itself the way Claude's own tools do, marked as an outside one. The form is
+    /// CodexBar's (HEAD `1f6da9b`), and the one Claude Code status line scripts use.
+    static func claudeUserAgent(version: String) -> String {
+        "claude-cli/\(version) (external, cli)"
+    }
+
+    /// What CodexBar falls back to when the inventory question is refused.
+    static func claudeLegacyUserAgent(version: String) -> String {
+        "claude-code/\(version)"
     }
 
     static func resetCreditsRequest(now: Date) -> URLRequest? {

@@ -88,7 +88,8 @@ struct GlassOverview: View {
                                  written: snapshot.lastWritten[agent], account: snapshot.accounts[agent],
                                  credits: snapshot.credits[agent], identity: snapshot.identities[agent],
                                  resetCredits: snapshot.resetCredits[agent],
-                                 activeSince: snapshot.latestActivity(for: agent), now: now, showsClock: $showsClock,
+                                 activeSince: snapshot.latestActivity(for: agent),
+                                 isStale: snapshot.isStale(agent, at: now), now: now, showsClock: $showsClock,
                                  status: statuses[agent], statusProblem: statusProblems[agent],
                                  showsStatus: showsStatus,
                                  openStatus: { navigate(to: .status(agent)) })

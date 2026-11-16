@@ -18,11 +18,16 @@ enum MenuBarGauge {
         if windows.isEmpty { windows = live }
         guard !windows.isEmpty else { return nil }
 
+        // A bar whose agent has worked since its numbers were read is drawn faded: it may
+        // be fuller than it shows, and a full-strength colour would claim it is not. The
+        // time beside the bars stays as it is - a reset is known without asking.
+        let stale = Set(windows.map(\.agent).filter { snapshot.isStale($0, at: now) })
         let bars = windows.map { limit in
             let level = Palette.level(limit.percentUsed)
+            let alpha: CGFloat = stale.contains(limit.agent) ? 0.4 : 1
             return StatusItemGauge.Bar(fraction: max(0.09, limit.percentUsed / 100),
-                                       dark: Palette.nsColor(level, dark: true),
-                                       light: Palette.nsColor(level, dark: false))
+                                       dark: Palette.nsColor(level, dark: true).withAlphaComponent(alpha),
+                                       light: Palette.nsColor(level, dark: false).withAlphaComponent(alpha))
         }
 
         let clock: UsageLimit? = switch time {
@@ -43,6 +48,10 @@ enum MenuBarGauge {
         }
         if let clock {
             lines.append("\(title): time left on \(clock.agent.title) · \(clock.title)\(time == .fullest ? " (the fullest window)" : "")")
+        }
+        for agent in Agent.allCases where stale.contains(agent) {
+            let read = snapshot.lastWritten[agent].map { $0.formatted(date: .omitted, time: .shortened) } ?? "?"
+            lines.append("Faded: \(agent.title)'s numbers are from \(read), and it has worked since")
         }
         let summary = lines.joined(separator: "\n")
         return StatusItemGauge(bars: bars, title: title,

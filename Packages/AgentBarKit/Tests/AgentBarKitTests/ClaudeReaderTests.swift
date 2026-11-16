@@ -130,6 +130,67 @@ struct ClaudeReaderTests {
         #expect(reading.credits?.caption == "$12.40 credits")
     }
 
+    /// `cedar_ember`, in the shape CodexBar pins (14 Nov 2026); this Mac has not seen it
+    /// yet. claude.ai showed this account one full reset and two Fable resets that day.
+    @Test func limitResetsAreCountedOnePerResetLeft() throws {
+        let now = ISODate.parse("2026-11-16T13:00:00Z")!
+        let json = """
+        {"five_hour":{"utilization":38.0,"resets_at":"2026-11-16T15:00:00+00:00"},
+         "cedar_ember":{"eligible":true,"grants":[
+           {"id":"redemption-handle","label":"Fable reset","resets_left":2,"resets_total":2,
+            "starts_at":"2026-11-01T00:00:00Z","ends_at":"2027-03-09T07:59:00Z","paused":false,"usable_now":false},
+           {"label":"Full reset","resets_left":1,"paused":false,"ends_at":"2026-12-10T22:00:00Z"},
+           {"label":"paused","resets_left":1,"paused":true},
+           {"label":"unknown pause","resets_left":1},
+           {"label":"used up","resets_left":0,"paused":false},
+           {"label":"expired","resets_left":1,"paused":false,"ends_at":"2026-11-01T00:00:00Z"},
+           {"label":"not yet","resets_left":1,"paused":false,"starts_at":"2026-12-01T00:00:00Z"},
+           {"label":"unreadable bound","resets_left":1,"paused":false,"ends_at":"soon"},
+           "not a grant"
+         ]}}
+        """
+        let resets = try #require(ClaudeReader.reading(from: Data(json.utf8), now: now).resetCredits)
+        // Soonest expiry first; the redemption handle is nowhere in what is kept.
+        #expect(resets.credits.map(\.label) == ["Full reset", "Fable reset", "Fable reset"])
+        #expect(resets.credits.first?.expiresAt == ISODate.parse("2026-12-10T22:00:00Z"))
+        #expect(resets.available(at: now).count == 3)
+        #expect(!String(decoding: try JSONEncoder().encode(resets), as: UTF8.self).contains("redemption"))
+
+        // Not eligible, or not asked: no inventory at all, which is not "none".
+        let ineligible = #"{"five_hour":{"utilization":1},"cedar_ember":{"eligible":false,"grants":[]}}"#
+        #expect(ClaudeReader.reading(from: Data(ineligible.utf8), now: now).resetCredits == nil)
+        #expect(ClaudeReader.reading(from: Data(#"{"five_hour":{"utilization":1}}"#.utf8), now: now).resetCredits == nil)
+        // Eligible with nothing left is an empty inventory.
+        let empty = #"{"five_hour":{"utilization":1},"cedar_ember":{"eligible":true,"grants":[]}}"#
+        #expect(ClaudeReader.reading(from: Data(empty.utf8), now: now).resetCredits == ResetCredits(credits: []))
+        // An inventory past any plausible size is malformed, not rich.
+        let huge = #"{"five_hour":{"utilization":1},"cedar_ember":{"eligible":true,"grants":[{"resets_left":51,"paused":false}]}}"#
+        #expect(ClaudeReader.reading(from: Data(huge.utf8), now: now).resetCredits == nil)
+    }
+
+    @Test func theInventoryQuestionCanBeDropped() throws {
+        var asked = URLRequest(url: AccountUsage.claudeUsageURL)
+        asked.setValue(AccountUsage.claudeUserAgent(version: "2.1.325"), forHTTPHeaderField: "User-Agent")
+        #expect(asked.value(forHTTPHeaderField: "User-Agent") == "claude-cli/2.1.325 (external, cli)")
+        let plain = try #require(AccountUsage.withoutResetInventory(asked, version: "2.1.325"))
+        #expect(plain.url?.absoluteString == "https://api.anthropic.com/api/oauth/usage")
+        #expect(plain.value(forHTTPHeaderField: "User-Agent") == "claude-code/2.1.325")
+        #expect(AccountUsage.withoutResetInventory(plain) == nil)
+    }
+
+    @Test func theVersionComesFromTheNewestSessionFile() throws {
+        let root = try TemporaryDirectory()
+        #expect(ClaudeReader.version(in: root.url) == nil)
+        #expect(AccountUsage.claudeVersion(root: root.url) == "2.1.0")
+        let sessions = root.url.appendingPathComponent("sessions")
+        try FileManager.default.createDirectory(at: sessions, withIntermediateDirectories: true)
+        try Data(#"{"pid":1,"version":"2.1.300","updatedAt":1000}"#.utf8).write(to: sessions.appendingPathComponent("1.json"))
+        try Data(#"{"pid":2,"version":"2.1.325","updatedAt":2000}"#.utf8).write(to: sessions.appendingPathComponent("2.json"))
+        try Data(#"{"pid":3,"updatedAt":3000}"#.utf8).write(to: sessions.appendingPathComponent("3.json"))
+        try Data("nope".utf8).write(to: sessions.appendingPathComponent("4.json"))
+        #expect(ClaudeReader.version(in: root.url) == "2.1.325")
+    }
+
     @Test func contextComesFromTheNewestAnswerAndTheLastWords_2026_09_02() throws {
         let transcript = """
         {"type":"user","gitBranch":"main","message":{"role":"user","content":[{"type":"text","text":"Please **fix** the `Makefile`"}]}}
